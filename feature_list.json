@@ -1,0 +1,124 @@
+{
+  "features": [
+    {
+      "id": "feat-001",
+      "name": "Project Setup & Harness Integration",
+      "description": "Establish Harness Engineering files (CLAUDE.md, init.sh, feature_list.json) to guide agent behavior",
+      "dependencies": [],
+      "status": "completed",
+      "evidence": "Bootstrapped using harness-creator, configured init.sh with bun format/typecheck/build, and verified by running validate-harness script."
+    },
+    {
+      "id": "feat-002",
+      "name": "Recursive Memory Summarization",
+      "description": "Reduce sliding chat history window from 40 to 10 turns and integrate summaryContext into Groq prompts",
+      "dependencies": ["feat-001"],
+      "status": "completed",
+      "evidence": "Tested with chat API endpoints, verified context reduction and successful natural language Groq replies."
+    },
+    {
+      "id": "feat-003",
+      "name": "LLM Wiki Compiler & Metadata Timestamps",
+      "description": "Implement strict upsert logic in rag.ts compileToLlmWiki and record updatedAt timestamps in vectorDocument metadata",
+      "dependencies": ["feat-002"],
+      "status": "completed",
+      "evidence": "Database query verified presence of updatedAt timestamp in vectorDocument metadata after wiki compilation."
+    },
+    {
+      "id": "feat-004",
+      "name": "Agent Self-Verification Integration",
+      "description": "Ensure agent runs automated checks (init.sh) before completing tasks to prevent breaking changes",
+      "dependencies": ["feat-003"],
+      "status": "completed",
+      "evidence": "Fixed validate-harness execution path and command in sync-ai.ts. Verified bun run sync-ai completes both ./init.sh and validate-harness.ts checks."
+    },
+    {
+      "id": "feat-005",
+      "name": "Typst Integration for Agent Pro Max",
+      "description": "Implement native compile support for Typst syntax blocks in Agent Pro Max chatbot using typst binary and render compiled SVGs directly",
+      "dependencies": ["feat-004"],
+      "status": "completed",
+      "evidence": "Installed typst binary CLI, implemented /api/agent/compile-typst endpoint, updated client-side renderTypstDiagrams, verified bundle compilation."
+    },
+    {
+      "id": "feat-006",
+      "name": "Advanced RAG Engine",
+      "description": "Implement 5 advanced RAG techniques: Query Decomposition, HyDE, Step-Back Prompting, Contextual Retrieval, Advanced Cross-Encoder Reranking",
+      "dependencies": ["feat-003"],
+      "status": "completed",
+      "evidence": "390-line advanced-rag.ts with all 5 techniques. Integrated into cognitive-core.ts (auto-detect complex queries >8 words) and swarm-dispatcher.ts (context injection)."
+    },
+    {
+      "id": "feat-007",
+      "name": "Guardrails System",
+      "description": "Safety system detecting jailbreak, harmful content, sensitive topics, and PII with block/warn/censor mechanisms",
+      "dependencies": ["feat-001"],
+      "status": "completed",
+      "evidence": "234-line guardrails.ts with 8+ jailbreak patterns, harmful content detection, PII masking. Pattern-matching based (<1ms latency). Integrated into input and output pipeline."
+    },
+    {
+      "id": "feat-008",
+      "name": "RottraAI Translation Engine",
+      "description": "6-language translation system (vi, en, zh, ja, fi, he) with Google Translate free endpoint + JSON pre-cache + IndexedDB dynamic cache",
+      "dependencies": ["feat-001"],
+      "status": "completed",
+      "evidence": "ai-translator.ts with hub-and-spoke routing through English. JSON pre-cache in public/translations/. IndexedDB (rottra-translations DB) for dynamic content. POST /translate endpoint."
+    },
+    {
+      "id": "feat-009",
+      "name": "Multilingual Keyword Classifier",
+      "description": "Keyword aliases in 6 languages for 9 intents, enabling intent matching from non-VI queries without translate-to-VI",
+      "dependencies": ["feat-008"],
+      "status": "completed",
+      "evidence": "multilingual-keywords.ts with 6 languages × 9 intents. Agent-router integrates as fallback when Vietnamese keyword score < 0.15."
+    },
+    {
+      "id": "feat-010",
+      "name": "Dynamic Temperature & Conversation Memory Upgrade",
+      "description": "Auto-adjust temperature based on entropy. Importance scoring, topic tracking, cross-session memory merging for conversation memory.",
+      "dependencies": ["feat-002"],
+      "status": "completed",
+      "evidence": "Dynamic temperature in swarm-dispatcher.ts (3 lines). conversation-memory.ts: importance scoring, topic keywords, mergeImportanceAcrossSessions()."
+    },
+    {
+      "id": "feat-011",
+      "name": "Markov Engine (MDP + HMM + MCMC)",
+      "description": "Full Markov engine suite: MDP (Value/Policy Iteration), HMM (Forward-Backward, Viterbi, Baum-Welch), MCMC (Metropolis-Hastings, Gibbs, Rejection). Pre-built agricultural use cases.",
+      "dependencies": ["feat-001"],
+      "status": "completed",
+      "evidence": "markov-engine.ts with all algorithms and 3 pre-built models (Supply Chain MDP, Demand HMM, Price Sampler). Integrated into agent-router.ts."
+    },
+    {
+      "id": "feat-012",
+      "name": "Database Index Optimization",
+      "description": "Add 12 indexes on frequently queried columns across SensorData, Order, Review, OrderItem, CropSeason tables",
+      "dependencies": ["feat-001"],
+      "status": "completed",
+      "evidence": "12 indexes added to schema.ts covering farm_id, recorded_at, user_id, status, product_id, order_id columns."
+    },
+    {
+      "id": "feat-013",
+      "name": "Smart Chunking Strategies",
+      "description": "5 chunking strategies (fixed, sliding, semantic, paragraph, agricultural) with domain-aware boundary detection and hierarchical parent-child chunking",
+      "dependencies": ["feat-006"],
+      "status": "completed",
+      "evidence": "chunking-strategies.ts (NEW) with chunkDocument() and compileLongDocumentToWiki(). Integrated into vector-rag.ts."
+    },
+    {
+      "id": "feat-014",
+      "name": "AI Code Quality Audit & Fixes",
+      "description": "Audit 47 AI files for 40 issues (7 critical, 12 medium, 21 low). Fix all critical and medium: race conditions, async/sync mismatches, timer leaks, dead code, dynamic imports.",
+      "dependencies": ["feat-001"],
+      "status": "completed",
+      "evidence": "18 direct fixes across 17 files. Key patterns: dynamic imports for heavy deps, async file I/O, timer cleanup, concurrent buffer safety."
+    },
+    {
+      "id": "feat-015",
+      "name": "LCP Performance Optimization",
+      "description": "Fix Largest Contentful Paint from 17.26s: skeleton preservation, eager Home import, non-blocking data fetch (createResource→createSignal+onMount), fire-and-forget initTranslationCache, non-blocking Google Fonts.",
+      "dependencies": ["feat-008"],
+      "status": "completed",
+      "evidence": "Build passes (16.28s). Changes in index.tsrx, root.tsrx, home.tsrx, index.html, market-seo.tsrx, manage-bilingual.tsrx. Harness score 100/100."
+    }
+  ]
+}

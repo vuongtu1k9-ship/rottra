@@ -1,0 +1,17 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+
+Sitemap: https://rottra.com/sitemap.xml
+User Text
+   ↓
+Tokenizer (text → tokens)
+   ↓
+Model chạy trên GPU/CPU
+   ↓
+Predict next tokens
+   ↓
+Detokenizer
+   ↓
+Output Text

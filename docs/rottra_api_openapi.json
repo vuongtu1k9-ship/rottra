@@ -1,0 +1,275 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Rottra Logistics & AI Agent API",
+    "description": "Hệ thống tài liệu và đặc tả API hỗ trợ nhập trực tiếp vào Apidog/Postman để kiểm thử các tác vụ của Rottra AI Agent, Blockchain Ledger, Quản lý Sản phẩm và Nhật ký Telemetry.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:5173",
+      "description": "Local Development Server"
+    }
+  ],
+  "paths": {
+    "/api/me": {
+      "get": {
+        "summary": "Lấy thông tin tài khoản hiện tại",
+        "description": "Kiểm tra phiên đăng nhập hiện hành. Yêu cầu có Cookie Session hoặc Header Authorization hợp lệ.",
+        "tags": [
+          "Tài khoản & Xác thực"
+        ],
+        "responses": {
+          "200": {
+            "description": "Thành công",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "user": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Chưa đăng nhập (Unauthorized)"
+          }
+        }
+      }
+    },
+    "/api/agent/chat": {
+      "post": {
+        "summary": "Trò chuyện với Rottra NLP Agent",
+        "description": "Gửi yêu cầu hội thoại tự nhiên để Agent hỗ trợ quét sản phẩm, điều hướng và thực thi tác vụ.",
+        "tags": [
+          "AI Agent Core"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "query"
+                ],
+                "properties": {
+                  "query": {
+                    "type": "string",
+                    "example": "Kiểm tra xem có sản phẩm nào bị thiếu danh mục không?"
+                  },
+                  "path": {
+                    "type": "string",
+                    "example": "/dashboard"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Phản hồi từ Agent thành công",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "text": {
+                      "type": "string"
+                    },
+                    "action": {
+                      "type": "string"
+                    },
+                    "path": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/agent/chat-expert": {
+      "post": {
+        "summary": "Trò chuyện với Expert GGUF Agent (Llama Core)",
+        "description": "Gửi truy vấn suy luận logic cấp cao đến mô hình Llama GGUF chạy local trên máy chủ.",
+        "tags": [
+          "AI Agent Core"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "query"
+                ],
+                "properties": {
+                  "query": {
+                    "type": "string",
+                    "example": "Phân tích tối ưu hóa tuyến đường phân tán TSP tại Hồng Sơn."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Phản hồi thành công"
+          }
+        }
+      }
+    },
+    "/api/product": {
+      "get": {
+        "summary": "Lấy danh sách sản phẩm",
+        "description": "Trả về danh mục toàn bộ sản phẩm đang được quản lý trên hệ thống.",
+        "tags": [
+          "Quản lý Sản phẩm"
+        ],
+        "responses": {
+          "200": {
+            "description": "Lấy danh sách thành công"
+          }
+        }
+      },
+      "post": {
+        "summary": "Thêm sản phẩm mới",
+        "description": "Tạo sản phẩm mới và tự động kích hoạt Middleware Telemetry ghi nhận nhật ký.",
+        "tags": [
+          "Quản lý Sản phẩm"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "price",
+                  "stock"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "example": "Gạo nếp nương Tuyên Quang"
+                  },
+                  "price": {
+                    "type": "number",
+                    "example": 35000
+                  },
+                  "stock": {
+                    "type": "number",
+                    "example": 250
+                  },
+                  "category": {
+                    "type": "string",
+                    "example": "Lương thực"
+                  },
+                  "brand": {
+                    "type": "string",
+                    "example": "Hồng Sơn Cooperative"
+                  },
+                  "sku": {
+                    "type": "string",
+                    "example": "RICE_HS_01"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Tạo sản phẩm thành công"
+          }
+        }
+      }
+    },
+    "/api/ledger/trace": {
+      "post": {
+        "summary": "Ghi nhận khối giao dịch Blockchain mới",
+        "description": "Thêm dữ liệu chuỗi cung ứng bất biến được mã hóa mật mã SHA-256.",
+        "tags": [
+          "Sổ cái Chuỗi khối (Blockchain Ledger)"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "batchId",
+                  "action",
+                  "dataPayload"
+                ],
+                "properties": {
+                  "batchId": {
+                    "type": "string",
+                    "example": "prod_seed_1"
+                  },
+                  "action": {
+                    "type": "string",
+                    "example": "Đóng gói & Kiểm định chất lượng"
+                  },
+                  "dataPayload": {
+                    "type": "object",
+                    "example": {
+                      "weight": "250kg",
+                      "inspector": "Trạm Hồng Sơn",
+                      "status": "Passed"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Ghi sổ cái thành công"
+          }
+        }
+      }
+    },
+    "/api/ledger/trace/{prod_seed_id}": {
+      "get": {
+        "summary": "Truy xuất lịch sử nguồn gốc sản phẩm",
+        "description": "Truy xuất toàn bộ chuỗi khối liên kết thực thể từ mã mầm (seed ID).",
+        "tags": [
+          "Sổ cái Chuỗi khối (Blockchain Ledger)"
+        ],
+        "parameters": [
+          {
+            "name": "prod_seed_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "prod_seed_1"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Trả về chuỗi khối liên kết thực thể"
+          }
+        }
+      }
+    }
+  }
+}

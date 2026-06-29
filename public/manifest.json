@@ -1,0 +1,22 @@
+{
+  "name": "Rottra - Nông sản & Thương mại",
+  "short_name": "Rottra",
+  "description": "Nền tảng thương mại điện tử nông sản thông minh với AI Agent",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "printWidth": 140,
+  "tabWidth": 2,
+  "useTabs": false,
+  "semi": true,
+  "bracketSameLine": true,
+  "singleQuote": false,
+  "trailingComma": "all",
+  "plugins": ["@tsrx/prettier-plugin"],
+  "overrides": [
+    {
+      "files": "*.tsrx",
+      "options": {
+        "parser": "ripple"
+      }
+    }
+  ]
+}

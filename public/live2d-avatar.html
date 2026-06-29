@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Live2D Avatar</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: transparent;
+    }
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/6.5.10/browser/pixi.min.js"></script>
+  <script src="/assets/live2dcubismcore.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/pixi-live2d-display/dist/cubism4.min.js"></script>
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const modelUrl = urlParams.get('modelUrl');
+
+    if (!modelUrl) {
+      console.error("No modelUrl parameter specified.");
+    } else {
+      initLive2D(modelUrl);
+    }
+
+    async function initLive2D(url) {
+      const PIXI_LIB = window.PIXI;
+      if (!PIXI_LIB || !PIXI_LIB.Application || !PIXI_LIB.live2d || !PIXI_LIB.live2d.Live2DModel) {
+        console.error("PIXI or Live2D library not fully loaded.");
+        return;
+      }
+
+      const canvas = document.getElementById('canvas');
+      const app = new PIXI_LIB.Application({
+        view: canvas,
+        autoStart: true,
+        backgroundAlpha: 0,
+        antialias: true,
+        resizeTo: window
+      });
+
+      window.addEventListener('unload', () => {
+        app.destroy(true, {
+          children: true,
+          texture: true,
+          baseTexture: true
+        });
+      });
+
+      try {
+        const Live2DModel = PIXI_LIB.live2d.Live2DModel;
+        const model = await Live2DModel.from(url);
+        app.stage.addChild(model);
+
+        // Store original sizes to scale correctly on resize
+        const originalWidth = model.width;
+        const originalHeight = model.height;
+
+        function adjustLayout() {
+          const w = window.innerWidth;
+          const h = window.innerHeight;
+
+          // Scale model to fit 90% of the iframe height
+          const scaleFactor = (h / originalHeight) * 0.9;
+          model.scale.set(scaleFactor);
+
+          // Center horizontally
+          model.x = (w - originalWidth * scaleFactor) / 2;
+
+          // Align to bottom
+          model.y = h - originalHeight * scaleFactor;
+        }
+
+        adjustLayout();
+        window.addEventListener('resize', adjustLayout);
+
+        // Follow cursor movements inside the card
+        window.addEventListener("mousemove", (e) => {
+          model.focus(e.clientX, e.clientY);
+        });
+
+        // Trigger motion on tap
+        model.interactive = true;
+        model.on("pointertap", () => {
+          model.motion("tap_body");
+        });
+
+      } catch (err) {
+        console.error("Error loading Live2D model:", err);
+      }
+    }
+  </script>
+</body>
+</html>

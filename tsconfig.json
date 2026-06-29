@@ -1,0 +1,42 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",         // Giữ nguyên cú pháp JS hiện đại nhất, không transpile về ES5/ES6 cồng kềnh
+    "module": "ESNext",         // Dùng ES Modules nguyên bản để Bun và Vite tối ưu Tree-shaking (Xóa code thừa)
+    "moduleResolution": "bundler",
+    "strict": true,             // Kích hoạt chế độ nghiêm ngặt chống lọt rác vào RAM
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "exactOptionalPropertyTypes": true,
+    "isolatedModules": true,
+    "lib": [
+      "ESNext",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "jsx": "preserve",
+    "jsxImportSource": "solid-js",
+    "allowJs": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "types": [
+      "vite/client",
+      "bun-types"
+    ],
+    "paths": {
+      "~/*": [
+        "./src/*"
+      ]
+    },
+    "plugins": [
+      {
+        "name": "@tsrx/typescript-plugin"
+      }
+    ]
+  },
+  "include": [
+    "src"
+  ]
+}

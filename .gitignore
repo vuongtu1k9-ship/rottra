@@ -1,0 +1,38 @@
+dist
+
+# Environment
+.env
+.env*.local
+
+# dependencies
+/node_modules
+
+# IDEs and editors
+/.idea
+.project
+.classpath
+*.launch
+.settings/
+
+# Temp
+scratch/
+archive/
+*.log
+*.wav
+*-debug.png
+*-error.png
+build_log.txt
+collatz_state.json
+notifications.log
+
+# Large binary dirs
+/models/
+/pg_data/
+/pg_data.*/
+/video_ads/
+/finetune/
+/*.gguf
+
+# System Files
+.DS_Store
+Thumbs.db

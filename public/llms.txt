@@ -1,0 +1,29 @@
+# Rottra - Hệ sinh thái Nông nghiệp Số hóa & Trợ lý Rottra QA
+
+Rottra là nền tảng quản lý nông trại thông minh, chuỗi cung ứng nông sản sạch, tích hợp sổ cái blockchain truy xuất nguồn gốc và trợ lý AI Rottra (chạy cục bộ qua GGUF/node-llama-cpp).
+
+## Cấu trúc Dự án
+- `/src/routes/`: Các màn hình frontend (SolidJS + tsrx) bao gồm dashboard, quản lý nông sản, giáo dục AI.
+- `/src/routes/api/`: Các endpoint API backend (Hono).
+  - `[...paths].ts`: Router API chính (Auth, Upload, CSDL, AI).
+- `/src/db/`: Cấu hình CSDL Drizzle ORM + PostgreSQL/PGlite.
+- `/src/lib/agent/`: Hệ thống AI nội bộ.
+  - `tiny-llm-runner.ts`: Nạp và suy luận GGUF local model (MiniCPM).
+  - `rag.ts` / `graph-rag.ts`: Tìm kiếm ngữ nghĩa lai (Hybrid Retrieval) + Reranker + Đồ thị Tri thức.
+- `/src/cli.ts`: Công cụ dòng lệnh quản lý dự án.
+
+## Cơ sở dữ liệu (Drizzle ORM Schema)
+Các bảng chính trong `src/db/schema.ts`:
+- `user`: Thông tin người dùng (id, name, email, role, profile).
+- `Product`: Sản phẩm nông sản (id, name, price, quantity, status, coordinates).
+- `Order` & `OrderItem`: Quản lý đơn hàng.
+- `Farm`: Thông tin nông trại (ownerId, location, images).
+- `CropSeason`: Quản lý mùa vụ (startDate, expectedEndDate, yieldEstimate).
+- `SensorData`: Ghi nhận nhiệt độ, độ ẩm từ thiết bị IoT.
+- `AgentMemory`: Lưu trữ ký ức và cấu trúc triết lý của AI Rottra (`user_training`).
+- `BlockchainLedger`: Sổ cái bất biến truy xuất nguồn gốc lô hàng nông sản (HARVEST, QA_CHECK, EXPORT).
+
+## API Endpoints Quan trọng
+- `POST /api/upload`: Upload file ảnh/video lên local storage (có deduplication md5).
+- `POST /api/admin/ai/memory`: Đào tạo thêm tri thức mới cho AI.
+- `POST /api/admin/db-query`: Chạy truy vấn SQL trực tiếp qua PGlite (chỉ dành cho Admin).
