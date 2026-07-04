@@ -1140,6 +1140,17 @@ export component Assistant(props: any) {
       }
       updateCart(cart, isLoggedIn());
       alert(`Đã thêm ${p.name} vào giỏ hàng! 🛒`);
+      
+      // GỬI PHẦN THƯỞNG CHO RL ENGINE (Q-Learning)
+      fetch("/api/rpc/rl/reward", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          stateHash: msg.stateHash || "global_user_context", 
+          actionId: pid, 
+          reward: 10 // Thưởng lớn cho chốt đơn
+        })
+      }).catch(() => {});
     };
 
     return <tsx>
@@ -1209,9 +1220,37 @@ export component Assistant(props: any) {
     if (msgText.includes("┌") || msgText.includes("┤") || msgText.includes("┼")) {
       return <tsx><pre class={getPreBlockClass()}>{msgText}</pre></tsx>;
     }
+
+    // Parse Chain of Thought <think> blocks
+    let thoughtProcess = "";
+    let finalAnswer = msgText;
+    
+    if (msgText.includes("<think>")) {
+      const parts = msgText.split("</think>");
+      if (parts.length > 1) {
+        thoughtProcess = parts[0].replace("<think>", "").trim();
+        finalAnswer = parts.slice(1).join("</think>").trim();
+      } else {
+        thoughtProcess = msgText.replace("<think>", "").trim();
+        finalAnswer = "";
+      }
+    }
+
     return <tsx>
       <div class="flex flex-col gap-3">
-        <div class="leading-relaxed text-left break-words" innerHTML={formatMarkdown(msgText)}></div>
+        {thoughtProcess ? (
+          <details class="group bg-black/5 dark:bg-white/5 rounded-xl border border-gray-200 dark:border-white/10 overflow-hidden text-sm mb-2">
+            <summary class="px-4 py-2 cursor-pointer font-semibold text-gray-600 dark:text-gray-400 select-none hover:bg-black/10 dark:hover:bg-white/10 transition-colors flex items-center outline-none">
+              <span class="mr-2 opacity-70">🧠</span> Quá trình suy luận (Chain of Thought)
+            </summary>
+            <div class="p-4 pt-3 text-gray-500 dark:text-gray-400 italic text-[13px] leading-relaxed border-t border-gray-200 dark:border-white/10 bg-black/5 dark:bg-black/20" innerHTML={formatMarkdown(thoughtProcess)}></div>
+          </details>
+        ) : null}
+        
+        {finalAnswer ? (
+          <div class="leading-relaxed text-left break-words" innerHTML={formatMarkdown(finalAnswer)}></div>
+        ) : null}
+        
         {renderProductCarousel(msg)}
       </div>
     </tsx>;
