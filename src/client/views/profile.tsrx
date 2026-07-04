@@ -459,7 +459,7 @@ export const Profile = (props: any) => {
                       ? "bg-purple-500/20 text-purple-400 border border-purple-500/30"
                       : "bg-green-100 text-green-700"
                 }`}>
-                {props.user?.id === "system_agent_user" || displayRole() === "agent" ? t("Lõi Agent Tối Cao") : t(displayRole())}
+                {props.user?.id === "system_agent_user" || displayRole() === "agent" ? t("Rottra") : t(displayRole())}
               </span>
               <UserAvatar
                 name={props.user?.name || profile()?.fullName || user()?.name || t("Người dùng")}
@@ -743,7 +743,7 @@ export const Profile = (props: any) => {
                           {t("Vai trò:")}
                         </span>
                         <span class="font-bold text-purple-600 dark:text-purple-400">
-                          {t("Lõi Agent Tối Cao")}
+                          {t("Rottra")}
                         </span>
                       </>;
                     } else {
