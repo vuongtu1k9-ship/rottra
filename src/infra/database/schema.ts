@@ -861,5 +861,19 @@ export const dpoTrainingData = pgTable("DpoTrainingData", {
   createdAt: timestamp("created_at", { mode: "string" }).defaultNow().notNull(),
 });
 
+// Bảng lưu trữ Q-Table cho Reinforcement Learning
+export const rlQTable = pgTable(
+  "RlQTable",
+  {
+    id: text().primaryKey().notNull(), // UUID
+    stateHash: text().notNull(), // Hash của state (vd: user intent, preferences)
+    actionId: text().notNull(), // ID của action (vd: productId)
+    qValue: real().notNull().default(0), // Giá trị Q hiện tại
+    visitCount: integer().notNull().default(0), // Số lần state-action này được thực hiện
+    lastUpdated: timestamp({ withTimezone: true, mode: "string" }).defaultNow(),
+  },
+  (table: any) => [index("idx_rl_qtable_state").on(table.stateHash)]
+);
+
 // Re-export federated learning tables
 export { flRound, flGradientUpdate, flModelVersion, flNode, flPrivacyBudget } from "./fl-schema-additions";

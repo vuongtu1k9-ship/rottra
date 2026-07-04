@@ -44,6 +44,20 @@ const rpcApp = new Hono()
         );
       `);
 
+      await db.execute(sql`
+        CREATE TABLE IF NOT EXISTS "RlQTable" (
+          "id" text PRIMARY KEY NOT NULL,
+          "stateHash" text NOT NULL,
+          "actionId" text NOT NULL,
+          "qValue" real DEFAULT 0 NOT NULL,
+          "visitCount" integer DEFAULT 0 NOT NULL,
+          "lastUpdated" timestamp with time zone DEFAULT now()
+        );
+      `);
+      try {
+        await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_rl_qtable_state ON "RlQTable" ("stateHash");`);
+      } catch (e) {}
+
       // 🇻🇳 SEED ADVANCED VIETNAMESE GRAMMAR LEXICON
       const advancedLexicons = [
         {
@@ -782,6 +796,27 @@ const rpcApp = new Hono()
           source: "seeded_db",
         });
       }
+    } catch (e) {
+      return c.json({ status: "error", error: String(e) }, 500);
+    }
+  })
+  .post("/rl/reward", async (c) => {
+    try {
+      const { stateHash, actionId, reward } = await c.req.json<{ stateHash: string; actionId: string; reward: number }>();
+      const { updateQValue } = await import("~/server/api/rl-engine");
+      await updateQValue(stateHash, actionId, reward);
+      return c.json({ status: "success" });
+    } catch (e) {
+      return c.json({ status: "error", error: String(e) }, 500);
+    }
+  })
+  .post("/rl/recommend", async (c) => {
+    try {
+      const { context } = await c.req.json<{ context: any }>();
+      const products = await db.query.product.findMany({ limit: 20 });
+      const { recommendProduct, hashState } = await import("~/server/api/rl-engine");
+      const recommended = await recommendProduct(context, products);
+      return c.json({ status: "success", stateHash: hashState(context), product: recommended });
     } catch (e) {
       return c.json({ status: "error", error: String(e) }, 500);
     }
