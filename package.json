@@ -12,7 +12,6 @@
     "tunnel": "bun scripts/start-tunnel.ts"
   },
   "dependencies": {
-    "@hono/node-server": "^2.0.8",
     "@hono/vite-dev-server": "^0.25.3",
     "@kobalte/core": "^0.13.12",
     "@solidjs/router": "^0.16.1",
@@ -42,7 +41,6 @@
     "ts-slug": "^0.1.0",
     "vite": "7.3.2",
     "vite-plugin-solid": "^2.11.12",
-    "ws": "^8.21.0",
     "youtube-transcript": "^1.3.1",
     "zod": "^4"
   },
