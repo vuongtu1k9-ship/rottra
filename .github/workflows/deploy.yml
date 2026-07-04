@@ -1,10 +1,16 @@
 name: Deploy to Cloudflare Pages
 
+
 on:
   push:
     branches:
       - main
   workflow_dispatch:
+
+
+permissions:
+  contents: read
+  deployments: write
 
 jobs:
   deploy:
@@ -14,16 +20,20 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+
       - name: Setup Bun
         uses: oven-sh/setup-bun@v1
         with:
           bun-version: latest
 
+
       - name: Install Dependencies
         run: bun install
 
+
       - name: Build Project
         run: bun run build
+
 
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/pages-action@v1
@@ -34,3 +44,4 @@ jobs:
           directory: dist
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
           branch: main
+
