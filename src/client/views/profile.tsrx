@@ -1017,7 +1017,7 @@ export const Profile = (props: any) => {
                 </p>}
               {isAgent() &&
                 <p class="text-xs text-purple-500 mt-8 font-bold italic">
-                  {t("Sử dụng chung mã QR thanh toán của Trợ Lý Cao Cấp Rottra")}
+                  {t("Sử dụng chung mã QR thanh toán của RottraAI")}
                 </p>}
             </div>
             {(() => {

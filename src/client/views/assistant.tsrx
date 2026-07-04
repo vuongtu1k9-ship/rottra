@@ -410,7 +410,7 @@ export component Assistant(props: any) {
     ];
   };
 
-  const [agentName, setAgentName] = createSignal("Trợ Lý Cao Cấp Rottra");
+  const [agentName, setAgentName] = createSignal("RottraAI");
   const [agentAvatar, setAgentAvatar] = createSignal("");
 
   const fetchAgentProfile = async () => {

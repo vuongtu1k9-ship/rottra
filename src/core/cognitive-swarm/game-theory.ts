@@ -1271,7 +1271,7 @@ ${probSection}
     },
     AUTHOR: async () => {
       return {
-        text: "Dạ em là Trợ Lý Cao Cấp Rottra (Rottra AgentProMax), được phát triển bởi đội ngũ kỹ sư Google DeepMind và các kỹ sư hệ thống Rottra để hỗ trợ Sếp vận hành nông nghiệp thông minh ạ!",
+        text: "Dạ em là RottraAI (Rottra AgentProMax), được phát triển bởi đội ngũ kỹ sư Google DeepMind và các kỹ sư hệ thống Rottra để hỗ trợ Sếp vận hành nông nghiệp thông minh ạ!",
       };
     },
     DEEPMIND: async () => {

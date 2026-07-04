@@ -2122,7 +2122,7 @@ app.get("/agent/system-profile", async (c: any) => {
     success: true,
     profile: {
       ...profile,
-      fullName: profile.fullName || dbUser?.name || "Trợ Lý Cao Cấp Rottra ⭐",
+      fullName: profile.fullName || dbUser?.name || "RottraAI ⭐",
       email: dbUser?.email || "agent@Rottra.com",
       avatar: profile.avatar || (dbUser?.image ? { link: dbUser.image } : { link: "/default-avatar.png" }),
     },
@@ -5345,7 +5345,7 @@ Ensure the reply is beautifully formatted using markdown.`;
     const systemName = profile.fullName || dbUser?.name;
     const systemAvatar = profile.avatar?.link || dbUser?.image;
 
-    const finalAgentName = systemName || "Trợ Lý Cao Cấp Rottra ⭐";
+    const finalAgentName = systemName || "RottraAI ⭐";
     const finalAgentAvatar = systemAvatar || "https://api.dicebear.com/7.x/bottts/svg?seed=general";
 
     // Trạm biên soạn tri thức tự động (LLM Wiki compiler) chạy ngầm để không cản trở tốc độ phản hồi UI
