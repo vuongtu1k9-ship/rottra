@@ -403,7 +403,7 @@ export component Header(props: any) {
           theme() === "dark" ? "text-white" : "text-gray-900"
         }`}>
         <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white font-bold text-lg ring-2 ring-blue-500/20 shadow-sm shrink-0">
-          T
+          {"T"}
         </div>
         <span class="hidden sm:inline">{t("Rottra")}</span>
       </A>
