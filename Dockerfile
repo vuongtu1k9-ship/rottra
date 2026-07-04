@@ -1,6 +1,7 @@
 FROM oven/bun:latest
 
 WORKDIR /app
+ENV PUPPETEER_SKIP_DOWNLOAD=true
 
 # Copy dependency configs first for caching
 COPY package.json bun.lock ./
