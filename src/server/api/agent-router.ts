@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { agentScraper } from "~/server/helpers/agent-scraper";
+import { moderateProductData } from "~/server/helpers/moderator";
 import { db, pgClient } from "~/infra/database/db-pool";
 import {
   agentTask,

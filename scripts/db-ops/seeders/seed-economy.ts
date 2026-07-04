@@ -231,7 +231,12 @@ async function main() {
       description: `[CA DAO TỤC NGỮ]: "${quote}"\n\nDòng sản phẩm cao cấp giúp gia tăng năng suất chuỗi nông nghiệp Rottra. Đạt chuẩn chất lượng ISO 9001.`,
       quantity: 100 + (i % 50),
       heavy: tmpl.heavy,
-      media: ["/assets/Rottra-default-agri.png"],
+      media: [(tmpl.name.toLowerCase().includes("coffee") ? "/coffee.jpg" :
+          tmpl.name.toLowerCase().includes("tea") ? "/tea.jpg" :
+          tmpl.name.toLowerCase().includes("durian") ? "/durian.jpg" :
+          tmpl.name.toLowerCase().includes("mango") ? "/mango.jpg" :
+          tmpl.name.toLowerCase().includes("rice") || tmpl.name.toLowerCase().includes("st25") ? "/rice.jpg" :
+          "/vegetable.jpg")],
       status: true,
       expired: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
       coordinates: { lat: 21.6243 + Math.sin(i) * 0.005, lng: 105.2645 + Math.cos(i) * 0.005 },
