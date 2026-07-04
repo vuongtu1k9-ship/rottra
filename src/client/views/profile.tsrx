@@ -463,7 +463,11 @@ export const Profile = (props: any) => {
               </span>
               <UserAvatar
                 name={props.user?.name || profile()?.fullName || user()?.name || t("Người dùng")}
-                image={profile()?.avatar?.link || profile()?.imgId?.link || props.user?.image}
+                image={
+                  (props.user?.id === "RottraAI" || activeUserId() === "RottraAI") && !(profile()?.avatar?.link || props.user?.image)
+                    ? "/assets/rontra-default-agri.png"
+                    : profile()?.avatar?.link || profile()?.imgId?.link || props.user?.image
+                }
                 loading={!props.user && !profile() && !profileNotFound()}
                 class={`w-20 h-20 text-2xl ring-4 ring-blue-50 mb-4 shadow-sm transition-transform ${
                   props.activeSubAgentId ? "cursor-pointer hover:scale-105" : ""
@@ -934,7 +938,11 @@ export const Profile = (props: any) => {
                 <div class="relative group">
                   <UserAvatar
                     name={profile()?.fullName || user()?.name || t("Người dùng")}
-                    image={profile()?.avatar?.link || profile()?.imgId?.link}
+                    image={
+                      (targetUserId() === "RottraAI" || activeUserId() === "RottraAI") && !(profile()?.avatar?.link || profile()?.imgId?.link)
+                        ? "/assets/rontra-default-agri.png"
+                        : profile()?.avatar?.link || profile()?.imgId?.link
+                    }
                     loading={!props.user && !profile() && !profileNotFound()}
                     class="w-24 h-24 text-3xl ring-4 ring-blue-50 transition-transform group-hover:scale-105 shadow-md"
                   />

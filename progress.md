@@ -417,6 +417,20 @@
 - `scripts/start-tunnel.ts` - Tự động cập nhật.
 - `src/client/views/dashboard/manage-user.tsrx` - Tự động cập nhật.
 - `src/client/views/profile.tsrx` - Tự động cập nhật.
+- `.agents/AGENTS.md` - Tự động cập nhật.
+- `fetch-transcript.ts` - Tự động cập nhật.
+- `rename-db.ts` - Tự động cập nhật.
+- `replace.js` - Tự động cập nhật.
+- `replace2.js` - Tự động cập nhật.
+- `scripts/db-ops/migrations/fix-agent-products.ts` - Tự động cập nhật.
+- `scripts/db-ops/rename-agent.ts` - Tự động cập nhật.
+- `scripts/db-ops/seeders/seed-economy.ts` - Tự động cập nhật.
+- `scripts/db-ops/seeders/seed-training.ts` - Tự động cập nhật.
+- `scripts/db-ops/seeders/seed_presets.ts` - Tự động cập nhật.
+- `scripts/restore-agent.ts` - Tự động cập nhật.
+- `src/routes/api/[...paths].ts` - Tự động cập nhật.
+- `src/server/api/agent-router.ts` - Tự động cập nhật.
+- `test-db.ts` - Tự động cập nhật.
 
 ## Evidence of Completion
 
