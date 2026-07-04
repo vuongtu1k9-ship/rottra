@@ -127,7 +127,7 @@ export component SettingSystem(props: any) {
 
       // Lấy Client Env
       const resolution =
-        typeof window !== "undefined" ? `${window.screen.width}x${window.screen.height}` : "Không xác định";
+        typeof window !== "undefined" ? `${Math.round(window.screen.width * window.devicePixelRatio)}x${Math.round(window.screen.height * window.devicePixelRatio)}` : "Không xác định";
       const language = navigator?.language ?? "Không xác định";
       const timezone = Intl?.DateTimeFormat()?.resolvedOptions()?.timeZone ?? "Không xác định";
 
