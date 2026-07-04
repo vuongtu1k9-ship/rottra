@@ -8,7 +8,7 @@
  */
 
 import { db } from "~/infra/database/db-pool";
-import { agentTraining, feedbackLog } from "~/infra/database/schema";
+import { agentTraining, feedbackLog, dpoTrainingData } from "~/infra/database/schema";
 import { eq, sql, desc } from "drizzle-orm";
 import crypto from "crypto";
 import { recordIntentOverride } from "~/core/nlp-cognitive/tokenizer";
@@ -126,6 +126,17 @@ export async function recordFeedback(query: string, intent: string, score: numbe
             .set({ answer: "🧠 [Rottra Học Lại]: " + betterAnswer })
             .where(eq(agentTraining.id, existing.id));
           console.log(`[SelfLearner] 🔄 Cập nhật câu trả lời cho: "${query.slice(0, 40)}..."`);
+          
+          // LƯU CẶP DỮ LIỆU DPO (Direct Preference Optimization)
+          // Câu bị chê (rejected) vs Câu tốt hơn (chosen)
+          await db.insert(dpoTrainingData).values({
+            id: crypto.randomUUID(),
+            prompt: query.trim(),
+            chosenResponse: betterAnswer,
+            rejectedResponse: existing.answer,
+          });
+          console.log(`[SelfLearner] 📊 Đã lưu cặp DPO cho câu hỏi: "${query.slice(0, 40)}..."`);
+
         } else {
           await db.insert(agentTraining).values({
             id: crypto.randomUUID(),

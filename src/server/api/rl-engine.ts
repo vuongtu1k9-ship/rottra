@@ -31,7 +31,7 @@ export async function getQValue(stateHash: string, actionId: string): Promise<nu
 }
 
 /**
- * Updates the Q-value using the Bellman Equation (simplified for contextual bandit).
+ * Updates the Q-value using the Bellman Equation with Anti-Reward Hacking.
  */
 export async function updateQValue(stateHash: string, actionId: string, reward: number): Promise<void> {
   const record = await db.query.rlQTable.findFirst({
@@ -42,8 +42,14 @@ export async function updateQValue(stateHash: string, actionId: string, reward: 
   });
 
   if (record) {
-    // Q(s,a) = Q(s,a) + alpha * (reward - Q(s,a))
-    const newQValue = record.qValue + ALPHA * (reward - record.qValue);
+    // 🛡️ ANTI-REWARD HACKING: Diminishing returns for repetitive actions
+    // Nếu AI spam 1 sản phẩm quá nhiều lần, phần thưởng sẽ bị giảm giá trị thực tế
+    // Công thức: effective_reward = reward / log2(visitCount + 1)
+    const effectiveReward = reward > 0 ? reward / Math.max(1, Math.log2(record.visitCount + 1)) : reward;
+
+    // Q(s,a) = Q(s,a) + alpha * (effectiveReward - Q(s,a))
+    const newQValue = record.qValue + ALPHA * (effectiveReward - record.qValue);
+    
     await db.update(rlQTable)
       .set({ 
         qValue: newQValue, 
