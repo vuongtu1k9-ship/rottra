@@ -81,7 +81,7 @@ export const ManageUsers = (props: any) => {
                       {}
                       {(() => {
                         const targetUser =
-                          activeSubAgentId() ? (usersData() || []).find((u) => u.id === activeSubAgentId()) : user;
+                          (activeSubAgentId() ? (usersData() || []).find((u) => u.id === activeSubAgentId()) : null) || user;
                         return <>
                           <div
                             onClick={() => toggleSelect(user)}
