@@ -6199,7 +6199,7 @@ export component Assembly(props: any) {
     });
 
     return {
-      name: "RottraAI",
+      name: "Trợ Lý Cao Cấp Rottra",
       budget: totalBudget,
       gold: totalGold,
       stocks: aggregatedStocks,

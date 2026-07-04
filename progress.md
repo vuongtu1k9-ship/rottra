@@ -431,6 +431,11 @@
 - `src/routes/api/[...paths].ts` - Tự động cập nhật.
 - `src/server/api/agent-router.ts` - Tự động cập nhật.
 - `test-db.ts` - Tự động cập nhật.
+- `check-users.ts` - Tự động cập nhật.
+- `replace3.js` - Tự động cập nhật.
+- `src/client/components/user-avatar.tsrx` - Tự động cập nhật.
+- `src/client/views/assembly.tsrx` - Tự động cập nhật.
+- `src/core/cognitive-swarm/game-theory.ts` - Tự động cập nhật.
 
 ## Evidence of Completion
 

@@ -46,15 +46,8 @@ export component UserAvatar(props: {
 
   const initials = () => getInitials(props.name || "User");
   const gradient = () => getGradientForName(props.name || "User");
-  const finalImage = () => {
-    if (props.name === "Rottra" || props.name === "RottraAI") {
-      return "/assets/rontra-default-agri.png";
-    }
-    return props.image;
-  };
-
   const hasValidImage = () => {
-    const img = finalImage();
+    const img = props.image;
     if (!img || img === "" || img === "/default-avatar.png" || img.includes("default-avatar.png") || imageError()) {
       return false;
     }
@@ -90,7 +83,7 @@ export component UserAvatar(props: {
         />
       </Show>
       <img
-        src={finalImage()!}
+        src={props.image!}
         class={`rounded-full object-cover border border-white/10 shadow-sm ${props.class || "w-10 h-10"} ${
           imageLoaded() ? "" : "absolute w-0 h-0 opacity-0 pointer-events-none"
         }`}

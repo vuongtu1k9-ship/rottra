@@ -101,7 +101,7 @@ async function seed() {
     console.log("Không tìm thấy admin@Rottra.com hoặc agent@Rottra.com. Đang khởi tạo RottraAI...");
     const [insertedUser] = await db.insert(user).values({
       id: "RottraAI",
-      name: "RottraAI",
+      name: "Trợ Lý Cao Cấp Rottra",
       email: "agent@Rottra.com",
       emailVerified: true,
       createdAt: new Date(),

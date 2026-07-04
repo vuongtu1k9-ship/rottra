@@ -12,7 +12,7 @@ async function main() {
     .insert(user)
     .values({
       id: systemUserId,
-      name: "RottraAI",
+      name: "Trợ Lý Cao Cấp Rottra",
       email: "agent@Rottra.com",
       emailVerified: true,
       createdAt: new Date(),
