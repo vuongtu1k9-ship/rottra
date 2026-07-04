@@ -542,18 +542,6 @@ export const Form = (props: any) => {
                       onChange={handleAvatarFileSelect}
                     />
                   </div>
-                  <div class="flex gap-3 mt-1">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        openUrlModal("Nhập đường dẫn ảnh đại diện (URL)", (url) => {
-                          setAvatarMedia({ link: url, type: "image", name: url.split("/").pop() || "External Image" });
-                        });
-                      }}
-                      class="text-[10px] font-black text-blue-500 hover:underline cursor-pointer uppercase tracking-widest">
-                      {"+ Dán URL"}
-                    </button>
-                  </div>
                 </div>
                 {}
                 <div class="flex flex-col items-center gap-3">
@@ -621,18 +609,6 @@ export const Form = (props: any) => {
                       class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
                       onChange={handleQrFileSelect}
                     />
-                  </div>
-                  <div class="flex gap-3 mt-1">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        openUrlModal("Nhập đường dẫn mã QR (URL)", (url) => {
-                          setQrMedia({ link: url, type: "image", name: url.split("/").pop() || "External QR" });
-                        });
-                      }}
-                      class="text-[10px] font-black text-blue-500 hover:underline cursor-pointer uppercase tracking-widest">
-                      {"+ Dán URL"}
-                    </button>
                   </div>
                 </div>
               </div>
@@ -1001,20 +977,6 @@ export const Form = (props: any) => {
                   }`}
                   onChange={handleFileSelect}
                 />
-              </div>
-              <div class="flex justify-end gap-3 mt-1">
-                <button
-                  type="button"
-                  onClick={() => {
-                    openUrlModal("Nhập đường dẫn đính kèm (URL)", (url) => {
-                      const newItem = { link: url, type: "image", name: url.split("/").pop() || "External Media" };
-                      setAllMedia([...allMedia(), newItem]);
-                      setMediaIdx(allMedia().length);
-                    });
-                  }}
-                  class="text-[10px] font-black text-blue-500 hover:underline cursor-pointer uppercase tracking-widest">
-                  {"+ Dán URL"}
-                </button>
               </div>
             </div>}
           {formError() &&
