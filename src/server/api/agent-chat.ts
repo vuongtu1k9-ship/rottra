@@ -156,10 +156,14 @@ export async function handleChatExpert(c: any) {
 
     // --- 0. HIPPOCAMPUS PREFERENCE EXTRACTION ---
     if (userId !== "guest") {
-      const prefMatch = query.match(/(?:tôi|mình|em|anh|chị) (?:thích|không thích|ghét|muốn|gọi (?:tôi|mình|em|anh|chị) là) (.+)/i);
-      if (prefMatch) {
-        const { Hippocampus } = await import("~/core/nlp-cognitive/hippocampus");
-        await Hippocampus.saveUserPreference(userId, prefMatch[0].trim());
+      try {
+        const prefMatch = query.match(/(?:tôi|mình|em|anh|chị) (?:thích|không thích|ghét|muốn|gọi (?:tôi|mình|em|anh|chị) là) (.+)/i);
+        if (prefMatch) {
+          const { Hippocampus } = await import("~/core/nlp-cognitive/hippocampus");
+          await Hippocampus.saveUserPreference(userId, prefMatch[0].trim());
+        }
+      } catch (err) {
+        console.warn("Failed to extract hippocampus preference:", err);
       }
     }
 
