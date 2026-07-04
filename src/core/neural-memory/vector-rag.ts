@@ -4,7 +4,7 @@ import { db } from "~/infra/database/db-pool";
 import { agentMemory, vectorDocument } from "~/infra/database/schema";
 import { eq, sql } from "drizzle-orm";
 import { ALL_DOMAIN_TRAINING_PAIRS } from "~/core/nlp-cognitive/domain-training-data";
-import crypto from "crypto";
+import * as crypto from "crypto";
 import {
   initMultilingualEmbedding,
   isEmbeddingReady,
@@ -22,6 +22,7 @@ import {
   getChunkingStats,
   type ChunkingConfig,
 } from "./chunking-strategies";
+import { SoAVectorPool } from "../quant-engine/soa-vector-pool";
 
 // 1. Dựng kho từ vựng và chỉ mục phẳng cho RAG
 export interface FlatDoc {
@@ -29,12 +30,13 @@ export interface FlatDoc {
   category: string;
   item: KnowledgeItem;
   flatText: string;
-  vector?: number[];
+  vectorId: number; // TỐI ƯU HÓA SOA KHÔ MÁU: Triệt tiêu hoàn toàn mảng Object
   pointers: number[]; // Mạng lưới Con trỏ Đồ thị Tri thức
   backPointers: number[]; // Con trỏ hồi quy (Back-Pointers)
 }
 
 let flatDocsCache: FlatDoc[] = (globalThis as any)._flatDocsCache || [];
+export let soaPool: SoAVectorPool | null = (globalThis as any)._soaPool || null;
 let vocabulary: string[] = (globalThis as any)._vocabulary || [];
 
 // Khởi tạo và lập chỉ mục Vector cho tài liệu
@@ -169,6 +171,13 @@ export const initRAGEngine = async (forceRefresh = false) => {
 
   // Xây dựng kho từ vựng từ toàn bộ tài liệu trong database
   const finalFreqs: Record<string, number> = {};
+  
+  if (!soaPool) {
+    const dim = 1024; // BGE-M3 Dense Dim
+    soaPool = new SoAVectorPool(dim, dbDocs.length + 500);
+    (globalThis as any)._soaPool = soaPool;
+  }
+
   for (const doc of dbDocs) {
     const flatText = cleanAndNormalize(doc.title + " " + (doc.subtitle || "") + " " + doc.content);
     flatText
@@ -185,13 +194,13 @@ export const initRAGEngine = async (forceRefresh = false) => {
         title: meta.title || doc.title,
         subtitle: meta.subtitle || doc.subtitle || "",
         definition: meta.definition || doc.content,
-        explanation: meta.explanation || "",
-        application: meta.application || "",
+        explanation: meta.explanation || meta.Core_Concept || "",
+        application: meta.application || meta.Application || "",
         tags: meta.tags || [],
         tenantId: doc.tenantId || null,
       },
       flatText,
-      vector: (doc.embedding as number[]) || generateEmbedding(flatText, vocabulary),
+      vectorId: soaPool.insert((doc.embedding as number[]) || generateEmbedding(flatText, vocabulary)),
       pointers: [],
       backPointers: [],
     });
@@ -205,7 +214,7 @@ export const initRAGEngine = async (forceRefresh = false) => {
   for (const tempDoc of tempDocs) {
     let merged = false;
     for (const coreDoc of docs) {
-      const similarity = cosineSimilarity(tempDoc.vector!, coreDoc.vector!);
+      const similarity = soaPool!.scorePair(tempDoc.vectorId, coreDoc.vectorId);
       const isTenantMismatch = (tempDoc.item as any).tenantId !== (coreDoc.item as any).tenantId;
       const isClashing =
         isTenantMismatch ||
@@ -213,7 +222,7 @@ export const initRAGEngine = async (forceRefresh = false) => {
 
       if (similarity > 0.85 && !isClashing) {
         coreDoc.flatText += " " + tempDoc.flatText;
-        coreDoc.vector = coreDoc.vector!.map((v, i) => (v + tempDoc.vector![i]) / 2);
+        soaPool!.mergeAvg(coreDoc.vectorId, tempDoc.vectorId);
         merged = true;
         break;
       }
@@ -255,6 +264,8 @@ export const initRAGEngine = async (forceRefresh = false) => {
       }
     });
   });
+
+  console.log(`[SoA Pool] DB đã nạp ${soaPool!.getSize()} vectors vào RAM phẳng. Triệt tiêu Object 3D thành công!`);
 
   flatDocsCache = docs;
   return { flatDocsCache, vocabulary };
@@ -397,6 +408,8 @@ export interface RAGCacheEntry {
   timestamp: number;
   tenantId?: string | null;
   isStrict?: boolean;
+  categoryPrefix?: string | string[];
+  excludePrefix?: string | string[];
 }
 
 const RAG_CACHE_MAX_SIZE = 50;
@@ -421,6 +434,8 @@ export const hybridRetrieve = async (
   topK: number = 3,
   tenantId?: string | null,
   strict: boolean = false,
+  categoryPrefix?: string | string[],
+  excludePrefix?: string | string[],
 ): Promise<RetrievalCandidate[]> => {
   const { flatDocsCache, vocabulary } = await initRAGEngine(true);
   const queryClean = cleanAndNormalize(query);
@@ -432,11 +447,34 @@ export const hybridRetrieve = async (
 
   ragSemanticCache = ragSemanticCache.filter((entry) => now - entry.timestamp < RAG_CACHE_TTL_MS);
 
-  const queryVector = await generateEmbeddingAsyncAwait(queryClean);
+  // --- HyDE: Hypothetical Document Embeddings ---
+  let hydeTextToEmbed = queryClean;
+  if (queryClean.split(/\s+/).length >= 3) {
+    try {
+      const { generateTextLocal } = await import("~/core/nlp-cognitive/ai-sdk");
+      const hydeResponse = await generateTextLocal({
+        system:
+          "Đóng vai thiền sư/chuyên gia uyên bác, viết đúng 1 câu trả lời ngắn (dưới 30 chữ) mang tính triết lý, thực tiễn để giải đáp trực tiếp truy vấn sau. Không giải thích.",
+        prompt: `Truy vấn: "${query}"`,
+        decodingSettings: { temperature: 0.6, maxTokens: 80 },
+        isInternalReasoning: true,
+      });
+      if (hydeResponse && hydeResponse.text) {
+        hydeTextToEmbed = queryClean + " " + cleanAndNormalize(hydeResponse.text);
+        console.log(`[HyDE] Sinh nháp suy luận: "${hydeResponse.text.substring(0, 100).replace(/\n/g, "")}..."`);
+      }
+    } catch (err) {
+      console.error("[HyDE] Bỏ qua do lỗi sinh nháp:", err);
+    }
+  }
+
+  const queryVector = await generateEmbeddingAsyncAwait(hydeTextToEmbed);
 
   const cached = ragSemanticCache.find((entry) => {
     if (entry.tenantId !== tenantId) return false;
     if (!!entry.isStrict !== isStrict) return false;
+    if (JSON.stringify(entry.categoryPrefix) !== JSON.stringify(categoryPrefix)) return false;
+    if (JSON.stringify(entry.excludePrefix) !== JSON.stringify(excludePrefix)) return false;
     if (entry.query === queryClean) return true;
     const sim = cosineSimilarity(queryVector, entry.embedding);
     return sim > 0.96;
@@ -450,7 +488,7 @@ export const hybridRetrieve = async (
   const queryWords = queryClean.split(/\s+/).filter((w) => w.length >= 2);
 
   // Multi-tenant isolation: filter cached flatDocsCache
-  const isolatedDocs = flatDocsCache.filter((doc) => {
+  let isolatedDocs = flatDocsCache.filter((doc) => {
     const docTenantId = (doc.item as any).tenantId;
     if (tenantId) {
       if (isStrict) {
@@ -460,6 +498,18 @@ export const hybridRetrieve = async (
     }
     return !docTenantId;
   });
+
+  if (categoryPrefix) {
+    const prefixes = Array.isArray(categoryPrefix) ? categoryPrefix : [categoryPrefix];
+    isolatedDocs = isolatedDocs.filter((doc) => prefixes.some((p) => doc.category.startsWith(p)));
+  }
+  if (excludePrefix) {
+    const excludes = Array.isArray(excludePrefix) ? excludePrefix : [excludePrefix];
+    isolatedDocs = isolatedDocs.filter((doc) => !excludes.some((e) => doc.category.startsWith(e)));
+  }
+
+  // SoA BQN-Style: Tính toán TẤT CẢ Dense Scores trên toàn bộ DB chỉ với 1 thao tác vòng lặp CPU phẳng siêu tốc!
+  const allDenseScores = soaPool ? soaPool.getAllScores(queryVector) : new Float32Array(flatDocsCache.length);
 
   const candidates: RetrievalCandidate[] = isolatedDocs.map((doc) => {
     // A. SPARSE SCORE (TF-IDF keyword overlap + Bigram matching)
@@ -492,7 +542,8 @@ export const hybridRetrieve = async (
     });
 
     // B. DENSE SCORE (Cosine similarity của L2 Embedding)
-    const denseScore = cosineSimilarity(queryVector, doc.vector || []);
+    // Trích xuất trực tiếp từ bộ đệm mảng phẳng đã tính toán sẵn nhờ SoAVectorPool
+    const denseScore = (doc.vectorId !== undefined && soaPool) ? allDenseScores[doc.vectorId] : 0;
 
     // C. HYBRID FUSION (Trọng số 0.4 Sparse + 0.6 Dense)
     const maxPossibleSparse = queryWords.length * 10 + queryBigrams.length * 8;
@@ -565,6 +616,8 @@ export const hybridRetrieve = async (
     timestamp: now,
     tenantId: tenantId ?? null,
     isStrict,
+    ...(categoryPrefix ? { categoryPrefix } : {}),
+    ...(excludePrefix ? { excludePrefix } : {}),
   });
 
   return finalResults;
@@ -609,6 +662,11 @@ export const computeGoogleCrossEntropy = (queryWords: string[], docWords: string
 // 5. SEMANTIC RERANKER (Cross-Encoder style matching)
 export interface RerankedCandidate extends RetrievalCandidate {
   rerankScore: number;
+  sourceDocument?: {
+    title: string;
+    snippet: string;
+    relevance: number;
+  };
 }
 
 export const rerank = (query: string, candidates: RetrievalCandidate[]): RerankedCandidate[] => {
@@ -677,9 +735,17 @@ export const rerank = (query: string, candidates: RetrievalCandidate[]): Reranke
     // Điểm Rerank = Điểm Hybrid gốc + Các hệ số bổ trợ ngữ nghĩa chéo + Google-style Cross Entropy Bonus
     const rerankScore = c.hybridScore + bonus + coverageRatio * 1.5 + entropyBonus;
 
+    // Source attribution for explainability
+    const sourceDocument = {
+      title: c.doc.item.title || "Untitled",
+      snippet: c.doc.item.definition?.substring(0, 100) || c.doc.flatText.substring(0, 100),
+      relevance: Math.round(rerankScore * 100),
+    };
+
     return {
       ...c,
       rerankScore,
+      sourceDocument,
     };
   });
 
@@ -897,6 +963,7 @@ Do not output anything other than the raw JSON object.`;
     const { text: llmOutput } = await generateTextLocal({
       system: systemPrompt,
       prompt,
+      isInternalReasoning: true,
     });
 
     if (!llmOutput || llmOutput.trim().length === 0) return;

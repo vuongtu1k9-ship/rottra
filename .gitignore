@@ -36,3 +36,7 @@ notifications.log
 # System Files
 .DS_Store
 Thumbs.db
+models/*.gguf
+node-llama-cpp build artifacts
+.wrangler/
+

@@ -1,4 +1,5 @@
 import { createSignal, createEffect, onCleanup, onMount } from "solid-js";
+import * as Diff from "diff";
 import { syncUserPreferences } from "~/server/helpers/user-sync";
 import { authClient } from "~/client/utils/auth-client";
 import { useNavigate } from "@solidjs/router";
@@ -43,6 +44,23 @@ export component Assistant(props: any) {
 
   const getCommandsByRole = () => {
     const r = role();
+    const baseCommands = [
+      "[Trí tuệ Nhân sinh] Cổ Nhân Dạy: 5 Lần Im Lặng Đúng Lúc Đáng Giá Hơn Ngàn Lời Nói (Phần 4)",
+      "[Trí tuệ Nhân sinh] Cổ Nhân Dạy: 5 Lần Im Lặng Đúng Lúc Đáng Giá Hơn Ngàn Lời Nói (Phần 5)",
+      "[Trí tuệ Nhân sinh] Cổ Nhân Dạy: 5 Lần Im Lặng Đúng Lúc Đáng Giá Hơn Ngàn Lời Nói (Phần 6)",
+      "[Trí tuệ Nhân sinh] Cổ Nhân Dạy: 5 Lần Im Lặng Đúng Lúc Đáng Giá Hơn Ngàn Lời Nói (Phần 7)",
+      "[Trí tuệ Nhân sinh] Cổ Nhân Dạy: 5 Lần Im Lặng Đúng Lúc Đáng Giá Hơn Ngàn Lời Nói (Phần 8)",
+      "[Trí tuệ Nhân sinh] Cổ Nhân Dạy: 5 Lần Im Lặng Đúng Lúc Đáng Giá Hơn Ngàn Lời Nói (Phần 9)",
+      "[Trí tuệ Nhân sinh] Cổ Nhân Dạy: 5 Lần Im Lặng Đúng Lúc Đáng Giá Hơn Ngàn Lời Nói (Phần 10)",
+      "[Trí tuệ Nhân sinh] Cổ Nhân Dạy: 5 Lần Im Lặng Đúng Lúc Đáng Giá Hơn Ngàn Lời Nói (Phần 11)",
+      "[Trí tuệ Nhân sinh] Cổ Nhân Dạy: 5 Lần Im Lặng Đúng Lúc Đáng Giá Hơn Ngàn Lời Nói (Phần 12)",
+      "[Trí tuệ Nhân sinh] Cổ Nhân Dạy: 5 Lần Im Lặng Đúng Lúc Đáng Giá Hơn Ngàn Lời Nói (Phần 13)",
+      "[Trí tuệ Nhân sinh] Cổ Nhân Dạy: 5 Lần Im Lặng Đúng Lúc Đáng Giá Hơn Ngàn Lời Nói (Phần 14)",
+      "[Trí tuệ Nhân sinh] Cổ Nhân Dạy: 5 Lần Im Lặng Đúng Lúc Đáng Giá Hơn Ngàn Lời Nói (Phần 15)",
+      "[Trí tuệ Nhân sinh] Cổ Nhân Dạy: 5 Lần Im Lặng Đúng Lúc Đáng Giá Hơn Ngàn Lời Nói (Phần 16)",
+      "[Trí tuệ Nhân sinh] Cổ Nhân Dạy: 5 Lần Im Lặng Đúng Lúc Đáng Giá Hơn Ngàn Lời Nói (Phần 17)",
+    ];
+
     if (r === "admin") {
       return [
         "Cập nhật avatar của trợ lý",
@@ -51,6 +69,11 @@ export component Assistant(props: any) {
         "/day",
         "/mode fable-5",
         "/mode mythos-5",
+        "/mode sol-5",
+        "/mode sol-normal",
+        "/mode terra-5",
+        "/mode luna-5",
+        ...baseCommands,
         "Tính kỳ vọng, phương sai và độ lệch chuẩn",
         "Chỉ số Shannon đa dạng sinh học",
         "Lọc Kalman khử nhiễu cảm biến IoT",
@@ -78,6 +101,7 @@ export component Assistant(props: any) {
     }
     if (r === "user" || r === "ai") {
       return [
+        ...baseCommands,
         "Tính kỳ vọng, phương sai và độ lệch chuẩn",
         "Chỉ số Shannon đa dạng sinh học",
         "Lọc Kalman khử nhiễu cảm biến IoT",
@@ -86,13 +110,21 @@ export component Assistant(props: any) {
         "Dọn dẹp bộ nhớ",
       ];
     }
-    return [];
+    return baseCommands;
   };
 
   const getShortCommandName = (cmd: string) => {
     if (cmd === "/mode fable-5") return "Claude Fable 5";
     if (cmd === "/mode mythos-5") return "Claude Mythos 5";
+    if (cmd === "/mode sol-5") return "GPT-5.6 Sol Ultra";
+    if (cmd === "/mode sol-normal") return "GPT-5.6 Sol";
+    if (cmd === "/mode terra-5") return "GPT-5.6 Terra";
+    if (cmd === "/mode luna-5") return "GPT-5.6 Luna";
     if (cmd.startsWith("/")) return cmd;
+    if (cmd.startsWith("[Trí tuệ Nhân sinh]")) {
+      const match = cmd.match(/Phần \d+/);
+      return match ? `Cổ Nhân Dạy (${match[0]})` : "Cổ Nhân Dạy";
+    }
     return cmd;
   };
 
@@ -119,8 +151,35 @@ export component Assistant(props: any) {
   const [suggestionMap, setSuggestionMap] = createSignal<Record<number, string[]>>({});
   const [aiSuggestions, setAiSuggestions] = createSignal<string[]>([]);
   const [activeSugIndex, setActiveSugIndex] = createSignal(0);
+  const [copiedIdx, setCopiedIdx] = createSignal<number | null>(null);
+  const [feedbackMap, setFeedbackMap] = createSignal<Record<number, "up" | "down" | null>>({});
+  const [isLoading, setIsLoading] = createSignal(false);
   let suggestTimer: ReturnType<typeof setTimeout> | null = null;
   let textareaRef: HTMLTextAreaElement | undefined;
+
+  const copyToClipboard = async (text: string, idx: number) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedIdx(idx);
+      setTimeout(() => setCopiedIdx(null), 2000);
+    } catch {}
+  };
+
+  const submitFeedback = async (idx: number, query: string, rating: "up" | "down") => {
+    const current = feedbackMap()[idx];
+    const newRating =
+      current === rating ? null : rating;
+    setFeedbackMap({ ...feedbackMap(), [idx]: newRating });
+    if (newRating) {
+      try {
+        await fetch("/api/agent/chat-expert/feedback", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query, rating: newRating }),
+        });
+      } catch {}
+    }
+  };
 
   createEffect(() => {
     aiSuggestions();
@@ -354,7 +413,7 @@ export component Assistant(props: any) {
   const fetchAgentProfile = async () => {
     try {
       const res = await fetch("/api/agent/system-profile");
-      if (res.ok) {
+      if (res.ok && res.headers.get("content-type")?.includes("application/json")) {
         const data = await res.json();
         if (data.success && data.profile) {
           if (data.profile.fullName) setAgentName(data.profile.fullName);
@@ -510,6 +569,8 @@ export component Assistant(props: any) {
   const [lastSpokenIndex, setLastSpokenIndex] = createSignal(getInitialChat().length - 1);
   const [editingIndex, setEditingIndex] = createSignal<number | null>(null);
   const [editValue, setEditValue] = createSignal("");
+  const [aiEditingIndex, setAiEditingIndex] = createSignal<number | null>(null);
+  const [aiEditValue, setAiEditValue] = createSignal("");
   const [recalledMessage, setRecalledMessage] = createSignal<any | null>(null);
 
   const handleEditMessage = (idx: number, text: string) => {
@@ -521,11 +582,102 @@ export component Assistant(props: any) {
     }
   };
 
+  const handleAiEditMessage = (idx: number, text: string) => {
+    if (aiEditingIndex() === idx) {
+      setAiEditingIndex(null);
+    } else {
+      setAiEditingIndex(idx);
+      setAiEditValue(text);
+    }
+  };
+
   const handleRecallMessage = (msg: any) => {
     setRecalledMessage(msg);
     const inputEl = document.querySelector("input[placeholder=\"Hỏi tôi bất cứ điều gì...\"]") as HTMLInputElement;
     if (inputEl) {
       inputEl.focus();
+    }
+  };
+
+  const submitRLHFFeedback = async (idx: number, newText: string) => {
+    const aiMsg = chat()[idx];
+    if (!aiMsg || aiMsg.isUser) return;
+
+    // Find the original user query that led to this AI message
+    let originalQuery = "";
+    for (let i = idx - 1; i >= 0; i--) {
+      if (chat()[i].isUser) {
+        originalQuery = chat()[i].text;
+        break;
+      }
+    }
+
+    const originalAnswer = aiMsg.text;
+
+    // Optimistically update UI
+    const updatedMsg = { ...aiMsg, text: newText };
+    const nextChat = [...chat()];
+    nextChat[idx] = updatedMsg;
+    setChat(nextChat);
+    setAiEditingIndex(null);
+
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem("agent_bot_chat", JSON.stringify(nextChat));
+      } catch (err) {}
+    }
+
+    // Submit to RLHF backend
+    try {
+      await fetch("/api/agent/rlhf", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          originalQuery,
+          originalAnswer,
+          correctedAnswer: newText,
+        }),
+      });
+    } catch (err) {
+      console.error("Lỗi khi lưu RLHF:", err);
+    }
+  };
+
+  const submitDpoSelection = async (idx: number, chosenText: string, rejectedText: string) => {
+    let originalQuery = "";
+    for (let i = idx - 1; i >= 0; i--) {
+      if (chat()[i].isUser) {
+        originalQuery = chat()[i].text;
+        break;
+      }
+    }
+
+    // Optimistically update UI
+    setChat((prev) => {
+      const next = [...prev];
+      next[idx].text = chosenText;
+      delete next[idx].replyB;
+      return next;
+    });
+
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem("agent_bot_chat", JSON.stringify(chat()));
+      } catch (err) {}
+    }
+
+    try {
+      await fetch("/api/agent/dpo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: originalQuery,
+          chosen: chosenText,
+          rejected: rejectedText,
+        }),
+      });
+    } catch (err) {
+      console.error("Lỗi khi lưu DPO:", err);
     }
   };
 
@@ -705,6 +857,7 @@ export component Assistant(props: any) {
     const query = inputValue().trim();
     const fileToUpload = attachedFile();
     if (!query && !fileToUpload) return;
+    setIsLoading(true);
 
     const actualQuery = query || (fileToUpload ? `Gửi file: ${fileToUpload.name}` : "");
     const recalled = recalledMessage();
@@ -830,6 +983,15 @@ export component Assistant(props: any) {
             cleanBotText = cleanBotText.replace(/\[SUGGESTIONS:[^\]]+\]/g, "").trim();
           }
 
+          let foundReplyB = "";
+          const replyBMatch = currentBotText.match(/\[REPLY_B:(.*?)\]/);
+          if (replyBMatch) {
+            try {
+              foundReplyB = JSON.parse(replyBMatch[1]);
+            } catch (e) {}
+            cleanBotText = cleanBotText.replace(/\[REPLY_B:.*?\]/g, "").trim();
+          }
+
           let isFallbackMode = false;
           if (cleanBotText.includes("[FALLBACK_MODE]")) {
             isFallbackMode = true;
@@ -843,6 +1005,9 @@ export component Assistant(props: any) {
             next[next.length - 1].isFallbackMode = isFallbackMode;
             if (foundVideoUrl) {
               next[next.length - 1].videoUrl = foundVideoUrl;
+            }
+            if (foundReplyB) {
+              next[next.length - 1].replyB = foundReplyB;
             }
             return next;
           });
@@ -910,6 +1075,7 @@ export component Assistant(props: any) {
           });
         }
       }
+      setIsLoading(false);
     }, 500);
   };
 
@@ -1008,9 +1174,13 @@ export component Assistant(props: any) {
     }
   };
 
-  const getSidebarClass = () => `hidden lg:flex flex-col shrink-0 transition-all duration-300 overflow-hidden border h-full ${
-    isSidebarOpen() ? "w-80 p-5" : "w-0 p-0 border-none"
-  } ${theme() === "dark" ? "bg-[#1f1f1d] border-white/5 rounded-3xl" : "bg-white border-gray-150 rounded-3xl shadow-sm"}`;
+  const getSidebarClass = () => `flex flex-col shrink-0 transition-all duration-300 overflow-hidden border h-full absolute lg:static z-[60] lg:z-auto left-4 ${
+    isSidebarOpen() ? "w-[calc(100vw-32px)] md:w-80 p-5 shadow-2xl lg:shadow-sm" : "w-0 p-0 border-none opacity-0"
+  } ${
+    theme() === "dark"
+      ? "bg-[#1f1f1d]/95 backdrop-blur-md lg:bg-[#1f1f1d] border-white/10 rounded-3xl"
+      : "bg-white/95 backdrop-blur-md lg:bg-white border-gray-200 rounded-3xl shadow-sm"
+  }`;
 
   const getAgentTitleClass = () => `text-lg font-black mt-3 ${theme() === "dark" ? "text-white" : "text-gray-900"}`;
 
@@ -1091,7 +1261,8 @@ export component Assistant(props: any) {
   const getIconSize = () => "w-6 h-6";
 
   <tsx>
-    <div class="w-full h-[calc(100vh-120px)] flex gap-6 font-sans py-4 px-4 overflow-hidden animate-in fade-in duration-500">
+    <div
+      class="w-full h-[calc(100dvh-80px)] lg:h-[calc(100vh-120px)] flex gap-0 lg:gap-6 font-sans py-2 px-2 lg:py-4 lg:px-4 overflow-hidden animate-in fade-in duration-500">
       {}
       <div class={getChatContainerClass()}>
         {}
@@ -1198,11 +1369,17 @@ export component Assistant(props: any) {
                 <div class={getMsgRowClass(msg.isUser)}>
                   {!msg.isUser
                     ? <tsx>
-                        <div class="flex flex-col w-full font-sans">
+                        <div class="flex flex-col w-full font-sans group/ai">
                           <div
                             class="text-[11px] font-bold tracking-widest text-blue-600 dark:text-blue-400 mb-1 flex items-center gap-1.5 uppercase select-none">
                             <span class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
                             {"Trợ lý Rottra"}
+                            <button
+                              onClick={() => handleAiEditMessage(idx, msg.text)}
+                              class="opacity-0 group-hover/ai:opacity-100 ml-2 p-1 hover:bg-zinc-800/10 dark:hover:bg-white/10 rounded text-gray-400 hover:text-blue-500 transition-colors cursor-pointer"
+                              title="Chỉnh sửa AI (RLHF)">
+                              <Icon path={pencil} class="w-3.5 h-3.5" />
+                            </button>
                             <Show when={msg.isFallbackMode}>
                               <span
                                 class="ml-2 px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-[9px] font-bold normal-case">
@@ -1226,25 +1403,96 @@ export component Assistant(props: any) {
                                 {msg.recalledMsg.text}
                               </div>
                             </Show>
-                            {editingIndex() === idx
+                            {aiEditingIndex() === idx
                               ? <tsx>
-                                  <div class="flex items-center gap-1.5 min-w-[200px] w-full">
-                                    <input
-                                      type="text"
-                                      value={editValue()}
-                                      onInput={(e) => setEditValue(e.currentTarget.value)}
-                                      onKeyDown={(e) => handleEditInputKeyDown(e, idx)}
-                                      class="flex-1 p-2 border border-white/20 bg-black/25 text-white placeholder-white/40 rounded-xl text-sm outline-none focus:ring-2 focus:ring-white/10 focus:border-white/40 transition-all"
+                                  <div class="flex flex-col w-full min-w-[300px] gap-2">
+                                    <textarea
+                                      value={aiEditValue()}
+                                      onInput={(e) => setAiEditValue(e.currentTarget.value)}
+                                      class="w-full min-h-[100px] p-3 border border-blue-500/30 bg-black/25 text-white placeholder-white/40 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
                                     />
-                                    <button
-                                      onClick={() => submitEditedMessage(idx, editValue())}
-                                      class="px-3.5 py-2 rounded-xl bg-white hover:bg-white/90 text-blue-600 font-bold text-xs shadow-md transition-colors cursor-pointer shrink-0">
-                                      {"Lưu"}
-                                    </button>
+                                    <Show when={aiEditValue() !== msg.text}>
+                                      <div
+                                        class="p-3 bg-white/5 rounded-xl text-sm leading-relaxed whitespace-pre-wrap font-sans border border-white/10 mt-2">
+                                        <div class="text-[10px] text-gray-400 font-bold mb-2 uppercase">
+                                          {"Bản xem trước thay đổi (Diff)"}
+                                        </div>
+                                        {Diff.diffWordsWithSpace(msg.text, aiEditValue()).map((part) => {
+                                          if (part.added) return <ins class="text-blue-400 no-underline bg-blue-500/10 rounded px-0.5">
+                                            {part.value}
+                                          </ins>;
+                                          if (part.removed) return <del class="text-red-400 line-through bg-red-500/10 rounded px-0.5">
+                                            {part.value}
+                                          </del>;
+                                          return <span>
+                                            {part.value}
+                                          </span>;
+                                        })}
+                                      </div>
+                                    </Show>
+                                    <div class="flex items-center gap-2 mt-2">
+                                      <button
+                                        onClick={() => submitRLHFFeedback(idx, aiEditValue())}
+                                        class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md transition-colors cursor-pointer">
+                                        {"Chấp nhận"}
+                                      </button>
+                                      <button
+                                        onClick={() => setAiEditingIndex(null)}
+                                        class="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs transition-colors cursor-pointer">
+                                        {"Hoàn tác"}
+                                      </button>
+                                    </div>
                                   </div>
                                 </tsx>
                               : <tsx>
-                                  {renderMessageContent(msg)}
+                                  <Show when={msg.replyB} fallback={renderMessageContent(msg)}>
+                                    <div class="flex flex-col gap-4 mt-2 mb-2 w-full max-w-[800px]">
+                                      <div
+                                        class={`text-[10.5px] font-bold uppercase text-center tracking-widest py-1.5 rounded-lg border shadow-sm ${
+                                          theme() === "dark"
+                                            ? "text-white bg-white/10 border-white/20"
+                                            : "text-blue-900 bg-blue-50 border-blue-200"
+                                        }`}>DPO - Chọn phương án hiệu quả hơn</div>
+                                      <div class="flex flex-col sm:flex-row gap-4">
+                                        <div
+                                          class={`flex-1 flex flex-col gap-3 p-4 rounded-2xl relative group/dpo transition-all border ${
+                                            theme() === "dark"
+                                              ? "bg-blue-900/10 border-blue-500/30 hover:bg-blue-900/20"
+                                              : "bg-blue-50 border-blue-200 hover:bg-blue-100"
+                                          }`}>
+                                          <div
+                                            class="absolute -top-2.5 left-4 px-2 py-0.5 bg-blue-600 text-[9px] font-bold rounded text-white shadow-md">Phương án A</div>
+                                          <div
+                                            class={`text-sm pt-1 leading-relaxed whitespace-pre-wrap ${
+                                              theme() === "dark" ? "text-gray-300" : "text-gray-800"
+                                            }`}>
+                                            {msg.text}
+                                          </div>
+                                          <button
+                                            onClick={() => submitDpoSelection(idx, msg.text, msg.replyB)}
+                                            class="mt-auto px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl shadow-md transition-all self-center w-full cursor-pointer">👍 Giữ câu này</button>
+                                        </div>
+                                        <div
+                                          class={`flex-1 flex flex-col gap-3 p-4 rounded-2xl relative group/dpo transition-all border ${
+                                            theme() === "dark"
+                                              ? "bg-purple-900/10 border-purple-500/30 hover:bg-purple-900/20"
+                                              : "bg-purple-50 border-purple-200 hover:bg-purple-100"
+                                          }`}>
+                                          <div
+                                            class="absolute -top-2.5 left-4 px-2 py-0.5 bg-purple-600 text-[9px] font-bold rounded text-white shadow-md">Phương án B</div>
+                                          <div
+                                            class={`text-sm pt-1 leading-relaxed whitespace-pre-wrap ${
+                                              theme() === "dark" ? "text-gray-300" : "text-gray-800"
+                                            }`}>
+                                            {msg.replyB}
+                                          </div>
+                                          <button
+                                            onClick={() => submitDpoSelection(idx, msg.replyB, msg.text)}
+                                            class="mt-auto px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-xl shadow-md transition-all self-center w-full cursor-pointer">👍 Giữ câu này</button>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </Show>
                                   <Show when={msg.file}>
                                     <div
                                       class="mt-2 rounded-xl overflow-hidden max-w-[200px] border border-white/10 dark:border-black/20 shadow-md">
@@ -1267,6 +1515,35 @@ export component Assistant(props: any) {
                                     </div>
                                   </Show>
                                 </tsx>}
+                          </div>
+                          {}
+                          <div class="flex items-center gap-1 mt-1 opacity-0 group-hover/ai:opacity-100 transition-opacity duration-200">
+                            <button
+                              onClick={() => copyToClipboard(msg.text, idx)}
+                              class={`p-1.5 rounded-lg text-[11px] transition-all cursor-pointer ${
+                                copiedIdx() === idx
+                                  ? "text-green-500 bg-green-500/10"
+                                  : "text-gray-400 hover:text-blue-500 hover:bg-blue-500/10"
+                              }`}
+                              title={copiedIdx() === idx ? "Đã copy!" : "Copy tin nhắn"}>
+                              {copiedIdx() === idx ? "✓" : "📋"}
+                            </button>
+                            <button
+                              onClick={() => submitFeedback(idx, chat()[Math.max(0, idx - 1)]?.text || "", "up")}
+                              class={`p-1.5 rounded-lg text-[11px] transition-all cursor-pointer ${
+                                feedbackMap()[idx] === "up"
+                                  ? "text-green-500 bg-green-500/10"
+                                  : "text-gray-400 hover:text-green-500 hover:bg-green-500/10"
+                              }`}
+                              title="Tốt">👍</button>
+                            <button
+                              onClick={() => submitFeedback(idx, chat()[Math.max(0, idx - 1)]?.text || "", "down")}
+                              class={`p-1.5 rounded-lg text-[11px] transition-all cursor-pointer ${
+                                feedbackMap()[idx] === "down"
+                                  ? "text-red-500 bg-red-500/10"
+                                  : "text-gray-400 hover:text-red-500 hover:bg-red-500/10"
+                              }`}
+                              title="Cần cải thiện">👎</button>
                           </div>
                           <Show when={suggestionMap()[idx]}>
                             <div class="flex flex-wrap gap-2 mt-3 ml-1 select-none">
@@ -1370,6 +1647,19 @@ export component Assistant(props: any) {
                 </div>
               </tsx>,
             )}
+            {}
+            <Show when={isLoading()}>
+              <div class="flex justify-start mb-3">
+                <div class="flex items-center gap-2 px-4 py-3 rounded-2xl bg-blue-500/10 dark:bg-blue-500/20 border border-blue-500/20">
+                  <div class="flex gap-1">
+                    <span class="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ "animation-delay": "0ms" }} />
+                    <span class="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ "animation-delay": "150ms" }} />
+                    <span class="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ "animation-delay": "300ms" }} />
+                  </div>
+                  <span class="text-xs text-blue-600 dark:text-blue-400 font-medium">Đang suy nghĩ...</span>
+                </div>
+              </div>
+            </Show>
           </div>
           <Show when={showScrollDown()}>
             <button

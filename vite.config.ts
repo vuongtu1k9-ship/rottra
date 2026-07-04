@@ -1,10 +1,23 @@
 import { defineConfig, Plugin } from "vite";
-import { performance } from "node:perf_hooks";
+import { performance } from "perf_hooks";
 import tailwindcss from "@tailwindcss/vite";
 import solidPlugin from "vite-plugin-solid";
 import tsrxSolid from "@tsrx/vite-plugin-solid";
 import devServer from "@hono/vite-dev-server";
-import path from "node:path";
+import path from "path";
+
+if (typeof Object.prototype.destroySoon === "undefined") {
+  Object.defineProperty(Object.prototype, "destroySoon", {
+    value: function (this: any) {
+      if (typeof this.destroy === "function") {
+        this.destroy();
+      }
+    },
+    configurable: true,
+    writable: true,
+    enumerable: false
+  });
+}
 
 type TsrxMetric = {
   id: string;
@@ -68,7 +81,7 @@ function instrumentTsrxMetrics(plugin: Plugin): Plugin {
       const result = await originalResolveId?.call(this, source, importer, options);
       const elapsed = performance.now() - start;
 
-      if (source.endsWith(".tsrx") || String(result?.id ?? "").includes(".tsrx.tsx")) {
+      if (source.endsWith(".tsrx") || String(result?.id ?? "").includes(".tsrx")) {
         console.log(`[tsrx resolve] ${source} -> ${result?.id || "fallback"} (${formatMs(elapsed)})`);
       }
 
@@ -83,8 +96,8 @@ function instrumentTsrxMetrics(plugin: Plugin): Plugin {
       const elapsed = performance.now() - start;
       const realId = id.split("?")[0];
 
-      if (realId.endsWith(".tsrx.tsx")) {
-        const sourceId = realId.slice(0, -".tsx".length);
+      if (realId.endsWith(".tsrx")) {
+        const sourceId = realId;
         const code = typeof result === "string" ? result : result?.code;
         const previous = metrics.get(sourceId) ?? { id: sourceId, count: 0, totalMs: 0, lastMs: 0, bytes: 0 };
         metrics.set(sourceId, {
@@ -134,26 +147,23 @@ export default defineConfig({
       injectClientScript: false,
     }),
     instrumentTsrxMetrics(tsrxSolid()),
-    {
-      name: 'tsrx-rewrite',
-      enforce: 'pre',
-      configureServer(server) {
-        server.middlewares.use((req, res, next) => {
-          if (req.url && req.url.endsWith('.tsrx')) {
-            req.url = req.url + '.tsx';
-          }
-          next();
-        });
-      }
-    },
     solidPlugin(),
     tailwindcss()
   ],
   server: {
+    allowedHosts: true,
     open: false,
     host: '127.0.0.1',
     port: 5173,
     strictPort: true,
+    proxy: {
+      "/api/ws-signaling": {
+        target: "ws://127.0.0.1:8080",
+        ws: true,
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/ws-signaling/, ""),
+      },
+    },
     hmr: {
       protocol: "ws",
       port: 5173,
@@ -186,10 +196,25 @@ export default defineConfig({
       "~": path.resolve(__dirname, "./src"),
       "solid-js": path.resolve(__dirname, "node_modules/solid-js"),
       "solid-js/web": path.resolve(__dirname, "node_modules/solid-js/web"),
-      "solid-js/store": path.resolve(__dirname, "node_modules/solid-js/store")
+      "solid-js/store": path.resolve(__dirname, "node_modules/solid-js/store"),
+      "fs": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts"),
+      "path": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts"),
+      "crypto": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts"),
+      "stream": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts"),
+      "perf_hooks": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts"),
+      "events": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts"),
+      "buffer": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts"),
+      "process": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts"),
+      "bun:sqlite": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts"),
+      "needle": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts"),
+      "duck-duck-scrape": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts"),
+      "child_process": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts"),
+      "net": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts"),
+      "tls": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts"),
+      "util": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts")
     },
     dedupe: ["solid-js", "solid-js/web", "@solidjs/router", "solid-heroicons", "@tsrx/solid"],
-    extensions: ['.ts', '.tsx', '.tsrx', '.json']
+    extensions: ['.ts', '.ts', '.tsrx', '.json']
   },
   optimizeDeps: {
     entries: ["src/client/index.tsrx"],
@@ -198,7 +223,7 @@ export default defineConfig({
     esbuildOptions: {
       external: ["pg", "pgpass", "netmask", "retry", "proper-lockfile", "needle"],
       loader: {
-        '.tsrx': 'tsx'
+        '.tsrx': 'ts'
       }
     }
   },
@@ -208,6 +233,7 @@ export default defineConfig({
   build: {
     chunkSizeWarningLimit: 800,
     rollupOptions: {
+      external: ["@tensorflow/tfjs", "@tensorflow/tfjs-core", "@tensorflow/tfjs-node", "@tensorflow/tfjs-core/dist/register_all_gradients", "@tensorflow/tfjs-core/dist/public/chained_ops/register_all_chained_ops"],
       output: {
         manualChunks(id) {
           if (id.includes('node_modules')) {
@@ -226,12 +252,6 @@ export default defineConfig({
             if (id.includes('leaflet')) {
               return 'vendor-leaflet';
             }
-            if (id.includes('onnxruntime')) {
-              return 'vendor-onnx';
-            }
-            if (id.includes('@xenova') || id.includes('@huggingface')) {
-              return 'vendor-transformers';
-            }
             if (id.includes('blockly')) {
               return 'vendor-blockly';
             }
@@ -244,7 +264,4 @@ export default defineConfig({
       }
     }
   }
-}); 
- 
- 
- 
+});

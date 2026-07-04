@@ -215,6 +215,7 @@ Yêu cầu cụ thể cho mỗi phương án:${goldGuidelines}
       prompt: generateBranchesPrompt,
       model: options.model,
       decodingSettings: options.decodingSettings,
+      isInternalReasoning: true,
     });
 
     const evaluatePrompt = `Bạn là Trọng tài Đánh giá Logic Đàm phán.
@@ -236,6 +237,7 @@ Thought 3 Score: [điểm]`;
       prompt: evaluatePrompt,
       model: options.model,
       decodingSettings: options.decodingSettings,
+      isInternalReasoning: true,
     });
 
     console.log(`[TOT NEGOTIATION] Evaluator scores for ${botName}:\n${scoreText}`);
@@ -263,7 +265,8 @@ Thought 3 Score: [điểm]`;
 
     // Extract the text of the selected thought
     const thoughtMarker = `=== THOUGHT ${bestThought} ===`;
-    const nextMarker = `=== THOUGHT ${bestThought + 1} ===`;
+    const totalThoughts = matches ? matches.length : 3;
+    const nextMarker = bestThought < totalThoughts ? `=== THOUGHT ${bestThought + 1} ===` : null;
     let bestThoughtText = "";
 
     const startIndex = branchesText.indexOf(thoughtMarker);
@@ -561,6 +564,7 @@ Yêu cầu: Viết lại câu thoại ngắn gọn dưới 3 câu, bọc trong c
           ],
           decodingSettings,
           model,
+          isInternalReasoning: true,
         });
 
         console.log(`[Predictive Coding Swarm] Gợi ý hiệu chỉnh: ${critique}`);

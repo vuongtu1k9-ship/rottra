@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OKLCH Color Palette Preview - Rottra</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwindcss.config = {
+      theme: {
+        extend: {
+          colors: {
+            background: 'oklch(1 0 0)',
+            foreground: 'oklch(0.145 0 0)',
+            primary: {
+              50: 'oklch(0.97 0.01 285)',
+              100: 'oklch(0.93 0.02 285)',
+              200: 'oklch(0.87 0.04 285)',
+              300: 'oklch(0.78 0.07 285)',
+              400: 'oklch(0.68 0.14 285)',
+              500: 'oklch(0.55 0.20 285)',
+              600: 'oklch(0.48 0.20 285)',
+              700: 'oklch(0.40 0.17 285)',
+              800: 'oklch(0.33 0.13 285)',
+              900: 'oklch(0.27 0.10 285)',
+              950: 'oklch(0.18 0.07 285)',
+            },
+            neutral: {
+              50: 'oklch(0.985 0 0)',
+              100: 'oklch(0.967 0 0)',
+              200: 'oklch(0.929 0 0)',
+              300: 'oklch(0.872 0 0)',
+              400: 'oklch(0.708 0 0)',
+              500: 'oklch(0.556 0 0)',
+              600: 'oklch(0.439 0 0)',
+              700: 'oklch(0.371 0 0)',
+              800: 'oklch(0.269 0 0)',
+              900: 'oklch(0.205 0 0)',
+              950: 'oklch(0.145 0 0)',
+            },
+            success: { 500: 'oklch(0.723 0.219 149)' },
+            warning: { 500: 'oklch(0.769 0.188 70)' },
+            danger: { 500: 'oklch(0.637 0.237 25)' },
+            info: { 500: 'oklch(0.715 0.143 215)' },
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    .color-swatch {
+      aspect-ratio: 1;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 500;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .color-swatch:hover {
+      transform: scale(1.05);
+      box-shadow: 0 8px 25px -5px rgba(0,0,0,0.3);
+    }
+    .dark-mode-demo {
+      background: oklch(0.205 0 0);
+      color: oklch(0.929 0 0);
+    }
+    .light-mode-demo {
+      background: oklch(1 0 0);
+      color: oklch(0.145 0 0);
+    }
+  </style>
+</head>
+<body class="bg-neutral-50 text-neutral-900 p-8">
+  <div class="max-w-6xl mx-auto">
+    <h1 class="text-4xl font-bold mb-2 text-primary-600">OKLCH Purple Palette</h1>
+    <p class="text-neutral-500 mb-8">Rottra Brand Colors - Hue 285 (Violet-Purple)</p>
+
+    <!-- Primary Colors -->
+    <section class="mb-12">
+      <h2 class="text-xl font-semibold mb-4 text-neutral-700">Primary (Purple)</h2>
+      <div class="grid grid-cols-11 gap-3">
+        <div class="text-center">
+          <div class="color-swatch bg-primary-50 text-primary-900">50</div>
+          <p class="text-xs mt-2 font-mono">50</p>
+        </div>
+        <div class="text-center">
+          <div class="color-swatch bg-primary-100 text-primary-900">100</div>
+          <p class="text-xs mt-2 font-mono">100</p>
+        </div>
+        <div class="text-center">
+          <div class="color-swatch bg-primary-200 text-primary-900">200</div>
+          <p class="text-xs mt-2 font-mono">200</p>
+        </div>
+        <div class="text-center">
+          <div class="color-swatch bg-primary-300 text-primary-900">300</div>
+          <p class="text-xs mt-2 font-mono">300</p>
+        </div>
+        <div class="text-center">
+          <div class="color-swatch bg-primary-400 text-white">400</div>
+          <p class="text-xs mt-2 font-mono">400</p>
+        </div>
+        <div class="text-center">
+          <div class="color-swatch bg-primary-500 text-white">500</div>
+          <p class="text-xs mt-2 font-mono">500</p>
+        </div>
+        <div class="text-center">
+          <div class="color-swatch bg-primary-600 text-white">600</div>
+          <p class="text-xs mt-2 font-mono">600</p>
+        </div>
+        <div class="text-center">
+          <div class="color-swatch bg-primary-700 text-white">700</div>
+          <p class="text-xs mt-2 font-mono">700</p>
+        </div>
+        <div class="text-center">
+          <div class="color-swatch bg-primary-800 text-white">800</div>
+          <p class="text-xs mt-2 font-mono">800</p>
+        </div>
+        <div class="text-center">
+          <div class="color-swatch bg-primary-900 text-white">900</div>
+          <p class="text-xs mt-2 font-mono">900</p>
+        </div>
+        <div class="text-center">
+          <div class="color-swatch bg-primary-950 text-white">950</div>
+          <p class="text-xs mt-2 font-mono">950</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Neutral Grays -->
+    <section class="mb-12">
+      <h2 class="text-xl font-semibold mb-4 text-neutral-700">Neutral (Grays)</h2>
+      <div class="grid grid-cols-11 gap-3">
+        <div class="text-center">
+          <div class="color-swatch bg-neutral-50 text-neutral-900 border border-neutral-200">50</div>
+          <p class="text-xs mt-2 font-mono">50</p>
+        </div>
+        <div class="text-center">
+          <div class="color-swatch bg-neutral-100 text-neutral-900">100</div>
+          <p class="text-xs mt-2 font-mono">100</p>
+        </div>
+        <div class="text-center">
+          <div class="color-swatch bg-neutral-200 text-neutral-900">200</div>
+          <p class="text-xs mt-2 font-mono">200</p>
+        </div>
+        <div class="text-center">
+          <div class="color-swatch bg-neutral-300 text-neutral-900">300</div>
+          <p class="text-xs mt-2 font-mono">300</p>
+        </div>
+        <div class="text-center">
+          <div class="color-swatch bg-neutral-400 text-white">400</div>
+          <p class="text-xs mt-2 font-mono">400</p>
+        </div>
+        <div class="text-center">
+          <div class="color-swatch bg-neutral-500 text-white">500</div>
+          <p class="text-xs mt-2 font-mono">500</p>
+        </div>
+        <div class="text-center">
+          <div class="color-swatch bg-neutral-600 text-white">600</div>
+          <p class="text-xs mt-2 font-mono">600</p>
+        </div>
+        <div class="text-center">
+          <div class="color-swatch bg-neutral-700 text-white">700</div>
+          <p class="text-xs mt-2 font-mono">700</p>
+        </div>
+        <div class="text-center">
+          <div class="color-swatch bg-neutral-800 text-white">800</div>
+          <p class="text-xs mt-2 font-mono">800</p>
+        </div>
+        <div class="text-center">
+          <div class="color-swatch bg-neutral-900 text-white">900</div>
+          <p class="text-xs mt-2 font-mono">900</p>
+        </div>
+        <div class="text-center">
+          <div class="color-swatch bg-neutral-950 text-white">950</div>
+          <p class="text-xs mt-2 font-mono">950</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Status Colors -->
+    <section class="mb-12">
+      <h2 class="text-xl font-semibold mb-4 text-neutral-700">Status Colors</h2>
+      <div class="grid grid-cols-4 gap-6">
+        <div class="text-center">
+          <div class="color-swatch bg-success-500 text-white h-24">Success</div>
+          <p class="text-sm mt-2 font-medium">Success</p>
+          <p class="text-xs text-neutral-500 font-mono">oklch(0.723 0.219 149)</p>
+        </div>
+        <div class="text-center">
+          <div class="color-swatch bg-warning-500 text-white h-24">Warning</div>
+          <p class="text-sm mt-2 font-medium">Warning</p>
+          <p class="text-xs text-neutral-500 font-mono">oklch(0.769 0.188 70)</p>
+        </div>
+        <div class="text-center">
+          <div class="color-swatch bg-danger-500 text-white h-24">Danger</div>
+          <p class="text-sm mt-2 font-medium">Danger</p>
+          <p class="text-xs text-neutral-500 font-mono">oklch(0.637 0.237 25)</p>
+        </div>
+        <div class="text-center">
+          <div class="color-swatch bg-info-500 text-white h-24">Info</div>
+          <p class="text-sm mt-2 font-medium">Info</p>
+          <p class="text-xs text-neutral-500 font-mono">oklch(0.715 0.143 215)</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Light vs Dark Mode -->
+    <section class="mb-12">
+      <h2 class="text-xl font-semibold mb-4 text-neutral-700">Light vs Dark Mode</h2>
+      <div class="grid grid-cols-2 gap-6">
+        <!-- Light Mode Card -->
+        <div class="light-mode-demo rounded-2xl p-6 border border-neutral-200 shadow-lg">
+          <p class="text-xs uppercase tracking-wide text-neutral-400 mb-3 font-semibold">Light Mode</p>
+          <h3 class="text-2xl font-bold text-primary-600 mb-2">Hello World</h3>
+          <p class="text-neutral-600 mb-4">This is how your content will look in light mode with OKLCH colors.</p>
+          <div class="flex gap-3">
+            <button class="bg-primary-500 hover:bg-primary-600 text-white px-4 py-2 rounded-lg font-medium transition">Primary</button>
+            <button class="bg-neutral-100 hover:bg-neutral-200 text-neutral-700 px-4 py-2 rounded-lg font-medium transition border border-neutral-300">Secondary</button>
+          </div>
+        </div>
+
+        <!-- Dark Mode Card -->
+        <div class="dark-mode-demo rounded-2xl p-6 border border-neutral-700 shadow-lg">
+          <p class="text-xs uppercase tracking-wide text-neutral-500 mb-3 font-semibold">Dark Mode</p>
+          <h3 class="text-2xl font-bold text-primary-400 mb-2">Hello World</h3>
+          <p class="text-neutral-300 mb-4">This is how your content will look in dark mode with OKLCH colors.</p>
+          <div class="flex gap-3">
+            <button class="bg-primary-500 hover:bg-primary-400 text-white px-4 py-2 rounded-lg font-medium transition">Primary</button>
+            <button class="bg-neutral-800 hover:bg-neutral-700 text-neutral-200 px-4 py-2 rounded-lg font-medium transition border border-neutral-600">Secondary</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- OKLCH Explanation -->
+    <section class="mb-12">
+      <h2 class="text-xl font-semibold mb-4 text-neutral-700">Why OKLCH?</h2>
+      <div class="bg-white rounded-2xl p-6 border border-neutral-200 shadow-sm">
+        <div class="grid grid-cols-3 gap-6 text-sm">
+          <div>
+            <p class="font-semibold text-primary-600 mb-1">Perceptually Uniform</p>
+            <p class="text-neutral-600">Same lightness = same perceived brightness across all hues</p>
+          </div>
+          <div>
+            <p class="font-semibold text-primary-600 mb-1">Better Accessibility</p>
+            <p class="text-neutral-600">Easier to maintain WCAG contrast ratios</p>
+          </div>
+          <div>
+            <p class="font-semibold text-primary-600 mb-1">Modern Standard</p>
+            <p class="text-neutral-600">Native CSS support, future-proof color space</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Usage Examples -->
+    <section class="mb-12">
+      <h2 class="text-xl font-semibold mb-4 text-neutral-700">Usage Examples</h2>
+      <div class="bg-white rounded-2xl p-6 border border-neutral-200 shadow-sm space-y-4">
+        <div class="flex items-center gap-4">
+          <div class="bg-primary-500 text-white px-4 py-2 rounded-lg">bg-primary-500</div>
+          <div class="bg-primary-500/20 text-primary-600 px-4 py-2 rounded-lg border border-primary-200">bg-primary-500/20</div>
+          <div class="bg-gradient-to-r from-primary-500 to-primary-600 text-white px-4 py-2 rounded-lg">Gradient</div>
+        </div>
+        <div class="flex items-center gap-4">
+          <div class="bg-success-500/10 text-success-500 px-4 py-2 rounded-lg border border-success-500/30">Success Alert</div>
+          <div class="bg-danger-500/10 text-danger-500 px-4 py-2 rounded-lg border border-danger-500/30">Danger Alert</div>
+          <div class="bg-warning-500/10 text-warning-500 px-4 py-2 rounded-lg border border-warning-500/30">Warning Alert</div>
+        </div>
+      </div>
+    </section>
+  </div>
+</body>
+</html>

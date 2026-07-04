@@ -171,6 +171,10 @@ export class LRUCache<K, V> {
   size(): number {
     return this.currentSize;
   }
+
+  setTtlMs(ms: number): void {
+    this.ttlMs = ms;
+  }
 }
 
 export const productSearchCache = new LRUCache<string, any>(200, 180);

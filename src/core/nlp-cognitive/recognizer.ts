@@ -253,8 +253,50 @@ export function getTemplates(): GestureTemplate[] {
   return templates;
 }
 
+export function hexToOklch(hexStr: string) {
+  const h = hexStr.toLowerCase().replace("#", "");
+  const r = (parseInt(h.substring(0, 2), 16) || 0) / 255;
+  const g = (parseInt(h.substring(2, 4), 16) || 0) / 255;
+  const b = (parseInt(h.substring(4, 6), 16) || 0) / 255;
+
+  const srgbToLinear = (c: number) => {
+    return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  };
+
+  const lr = srgbToLinear(r);
+  const lg = srgbToLinear(g);
+  const lb = srgbToLinear(b);
+
+  const l = 0.4122214708 * lr + 0.5363325363 * lg + 0.0514459929 * lb;
+  const m = 0.2119034982 * lr + 0.6806995477 * lg + 0.1073969541 * lb;
+  const s = 0.0883024619 * lr + 0.2817188376 * lg + 0.6299787005 * lb;
+
+  const l_ = Math.cbrt(l);
+  const m_ = Math.cbrt(m);
+  const s_ = Math.cbrt(s);
+
+  const L = 0.2104542553 * l_ + 0.7936177850 * m_ - 0.0040720468 * s_;
+  const a = 1.9779984951 * l_ - 2.4285922050 * m_ + 0.4505937099 * s_;
+  const b_ok = 0.0259040371 * l_ + 0.7827717662 * m_ - 0.8086757660 * s_;
+
+  const C = Math.sqrt(a * a + b_ok * b_ok);
+  let H = Math.atan2(b_ok, a) * (180 / Math.PI);
+  if (H < 0) H += 360;
+
+  return { L, C, H };
+}
+
+export function oklchDistance(c1: { L: number; C: number; H: number }, c2: { L: number; C: number; H: number }): number {
+  const dL = c1.L - c2.L;
+  const dC = c1.C - c2.C;
+  const dh = ((c1.H - c2.H) * Math.PI) / 180;
+  // Chord length for hue difference in circular space
+  const dH = 2 * Math.sqrt(c1.C * c2.C) * Math.sin(dh / 2);
+  return Math.sqrt(dL * dL + dC * dC + dH * dH);
+}
+
 // Main recognition entry point
-export function getColorName(hex: string): string {
+export async function getColorName(hex: string): Promise<string> {
   const h = hex.toLowerCase().replace("#", "");
   if (h === "ec4899" || h === "f472b6" || h === "db2777" || h === "f43f5e") return "Hồng";
   if (h === "ef4444" || h === "b91c1c") return "Đỏ";
@@ -269,34 +311,50 @@ export function getColorName(hex: string): string {
   if (h === "8b5cf6" || h === "a78bfa") return "Tím";
   if (h === "f97316" || h === "fb923c") return "Cam";
 
-  const hexToRgb = (hexStr: string) => {
-    const r = parseInt(hexStr.substring(0, 2), 16) || 0;
-    const g = parseInt(hexStr.substring(2, 4), 16) || 0;
-    const b = parseInt(hexStr.substring(4, 6), 16) || 0;
-    return { r, g, b };
-  };
-
   try {
-    const rgb = hexToRgb(h);
+    const oklch = hexToOklch(h);
+
+    // Call local AI to decide/name the color dynamically
+    try {
+      const { generateTextLocal } = await import("./ai-sdk");
+      const prompt = `Xác định tên màu tiếng Việt cho Hex #${h} (OKLCH: L=${oklch.L.toFixed(2)}, C=${oklch.C.toFixed(2)}, H=${oklch.H.toFixed(2)}°). Trả về duy nhất tên màu sắc chính (ví dụ: Đỏ, Cam, Vàng, Xanh lá, Xanh dương, Tím, Hồng, Nâu, Đen, Trắng, Xám). Không giải thích.`;
+
+      const aiResponse = await generateTextLocal({
+        system: "Bạn là AI nhận diện màu sắc từ thông số OKLCH. Chỉ trả về duy nhất 1-2 từ tên màu sắc chính bằng tiếng Việt.",
+        prompt,
+        decodingSettings: { temperature: 0.1, maxTokens: 10 },
+      });
+
+      if (aiResponse && aiResponse.text) {
+        const cleanName = aiResponse.text.replace(/[^\p{L}\s]/gu, "").trim();
+        if (cleanName.length > 0 && cleanName.length < 20) {
+          return cleanName;
+        }
+      }
+    } catch (aiErr) {
+      console.warn("AI color name generation failed, falling back to OKLCH distance:", aiErr);
+    }
+
     const standardColors = [
-      { name: "Hồng", r: 236, g: 72, b: 153 },
-      { name: "Đỏ", r: 239, g: 68, b: 68 },
-      { name: "Vàng", r: 234, g: 179, b: 8 },
-      { name: "Nâu", r: 120, g: 53, b: 15 },
-      { name: "Xanh lá", r: 34, g: 197, b: 94 },
-      { name: "Xanh dương", r: 59, g: 130, b: 246 },
-      { name: "Xanh cyan", r: 6, g: 182, b: 212 },
-      { name: "Trắng xám", r: 243, g: 244, b: 246 },
-      { name: "Xám", r: 100, g: 116, b: 139 },
-      { name: "Đen", r: 31, g: 41, b: 55 },
-      { name: "Tím", r: 139, g: 92, b: 246 },
-      { name: "Cam", r: 249, g: 115, b: 22 },
+      { name: "Hồng", hex: "ec4899" },
+      { name: "Đỏ", hex: "ef4444" },
+      { name: "Vàng", hex: "eab308" },
+      { name: "Nâu", hex: "78350f" },
+      { name: "Xanh lá", hex: "22c55e" },
+      { name: "Xanh dương", hex: "3b82f6" },
+      { name: "Xanh cyan", hex: "06b6d4" },
+      { name: "Trắng xám", hex: "f3f4f6" },
+      { name: "Xám", hex: "64748b" },
+      { name: "Đen", hex: "000000" },
+      { name: "Tím", hex: "8b5cf6" },
+      { name: "Cam", hex: "f97316" },
     ];
 
     let closestName = "Khác";
     let minD = Infinity;
     for (const c of standardColors) {
-      const d = Math.sqrt(Math.pow(rgb.r - c.r, 2) + Math.pow(rgb.g - c.g, 2) + Math.pow(rgb.b - c.b, 2));
+      const cOklch = hexToOklch(c.hex);
+      const d = oklchDistance(oklch, cOklch);
       if (d < minD) {
         minD = d;
         closestName = c.name;
@@ -461,29 +519,17 @@ export async function recognize(
       expectedColors = ["#fb923c", "#22c55e", "#f97316"];
 
     if (expectedColors.length > 0) {
-      // Parse hex to RGB
-      const hexToRgb = (hex: string) => {
-        const h = hex.replace("#", "");
-        return {
-          r: parseInt(h.substring(0, 2), 16) || 0,
-          g: parseInt(h.substring(2, 4), 16) || 0,
-          b: parseInt(h.substring(4, 6), 16) || 0,
-        };
-      };
-
-      const actualRgb = hexToRgb(colorHex);
+      const oklchActual = hexToOklch(colorHex);
       let minColorDist = Infinity;
 
       for (const expHex of expectedColors) {
-        const expRgb = hexToRgb(expHex);
-        const dist = Math.sqrt(
-          Math.pow(actualRgb.r - expRgb.r, 2) + Math.pow(actualRgb.g - expRgb.g, 2) + Math.pow(actualRgb.b - expRgb.b, 2),
-        );
+        const oklchExp = hexToOklch(expHex);
+        const dist = oklchDistance(oklchActual, oklchExp);
         if (dist < minColorDist) minColorDist = dist;
       }
 
-      // Max possible distance is sqrt(255^2*3) = 441.67
-      colorScore = Math.max(0, 1.0 - minColorDist / 441.67);
+      // Max possible distance in OKLCH/Oklab is roughly 1.5
+      colorScore = Math.max(0, 1.0 - minColorDist / 1.5);
 
       // Combine shape score and color score (e.g. 70% shape, 30% color)
       finalScore = parseFloat((finalScore * 0.7 + colorScore * 0.3).toFixed(2));
@@ -495,7 +541,7 @@ export async function recognize(
   let validColorsCount = 0;
   for (const pt of flatPoints) {
     if (pt.color) {
-      const name = getColorName(pt.color);
+      const name = await getColorName(pt.color);
       colorCounts[name] = (colorCounts[name] || 0) + 1;
       validColorsCount++;
     }
@@ -504,16 +550,27 @@ export async function recognize(
   let colorPercentagesStr = "";
   const colorPercentagesList: { name: string; percentage: number; color: string }[] = [];
   if (validColorsCount > 0) {
-    const list = Object.entries(colorCounts)
-      .map(([name, count]) => {
-        const matchingPt = flatPoints.find((pt) => pt.color && getColorName(pt.color) === name);
+    const list = await Promise.all(
+      Object.entries(colorCounts).map(async ([name, count]) => {
+        // Find matching point where name equals getColorName
+        let matchingPt: Point | undefined;
+        for (const pt of flatPoints) {
+          if (pt.color) {
+            const ptColorName = await getColorName(pt.color);
+            if (ptColorName === name) {
+              matchingPt = pt;
+              break;
+            }
+          }
+        }
         return {
           name,
           percentage: Math.round((count / validColorsCount) * 100),
           color: matchingPt ? matchingPt.color! : "#ccc",
         };
       })
-      .sort((a, b) => b.percentage - a.percentage);
+    );
+    list.sort((a, b) => b.percentage - a.percentage);
 
     colorPercentagesList.push(...list);
     colorPercentagesStr = list.map((c) => `${c.name} ${c.percentage}%`).join(", ");

@@ -68,7 +68,7 @@ export component Home() {
     </div>
   } else {
     <div class="max-w-7xl mx-auto p-4 sm:p-8 space-y-12">
-      <div class="text-center bg-blue-50 rounded-3xl p-12 border border-blue-100">
+      <div class="text-center bg-blue-50 rounded-3xl p-6 md:p-12 border border-blue-100">
         <h1 class="text-4xl font-extrabold mb-4 text-gray-800">{t("Chào mừng đến với Rottra")}</h1>
         <p class="text-gray-600 mb-8 text-lg">{t("Nơi cung cấp các sản phẩm Rottra chất lượng cao.")}</p>
         <div class="relative max-w-2xl mx-auto">

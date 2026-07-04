@@ -255,7 +255,37 @@ export function removeChinese(text: string): string {
 }
 
 export function generateDeepThinkingProcess(query: string, role: string, intent: string): string {
-  return "";
+  const steps: string[] = [];
+
+  // Step 1: Intent classification
+  steps.push(`Intent: ${intent}`);
+
+  // Step 2: Query analysis
+  const wordCount = query.split(/\s+/).length;
+  const charCount = query.length;
+  steps.push(`Query: ${wordCount} words, ${charCount} chars`);
+
+  // Step 3: Complexity assessment
+  const isComplex = wordCount >= 8 || /(và|còn|đồng thời|so sánh|tại sao|làm thế nào)/i.test(query);
+  steps.push(`Complexity: ${isComplex ? "advanced (multi-hop RAG)" : "simple (direct retrieval)"}`);
+
+  // Step 4: Role context
+  if (role && role !== "default") {
+    steps.push(`Role: ${role}`);
+  }
+
+  // Step 5: Processing path
+  if (["ACADEMIC", "TSP", "NPV", "KALMAN", "COBEB", "WARDROP", "SHANNON"].includes(intent)) {
+    steps.push(`Path: Mathematical engine → computation → verification`);
+  } else if (["ORDER_PAYMENT", "BARGAIN", "CONFIRM"].includes(intent)) {
+    steps.push(`Path: Transaction handler → persona response`);
+  } else if (["WEATHER_SEASON", "MARKET_PRICE", "FINANCE_COST"].includes(intent)) {
+    steps.push(`Path: External data API → domain knowledge → response`);
+  } else {
+    steps.push(`Path: RAG retrieval → reranking → generation`);
+  }
+
+  return steps.join(" → ");
 }
 
 // ==========================================
@@ -369,7 +399,7 @@ export async function getActiveModelClass(): Promise<string> {
   }
 }
 
-export async function setActiveModelClass(modelName: "fable-5" | "mythos-5") {
+export async function setActiveModelClass(modelName: string) {
   const existing = await db.query.agentMemory.findFirst({
     where: and(eq(agentMemory.sessionId, "global_model_class"), eq(agentMemory.contextKey, "active_class")),
   });

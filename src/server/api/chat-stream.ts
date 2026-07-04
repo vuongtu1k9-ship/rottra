@@ -103,6 +103,17 @@ chatApp.post("/", async (c) => {
           if (data.suggestions && data.suggestions.length > 0) {
             controller.enqueue(encoder.encode(`\n[SUGGESTIONS:${JSON.stringify(data.suggestions)}]`));
           }
+
+          // Proactive suggestions based on context
+          const proactiveSuggestions = generateProactiveSuggestions(lastMessage, data.intent || "UNKNOWN");
+          if (proactiveSuggestions.length > 0) {
+            controller.enqueue(encoder.encode(`\n[PROACTIVE:${JSON.stringify(proactiveSuggestions)}]`));
+          }
+          if (data.replyB) {
+            // using base64 or encodeURIComponent is safer for regex parsing, but JSON stringify works too.
+            // Let's use a clear delimiter
+            controller.enqueue(encoder.encode(`\n[REPLY_B:${JSON.stringify(data.replyB)}]`));
+          }
         } catch (error: any) {
           console.error("Lỗi bên trong ReadableStream:", error.message);
           controller.enqueue(encoder.encode(`\n\n❌ [Lỗi Hệ Thống]: ${error.message}`));
@@ -122,3 +133,54 @@ chatApp.post("/", async (c) => {
     return c.json({ success: false, error: error.message }, 500);
   }
 });
+
+// ══════════════════════════════════════════════════════════════
+// PROACTIVE SUGGESTIONS: Context-aware follow-up suggestions
+// ══════════════════════════════════════════════════════════════
+
+function generateProactiveSuggestions(query: string, intent: string): string[] {
+  const suggestions: string[] = [];
+  const q = query.toLowerCase();
+
+  // Time-based suggestions
+  const hour = new Date().getHours();
+  if (hour >= 6 && hour < 12) {
+    suggestions.push("Cập nhật giá thị trường hôm nay");
+  } else if (hour >= 18 && hour < 22) {
+    suggestions.push("Tóm tắt hoạt động hôm nay");
+  }
+
+  // Intent-based suggestions
+  if (intent === "WEATHER_SEASON" || /thời tiết|weather|mưa|nắng/i.test(q)) {
+    suggestions.push("Dự báo thời tiết 3 ngày tới");
+    suggestions.push("Lịch gieo trồng phù hợp");
+  } else if (intent === "MARKET_PRICE" || /giá|bao nhiêu|cost|price/i.test(q)) {
+    suggestions.push("So sánh giá với tuần trước");
+    suggestions.push("Dự báo xu hướng giá");
+  } else if (intent === "SMART_AGRI" || /nông nghiệp|trồng|canh tác/i.test(q)) {
+    suggestions.push("Kỹ thuật phòng trừ sâu bệnh");
+    suggestions.push("Lịch bón phân theo mùa");
+  } else if (intent === "ORDER_PAYMENT" || /mua|order|đặt hàng/i.test(q)) {
+    suggestions.push("Kiểm tra trạng thái đơn hàng");
+    suggestions.push("Chính sách đổi trả");
+  } else if (intent === "FINANCE_COST" || /chi phí|lợi nhuận|ROI/i.test(q)) {
+    suggestions.push("Tính toán chi phí sản xuất");
+    suggestions.push("Phân tích lợi nhuận hộ nông dân");
+  }
+
+  // Product mention suggestions
+  if (/cà phê|coffee/i.test(q)) {
+    suggestions.push("Giá cà phê hôm nay");
+    suggestions.push("Kỹ thuật trồng cà phê");
+  } else if (/lúa|rice/i.test(q)) {
+    suggestions.push("Giá lúa gạo thị trường");
+    suggestions.push("Kỹ thuật trồng lúa");
+  } else if (/tiêu|pepper/i.test(q)) {
+    suggestions.push("Giá hồ tiêu xuất khẩu");
+    suggestions.push("Bệnh hại trên tiêu");
+  }
+
+  // Deduplicate and limit
+  const uniqueSuggestions = [...new Set(suggestions)];
+  return uniqueSuggestions.slice(0, 3);
+}

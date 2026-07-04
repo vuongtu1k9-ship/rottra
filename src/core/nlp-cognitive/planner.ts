@@ -1,5 +1,6 @@
 import { generateTextLocal } from "./ai-sdk";
 import { getAgentTools } from "~/core/cognitive-swarm/game-theory";
+import { db, pgClient } from "~/infra/database/db-pool";
 
 export interface Task {
   step: number;
@@ -39,6 +40,7 @@ Format the output strictly as a JSON array of task objects (no markdown wrappers
     const { text } = await generateTextLocal({
       system: systemPrompt,
       prompt: `User query: "${query}"`,
+      isInternalReasoning: true,
     });
 
     // Remove markdown codeblock tags if LLM outputs them despite system prompt
@@ -46,16 +48,20 @@ Format the output strictly as a JSON array of task objects (no markdown wrappers
       .replace(/```json/g, "")
       .replace(/```/g, "")
       .trim();
-    const tasks: any[] = JSON.parse(cleanedText);
 
-    if (Array.isArray(tasks)) {
-      return tasks.map((t, index) => ({
-        step: t.step || index + 1,
-        intent: t.intent,
-        subQuery: t.subQuery || query,
-        description: t.description || `Execute ${t.intent}`,
-        status: "pending",
-      }));
+    try {
+      const tasks: any[] = JSON.parse(cleanedText);
+      if (Array.isArray(tasks)) {
+        return tasks.map((t, index) => ({
+          step: t.step || index + 1,
+          intent: t.intent,
+          subQuery: t.subQuery || query,
+          description: t.description || `Execute ${t.intent}`,
+          status: "pending",
+        }));
+      }
+    } catch (parseErr) {
+      // Quietly fall back to single step without throwing noisy errors in the console
     }
   } catch (err) {
     console.error("[PLANNER ERROR] Failed to generate plan, falling back to single task:", err);
@@ -90,6 +96,8 @@ export async function executePlanWithReplanner(tasks: Task[], baseParams: any): 
     try {
       // Initialize tools dynamically for this step's query/intent
       const tools = getAgentTools({
+        pgClient,
+        db,
         ...baseParams,
         intent: task.intent,
         query: task.subQuery,
@@ -125,6 +133,7 @@ If we need to adjust the plan, return a brand new JSON array for the remaining t
       const { text: replanAction } = await generateTextLocal({
         system: "You are a planning optimizer.",
         prompt: replannerPrompt,
+        isInternalReasoning: true,
       });
 
       const cleanedReplan = replanAction
@@ -208,6 +217,7 @@ Format strictly as:
   const { text: branchesText } = await generateTextLocal({
     system: "You are an analytical strategist.",
     prompt: generateBranchesPrompt,
+    isInternalReasoning: true,
   });
 
   // Self-Evaluate and score each branch
@@ -224,6 +234,7 @@ Thought 3 Score: [score]`;
   const { text: scoreText } = await generateTextLocal({
     system: "You are a quantitative scoring engine.",
     prompt: evaluatePrompt,
+    isInternalReasoning: true,
   });
 
   console.log(`[TOT REASONING] Evaluator scores:\n${scoreText}`);

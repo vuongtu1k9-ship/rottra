@@ -1,4 +1,5 @@
 import { createSignal, createEffect, onCleanup, onMount } from "solid-js";
+import { Button } from "../components/ui/button.tsrx";
 import { useParams } from "@solidjs/router";
 import { isServer } from "solid-js/web";
 import { createStore, reconcile } from "solid-js/store";
@@ -41,7 +42,7 @@ import { buildingOffice_2 as buildingOffice2 } from "solid-heroicons/outline";
 import { slugify } from "ts-slug";
 import { BlocklyWorkspace } from "../components/blockly-workspace.tsrx";
 import { dynamicProgrammingTradeOptimize } from "~/core/quant-engine/dynamic-programming";
-import { UserAvatar } from "~/client/components/user-avatar.tsrx";
+import { UserAvatar, getGradientForName, getInitials } from "~/client/components/user-avatar.tsrx";
 import { t, currentLang, formatNumber, formatCurrency, currencySymbol } from "~/client/stores/i18n-store";
 
 // A custom element helper to bind MediaStream to Video element in SolidJS
@@ -246,13 +247,8 @@ const SACRED_GU_DATA: Record<string, { name: string; icon: string; skill: string
 
 const ParticipantAvatar = (props: { user: any; userName: string }) => {
   const botChar = LORE_CHARACTERS.find((c) => c.id === props.user.id);
-  if (botChar) {
-    return <div class={`flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br ${botChar.avatarColor} text-lg`}>
-      {botChar.icon}
-    </div>;
-  }
   const displayName =
-    props.user.name === "Bạn" || props.user.name === t("Bạn") ? props.userName : t(props.user.name);
+    botChar ? botChar.name : (props.user.name === "Bạn" || props.user.name === t("Bạn") ? props.userName : t(props.user.name));
   return <UserAvatar name={displayName} image={props.user.avatar} class="h-9 w-9 text-xs" />;
 };
 
@@ -881,23 +877,121 @@ export component Assembly(props: any) {
   const [isVideoOff, setIsVideoOff] = createSignal(true);
   const [isHandRaised, setIsHandRaised] = createSignal(false);
 
-  const toggleMute = () => {
-    setIsMuted(!isMuted());
-    if (localStream()) {
-      localStream()!.getAudioTracks().forEach((track) => {
-        track.enabled = !isMuted();
-      });
+  const toggleMute = async () => {
+    const nextState = !isMuted();
+    setIsMuted(nextState);
+    if (!nextState) {
+      if (localStream()) {
+        const audioTrack = localStream()!.getAudioTracks()[0];
+        if (audioTrack) {
+          audioTrack.enabled = true;
+        } else {
+          try {
+            const tempStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const newTrack = tempStream.getAudioTracks()[0];
+            if (newTrack) {
+              localStream()!.addTrack(newTrack);
+              setLocalStream(new MediaStream(localStream()!.getTracks()));
+            }
+          } catch (err) {
+            console.warn("Error starting audio track:", err);
+          }
+        }
+      } else {
+        await startLocalMedia();
+      }
+    } else {
+      if (localStream()) {
+        localStream()!.getAudioTracks().forEach((track) => {
+          track.enabled = false;
+        });
+      }
     }
   };
 
-  const toggleVideo = () => {
-    setIsVideoOff(!isVideoOff());
-    if (localStream()) {
-      localStream()!.getVideoTracks().forEach((track) => {
-        track.enabled = !isVideoOff();
-      });
+  const toggleVideo = async () => {
+    const nextState = !isVideoOff();
+    setIsVideoOff(nextState);
+    if (!nextState) {
+      if (localStream()) {
+        const videoTrack = localStream()!.getVideoTracks()[0];
+        if (videoTrack) {
+          videoTrack.enabled = true;
+        } else {
+          try {
+            const tempStream = await navigator.mediaDevices.getUserMedia({ video: true });
+            const newTrack = tempStream.getVideoTracks()[0];
+            if (newTrack) {
+              localStream()!.addTrack(newTrack);
+              setLocalStream(new MediaStream(localStream()!.getTracks()));
+            }
+          } catch (err) {
+            console.warn("Error starting video track:", err);
+          }
+        }
+      } else {
+        await startLocalMedia();
+      }
+    } else {
+      if (localStream()) {
+        localStream()!.getVideoTracks().forEach((track) => {
+          track.enabled = false;
+        });
+      }
     }
   };
+  const getCardStyle = () => {
+    const n = participantsStore.length || 1;
+    let cols = 4;
+    let rows = 4;
+
+    const isMobile = typeof window !== "undefined" && window.innerWidth < 640;
+
+    if (isMobile) {
+      cols = n <= 2 ? 1 : 2;
+      rows = Math.ceil(n / cols);
+    } else if (n <= 1) {
+      cols = 1;
+      rows = 1;
+    } else if (n <= 2) {
+      cols = 2;
+      rows = 1;
+    } else if (n <= 4) {
+      cols = 2;
+      rows = 2;
+    } else if (n <= 6) {
+      cols = 3;
+      rows = 2;
+    } else if (n <= 9) {
+      cols = 3;
+      rows = 3;
+    } else if (n <= 12) {
+      cols = 4;
+      rows = 3;
+    } else if (n <= 16) {
+      cols = 4;
+      rows = 4;
+    } else if (n <= 20) {
+      cols = 5;
+      rows = 4;
+    } else if (n <= 24) {
+      cols = 6;
+      rows = 4;
+    } else {
+      cols = 6;
+      rows = 5;
+    }
+
+    const gap = 16; // gap-4 is 16px
+    const widthVal = `calc(${100 / cols}% - ${(gap * (cols - 1)) / cols}px)`;
+    const heightVal = `calc(${100 / rows}% - ${(gap * (rows - 1)) / rows}px)`;
+
+    return {
+      width: widthVal,
+      height: heightVal,
+    };
+  };
+
   const [isChatOpen, setIsChatOpen] = createSignal(false);
   const [activeTab, setActiveTab] = createSignal("participants");
   const [unreadChatCount, setUnreadChatCount] = createSignal(0);
@@ -5106,7 +5200,7 @@ export component Assembly(props: any) {
           id: c.id,
           name: t(c.name),
           stream: null,
-          isVideoOff: true,
+          isVideoOff: Math.random() > 0.5,
           isMuted: (AGENT_DNA[c.id]?.vengeance || 0.5) < 0.3,
           isSpeaking: false,
           isBot: true,
@@ -5147,13 +5241,17 @@ export component Assembly(props: any) {
 
       // Simulate bot activity (speaking and chat messages)
       botInterval = setInterval(() => {
-        // 1. Randomly toggle speaking state for bots (only if not muted and not currently generating/speaking)
+        // 1. Randomly toggle speaking state and camera (isVideoOff) state for bots
         setRemoteParticipants((prev) => {
           return prev.map((p) => {
             if (p.isBot) {
-              if (p.isSpeaking) return p;
+              let isVideoOff = p.isVideoOff;
+              if (Math.random() < 0.15) {
+                isVideoOff = !isVideoOff;
+              }
+              if (p.isSpeaking) return { ...p, isVideoOff };
               const isSpeaking = !p.isMuted && (Date.now() / 2500 | 0) % 7 === p.id.charCodeAt(0) % 7;
-              return { ...p, isSpeaking };
+              return { ...p, isSpeaking, isVideoOff };
             }
             return p;
           });
@@ -5260,8 +5358,8 @@ export component Assembly(props: any) {
                 if (data.success && data.publicAnnouncement) {
                   const chatMsg = {
                     type: "chat",
-                    senderId: "system",
-                    sender: "Thị Trường Tin Tức 📰",
+                    senderId: `bot_${attacker.id}`,
+                    sender: attacker.name,
                     text: data.publicAnnouncement,
                     time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
                   };
@@ -5340,167 +5438,6 @@ export component Assembly(props: any) {
           }
         }
         const dna = AGENT_DNA[key] || { greed: 0.5, vengeance: 0.5, malice: 0.5 };
-
-        // Deduct employee salaries (based on agent level: level * 100,000₫ per employee)
-        const employeesCount = agent.employees || 0;
-        if (employeesCount > 0) {
-          const agentSkill = agentSkills()[key] || { level: 5 };
-          const skillLevel = agentSkill.level || 5;
-          const salaryPerEmployee = 100000 * skillLevel; // Lương thỏa thuận theo năng lực: 100.000₫ * Cấp độ / nhân viên
-          const salaryCost = employeesCount * salaryPerEmployee;
-
-          if (agent.budget < salaryCost) {
-            const remainingBudget = Math.max(0, agent.budget);
-            agent.budget = 0;
-            totalSalariesPaid += remainingBudget;
-
-            // Employees resign/protest due to unpaid/reduced salary
-            if (employeesCount > 0) {
-              const missedRatio = (salaryCost - remainingBudget) / salaryCost;
-              const resignCount = Math.min(employeesCount, Math.max(1, Math.round(missedRatio * 2)));
-              agent.employees = Math.max(0, employeesCount - resignCount);
-
-              // Skill level decreases due to unpaid salary
-              const skills = { ...agentSkills() };
-              const agentSkill = skills[key];
-              if (agentSkill && agentSkill.level > 1) {
-                agentSkill.level = Math.max(1, agentSkill.level - 1);
-                const rumorPart = agentSkill.title.split(" (Cấp")[0] || "Bình thường";
-                agentSkill.title = `${rumorPart} (Cấp ${agentSkill.level})`;
-                if (agentSkill.level >= 9) {
-                  agentSkill.color = "#fbbf24";
-                } else if (agentSkill.level >= 7) {
-                  agentSkill.color = "#facc15";
-                } else if (agentSkill.level >= 5) {
-                  agentSkill.color = "#9ca3af";
-                } else {
-                  agentSkill.color = "#f87171";
-                }
-
-                skills[key] = { ...agentSkill };
-                setAgentSkills(skills);
-                syncPayload[key] = {
-                  ...syncPayload[key] || {},
-                  skills: skills[key],
-                };
-              }
-
-              const resignMsg = t(
-                "⚠️ [Nhân sự] {name} nợ lương/giảm lương! {resignCount} nhân viên đã đình công và nghỉ việc (Còn lại: {employees} người). Trình độ thương thuyết bị giảm!",
-              ).replace("{name}", t(agent.name)).replace("{resignCount}", resignCount.toString()).replace(
-                "{employees}",
-                agent.employees.toString(),
-              );
-              const chatMsg = {
-                type: "chat",
-                senderId: "system",
-                sender: t("Hệ Thống Nhân Sự"),
-                text: resignMsg,
-                time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-              };
-              setMessages((prev) => [...prev, chatMsg] as any);
-              if (ws && ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify(chatMsg));
-              }
-            }
-          } else {
-            agent.budget -= salaryCost;
-            totalSalariesPaid += salaryCost;
-          }
-
-          changed = true;
-          syncPayload[key] = {
-            ...syncPayload[key] || {},
-            budget: agent.budget,
-            employees: agent.employees,
-          };
-          totalEmployeesCount += agent.employees || 0;
-        }
-
-        // Firing / Hiring decisions for bot agents
-        if (key !== selectedCharId()) {
-          const profitBuffer = agent.budget - 150000000;
-          // Hire logic: if budget > 150M and employees < 40
-          if (profitBuffer > 0 && employeesCount < 40) {
-            const h = Math.max(1, Math.min(3, Math.floor(profitBuffer / 50000000) + (dna.greed > 0.7 ? 1 : 0)));
-            agent.employees = (agent.employees || 0) + h;
-            changed = true;
-            syncPayload[key] = {
-              ...syncPayload[key] || {},
-              employees: agent.employees,
-              budget: agent.budget,
-            };
-
-            const hireMsg = t(
-              "💼 [Tuyển dụng] {name} tuyển thêm {qty} nhân viên (Tổng: {employees} người) để gia tăng hiệu suất sản xuất.",
-            ).replace("{name}", t(agent.name)).replace("{qty}", h.toString()).replace("{employees}", agent.employees.toString());
-            const chatMsg = {
-              type: "chat",
-              senderId: `bot_${key}`,
-              sender: agent.name,
-              text: hireMsg,
-              time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-            };
-            setMessages((prev) => [...prev, chatMsg] as any);
-            if (ws && ws.readyState === WebSocket.OPEN) {
-              ws.send(JSON.stringify(chatMsg));
-            }
-          } else // Fire logic: if budget < 0 (debt) and employees > 2
-          if (agent.budget < 0 && employeesCount > 2) {
-            const debtSeverity = Math.abs(agent.budget);
-            const baseFire = Math.ceil(debtSeverity / 30000000); // fire more if debt is huge
-            const traitModifier = Math.floor(dna.malice * 1.5); // malicious/selfish agents fire more aggressively to cut costs
-            const f = Math.max(1, Math.min(employeesCount - 2, baseFire + traitModifier));
-            agent.employees = Math.max(2, (agent.employees || 0) - f);
-            changed = true;
-
-            // Bot skill level drops due to firing
-            const skills = { ...agentSkills() };
-            const botSkill = skills[key];
-            if (botSkill && botSkill.level > 1) {
-              botSkill.level = Math.max(1, botSkill.level - f);
-              const rumorPart = botSkill.title.split(" (Cấp")[0] || "Bình thường";
-              botSkill.title = `${rumorPart} (Cấp ${botSkill.level})`;
-              if (botSkill.level >= 9) {
-                botSkill.color = "#fbbf24";
-              } else if (botSkill.level >= 7) {
-                botSkill.color = "#facc15";
-              } else if (botSkill.level >= 5) {
-                botSkill.color = "#9ca3af";
-              } else {
-                botSkill.color = "#f87171";
-              }
-
-              skills[key] = { ...botSkill };
-              setAgentSkills(skills);
-              syncPayload[key] = {
-                ...syncPayload[key] || {},
-                skills: skills[key],
-              };
-            }
-
-            syncPayload[key] = {
-              ...syncPayload[key] || {},
-              employees: agent.employees,
-              budget: agent.budget,
-            };
-
-            const fireMsg = t(
-              "💼 [Nhân sự] {name} sa thải {qty} nhân viên (Tổng: {employees} người) nhằm tiết kiệm chi phí lương. Sĩ khí giảm làm giảm trình độ chuyên môn!",
-            ).replace("{name}", t(agent.name)).replace("{qty}", f.toString()).replace("{employees}", agent.employees.toString());
-            const chatMsg = {
-              type: "chat",
-              senderId: `bot_${key}`,
-              sender: agent.name,
-              text: fireMsg,
-              time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-            };
-            setMessages((prev) => [...prev, chatMsg] as any);
-            if (ws && ws.readyState === WebSocket.OPEN) {
-              ws.send(JSON.stringify(chatMsg));
-            }
-          }
-        }
 
         // Check for missing image in agent's product
         const hasImg = agent.media && Array.isArray(agent.media) && agent.media.length > 0 && agent.media[0]?.link;
@@ -5704,75 +5641,6 @@ export component Assembly(props: any) {
         }
       });
 
-      // Macroeconomic Shock / Market Event (triggered deterministically every 12 ticks)
-      if (chatTick > 0 && chatTick % 12 === 0 && isHost() && isTradingActive()) {
-        const events = [
-          {
-            title: "Hạn hán kéo dài ☀️",
-            text: "📰 [BIẾN ĐỘNG THỊ TRƯỜNG] Tin nóng: Đợt hạn hán lịch sử kéo dài khiến sản lượng nông sản sụt giảm. Giá bán sản phẩm tăng đồng loạt 30%!",
-            action: () => {
-              Object.keys(assets).forEach((k) => {
-                assets[k].price = Math.round(assets[k].price * 1.3);
-                assets[k].quantity = Math.max(0, Math.round(assets[k].quantity * 0.8));
-              });
-            },
-          },
-          {
-            title: "Mùa vụ bội thu 🌾",
-            text: "📰 [BIẾN ĐỘNG THỊ TRƯỜNG] Tin nóng: Thời tiết thuận lợi giúp mùa vụ trúng lớn. Hàng hóa ngập tràn thị trường, giá bán giảm nhiệt 20%!",
-            action: () => {
-              Object.keys(assets).forEach((k) => {
-                assets[k].price = Math.round(assets[k].price * 0.8);
-                assets[k].quantity = Math.round(assets[k].quantity * 1.5);
-              });
-            },
-          },
-          {
-            title: "Khủng hoảng Logistics 🚚",
-            text: "📰 [BIẾN ĐỘNG THỊ TRƯỜNG] Tin nóng: Giá xăng dầu tăng vọt gây áp lực lên cước vận chuyển. Trừ thẳng 5,000,000đ chi phí logistics vào ngân sách m!",
-            action: () => {
-              Object.keys(assets).forEach((k) => {
-                assets[k].budget -= 5000000;
-              });
-            },
-          },
-        ];
-
-        const selectedEvent = events[(chatTick / 12 | 0) % events.length];
-        selectedEvent.action();
-        changed = true;
-
-        const chatMsg = {
-          type: "chat",
-          senderId: "bot_system",
-          sender: t("Bản Tin Thị Trường (Rottra)"),
-          text: t(selectedEvent.text),
-          time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-        };
-
-        setMessages((prev) => [...prev, chatMsg] as any);
-        if (ws && ws.readyState === WebSocket.OPEN) {
-          ws.send(JSON.stringify(chatMsg));
-        }
-      }
-
-      if (totalSalariesPaid > 0) {
-        const salaryReportMsg = t(
-          `💼 [Báo cáo nhân sự] Các doanh nghiệp đã chi trả tổng cộng {amount}${currencySymbol()} tiền lương cho {count} nhân viên đang làm việc.`,
-        ).replace("{amount}", formatCurrency(totalSalariesPaid)).replace("{count}", totalEmployeesCount.toString());
-        const chatMsg = {
-          type: "chat",
-          senderId: "bot_system",
-          sender: t("Bản Tin Nhân Sự (Rottra)"),
-          text: salaryReportMsg,
-          time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-        };
-        setMessages((prev) => [...prev, chatMsg] as any);
-        if (ws && ws.readyState === WebSocket.OPEN) {
-          ws.send(JSON.stringify(chatMsg));
-        }
-      }
-
       if (changed) {
         setAgentAssets(assets);
         fetch("/api/agent/sync-assets", {
@@ -5788,9 +5656,11 @@ export component Assembly(props: any) {
 
     const connectWS = () => {
       if (!isMeetingActive()) return;
-      const wsHost = window.location.hostname;
-      console.log(`🔌 [WS] Connecting to signaling server ws://${wsHost}:8080/?room=${encodeURIComponent(meetingName())}...`);
-      const newWs = new WebSocket(`ws://${wsHost}:8080/?room=${encodeURIComponent(meetingName())}`);
+      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+      const host = window.location.host;
+      const wsUrl = `${protocol}//${host}/api/ws-signaling?room=${encodeURIComponent(meetingName())}`;
+      console.log(`🔌 [WS] Connecting to signaling server ${wsUrl}...`);
+      const newWs = new WebSocket(wsUrl);
 
       let pingInterval: any = null;
 
@@ -6280,6 +6150,7 @@ export component Assembly(props: any) {
         role: "user",
         employees: getCount(p.id || p.clientId, p),
         avatar: p.avatar,
+        isBot: p.isBot,
       });
     }
     return list;
@@ -6353,51 +6224,46 @@ export component Assembly(props: any) {
     <Show when={!isMeetingActive()}>
       {/* Google Meet Style Landing Page */}
       <div
-        class={`flex h-[calc(100vh-120px)] items-center justify-between px-8 lg:px-24 transition-colors ${
+        class={`flex min-h-[calc(100dvh-80px)] items-center justify-center lg:justify-between px-4 sm:px-8 lg:px-24 transition-colors py-12 lg:py-0 ${
           theme() === "dark" ? "bg-[#0f0f0f] text-white" : "bg-white text-gray-900"
         }`}>
-        <div class="flex max-w-xl flex-col gap-8">
-          <h1 class="text-4xl font-normal leading-tight lg:text-5xl">{"Cuộc họp live và cuộc gọi chất lượng cao dành cho mọi người"}</h1>
-          <p class={`text-xl font-light ${theme() === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+        <div class="flex w-full max-w-xl flex-col gap-6 sm:gap-8">
+          <h1 class="text-3xl sm:text-4xl font-normal leading-tight lg:text-5xl text-center sm:text-left">
+            {"Cuộc họp live và cuộc gọi chất lượng cao dành cho mọi người"}
+          </h1>
+          <p class={`text-lg sm:text-xl font-light text-center sm:text-left ${theme() === "dark" ? "text-gray-400" : "text-gray-600"}`}>
             {"Kết nối, cộng tác và ăn mừng từ mọi nơi với Rottra Assembly."}
           </p>
 
-          <div class="mt-4 flex flex-wrap items-center gap-4">
-            <button
+          <div class="mt-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full">
+            <Button
               onClick={() => {
                 setMeetingName(generateSlugId());
                 startMeeting();
               }}
-              class="flex items-center gap-2 rounded-md bg-blue-600 px-4 py-3 text-sm font-medium text-white shadow-sm transition-all hover:bg-blue-700 hover:shadow-md">
+              class="gap-2 px-4 py-3 h-auto w-full sm:w-auto">
               <Icon path={videoCamera} class="h-5 w-5" />
               {"Cuộc họp mới"}
-            </button>
+            </Button>
 
-            <div class="flex items-center gap-2">
-              <div class="relative flex items-center">
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+              <div class="relative flex items-center w-full sm:w-auto">
                 <Icon path={link} class="absolute left-3 h-5 w-5 text-gray-500" />
                 <input
                   type="text"
-                  placeholder="Nhập mã hoặc đường link"
+                  placeholder="Nhập mã hoặc link"
                   value={meetingName()}
                   onInput={(e) => setMeetingName(e.target.value)}
-                  class={`w-64 rounded-md py-3 pl-10 pr-4 text-sm font-medium outline-none transition-all focus:border-blue-600 focus:ring-1 focus:ring-blue-600 placeholder:font-normal ${
+                  class={`w-full sm:w-64 rounded-md py-3 pl-10 pr-4 text-sm font-medium outline-none transition-all focus:border-blue-600 focus:ring-1 focus:ring-blue-600 placeholder:font-normal ${
                     theme() === "dark"
                       ? "bg-[#1e1e1e] border-white/10 text-white placeholder:text-gray-400"
                       : "bg-white border-gray-400 text-gray-800 placeholder:text-gray-500"
                   }`}
                 />
               </div>
-              <button
-                onClick={startMeeting}
-                disabled={!meetingName().trim()}
-                class={`rounded-md px-5 py-3 text-sm font-bold transition-all ${
-                  meetingName().trim()
-                    ? "bg-blue-600 text-white hover:bg-blue-700 shadow-sm cursor-pointer"
-                    : "bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed dark:bg-zinc-800 dark:text-zinc-650 dark:border-zinc-700"
-                }`}>
+              <Button onClick={startMeeting} disabled={!meetingName().trim()} class="px-5 py-3 h-auto w-full sm:w-auto mt-2 sm:mt-0">
                 {"Tham gia"}
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -6430,7 +6296,7 @@ export component Assembly(props: any) {
     <Show when={isMeetingActive()}>
       {/* Meeting Layout */}
       <div
-        class={`flex h-[calc(100vh-120px)] w-full overflow-hidden shadow-2xl lg:flex-row ${
+        class={`flex flex-col h-[calc(100dvh-120px)] w-full overflow-hidden shadow-2xl lg:flex-row ${
           theme() === "dark" ? "bg-[#0f0f0f] text-white" : "bg-gray-50 text-gray-900"
         }`}>
         {/* Main Video Area */}
@@ -6803,9 +6669,7 @@ export component Assembly(props: any) {
                                           class={`text-[26px] font-medium tracking-tight ${
                                             theme() === "dark" ? "text-white" : "text-[#0a0a0a]"
                                           }`}>
-                                          {q.price
-                                            ? t(`{price} ${currencySymbol()}`).replace("{price}", formatCurrency(q.price * 10000))
-                                            : "---"}
+                                          {q.price ? t(`{price} ${currencySymbol()}`).replace("{price}", formatCurrency(q.price)) : "---"}
                                         </span>
                                       </div>
                                     </div>
@@ -6887,21 +6751,40 @@ export component Assembly(props: any) {
             }
 
             <div
-              class={`grid flex-1 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 ${
+              class={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-4 flex-1 min-h-0 overflow-y-auto p-1 sm:p-2 content-start ${
                 showWhiteboard() || activeTab() === "trade" ? "hidden" : ""
               }`}>
               for (const user of participantsStore) {
                 <div
-                  class={`relative flex items-center justify-center overflow-hidden rounded-2xl ${
+                  class={`relative flex items-center justify-center overflow-hidden rounded-2xl w-full min-h-[140px] aspect-[4/5] sm:aspect-video ${
                     user.isSpeaking ? "ring-4 ring-blue-500" : ""
                   } ${theme() === "dark" ? "bg-[#1e1e1e] border border-white/10" : "bg-white border border-gray-250 shadow-sm"}`}>
                   {/* Real video feed */}
-                  if (user.stream && !user.isVideoOff) {
+                  if (user.stream && !user.isVideoOff && !user.isBot) {
                     <VideoFeed stream={user.stream} muted={user.isLocal} class="absolute inset-0 h-full w-full object-cover" />
                   }
 
-                  <div class="absolute bottom-4 left-4 flex items-center gap-2 rounded-lg bg-black/50 px-3 py-1.5 backdrop-blur-md z-10">
-                    <span class="text-sm font-medium text-white">{user.name}</span>
+                  {/* Show Live2D character model when camera is open for bots */}
+                  if (!user.isVideoOff && user.isBot) {
+                    <iframe
+                      src={`/live2d-avatar.html?modelUrl=${encodeURIComponent(
+                        user.id.includes("toLuong") || user.id.includes("bachDiHanh") || user.id.includes("thuongNguyet") ||
+                        user.id.includes("hoaHuynh")
+                          ? "https://cdn.jsdelivr.net/gh/Live2D/CubismWebSamples@master/Samples/Resources/Natori/Natori.model3.json"
+                          : user.id.includes("tramTinh") || user.id.includes("nhuNguyet") || user.id.includes("phiNguyet")
+                            ? "https://cdn.jsdelivr.net/gh/Live2D/CubismWebSamples@master/Samples/Resources/Hiyori/Hiyori.model3.json"
+                            : user.id.includes("daoTieuCuu") || user.id.includes("suGia") || user.id.includes("phiAnh")
+                              ? "https://cdn.jsdelivr.net/gh/Live2D/CubismWebSamples@master/Samples/Resources/Haru/Haru.model3.json"
+                              : "https://cdn.jsdelivr.net/gh/Live2D/CubismWebSamples@master/Samples/Resources/Rice/Rice.model3.json",
+                      )}`}
+                      class="absolute inset-0 w-full h-full border-none bg-transparent"
+                      scrolling="no"
+                    />
+                  }
+
+                  <div
+                    class="absolute bottom-2 sm:bottom-4 left-2 sm:left-4 max-w-[85%] flex items-center gap-1.5 sm:gap-2 rounded-lg bg-black/50 px-2 sm:px-3 py-1 sm:py-1.5 backdrop-blur-md z-20">
+                    <span class="text-xs sm:text-sm font-medium text-white truncate">{user.name}</span>
                     if (user.isSpeaking) {
                       <Icon path={signal} class="h-4 w-4 text-white" />
                     }
@@ -6927,38 +6810,39 @@ export component Assembly(props: any) {
                     }
                   </div>
 
-                  {/* Live2D Avatar fallback if video is off */}
-                  if (!user.stream || user.isVideoOff) {
-                    if (LORE_CHARACTERS.some((c) => c.id === user.id)) {
-                      <iframe
-                        src={`/live2d-avatar.html?modelUrl=${encodeURIComponent(
-                          user.id.includes("toLuong") || user.id.includes("bachDiHanh") || user.id.includes("thuongNguyet") ||
-                          user.id.includes("hoaHuynh")
-                            ? "https://cdn.jsdelivr.net/gh/Live2D/CubismWebSamples@master/Samples/Resources/Natori/Natori.model3.json"
-                            : user.id.includes("tramTinh") || user.id.includes("nhuNguyet") || user.id.includes("phiNguyet")
-                              ? "https://cdn.jsdelivr.net/gh/Live2D/CubismWebSamples@master/Samples/Resources/Hiyori/Hiyori.model3.json"
-                              : user.id.includes("daoTieuCuu") || user.id.includes("suGia") || user.id.includes("phiAnh")
-                                ? "https://cdn.jsdelivr.net/gh/Live2D/CubismWebSamples@master/Samples/Resources/Haru/Haru.model3.json"
-                                : "https://cdn.jsdelivr.net/gh/Live2D/CubismWebSamples@master/Samples/Resources/Rice/Rice.model3.json",
-                        )}`}
-                        class="absolute inset-0 w-full h-full border-none bg-transparent"
-                        scrolling="no"
-                      />
-                    }
-                    if (!LORE_CHARACTERS.some((c) => c.id === user.id)) {
-                      <div
-                        class={`absolute inset-0 flex items-center justify-center ${
-                          theme() === "dark"
-                            ? "bg-gradient-to-br from-[#121212] to-[#1e1e1e]"
-                            : "bg-gradient-to-br from-gray-100 to-gray-250"
-                        }`}>
-                        <UserAvatar
-                          name={user.name === "Bạn" ? userName() : user.name}
-                          image={user.avatar}
-                          class="h-24 w-24 text-2xl shadow-lg transition-all hover:scale-105 duration-300"
+                  {/* Avatar fallback if video is off or stream is missing for humans */}
+                  if (user.isVideoOff || !user.stream && !user.isBot) {
+                    const resolvedName =
+                      user.name === "Bạn" || user.name === t("Bạn") ? userName() : t(user.name);
+                    const hasAvatar = !!(user.avatar && user.avatar !== "" && user.avatar !== "/default-avatar.png" &&
+                      !user.avatar.includes("default-avatar.png") &&
+                      !(user.avatar.includes("c14419f70af6aa5bf55e0163e939afac") && !user.avatar.startsWith("/uploads/")));
+                    <div
+                      class="absolute inset-0 flex items-center justify-center overflow-hidden"
+                      style={{ background: getGradientForName(resolvedName) }}>
+                      <div class="absolute w-24 h-24 rounded-full bg-white/15 -translate-x-10 -translate-y-4 z-0 pointer-events-none" />
+                      if (hasAvatar) {
+                        <img
+                          src={user.avatar}
+                          class="w-24 h-24 rounded-full object-cover border-4 border-white/20 shadow-xl z-10 relative"
+                          alt={resolvedName}
+                          onError={(e) => {
+                            e.currentTarget.style.display = "none";
+                            const fallbackText = e.currentTarget.parentElement?.querySelector(".avatar-initials");
+                            if (fallbackText) (fallbackText as HTMLElement).style.display = "block";
+                          }}
                         />
-                      </div>
-                    }
+                        <span
+                          class="avatar-initials text-white font-bold text-4xl sm:text-6xl select-none z-10 relative"
+                          style={{ display: "none" }}>
+                          {getInitials(resolvedName)}
+                        </span>
+                      } else {
+                        <span class="text-white font-bold text-4xl sm:text-6xl select-none z-10 relative">
+                          {getInitials(resolvedName)}
+                        </span>
+                      }
+                    </div>
                   }
                 </div>
               }
@@ -6966,21 +6850,24 @@ export component Assembly(props: any) {
           </div>
 
           <div
-            class={`relative z-30 mt-4 flex items-center justify-center gap-4 rounded-2xl px-6 py-4 backdrop-blur-xl border ${
+            class={`relative z-30 mt-2 sm:mt-4 flex flex-wrap items-center justify-center gap-2 sm:gap-4 rounded-2xl px-3 sm:px-6 py-2 sm:py-4 backdrop-blur-xl border ${
               theme() === "dark" ? "bg-[#1e1e1e]/80 border-white/5" : "bg-white/95 border-gray-250 shadow-lg"
             }`}>
             <button
               onClick={toggleMute}
-              class={`relative flex h-12 w-12 items-center justify-center rounded-full transition-all ${
+              class={`relative flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full transition-all shrink-0 ${
                 isMuted()
                   ? "bg-red-500 hover:bg-red-600 text-white"
                   : (theme() === "dark" ? "bg-gray-700 hover:bg-gray-600 text-white" : "bg-gray-150 hover:bg-gray-200 text-gray-700")
               }`}>
               <div class="relative flex items-center justify-center">
-                <Icon path={microphone} class={`h-5 w-5 ${isMuted() || theme() === "dark" ? "text-white" : "text-gray-700"}`} />
-                if (isMuted()) {
+                <Icon
+                  path={microphone}
+                  class={`h-4 w-4 sm:h-5 sm:w-5 ${isMuted() || theme() === "dark" ? "text-white" : "text-gray-700"}`}
+                />
+                <Show when={isMuted()}>
                   <svg
-                    class="absolute inset-0 h-5 w-5 text-white"
+                    class="absolute inset-0 h-4 w-4 sm:h-5 sm:w-5 text-white"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
@@ -6988,54 +6875,75 @@ export component Assembly(props: any) {
                     stroke-linecap="round">
                     <line x1="18" y1="6" x2="6" y2="18" />
                   </svg>
-                }
+                </Show>
               </div>
             </button>
 
             <button
               onClick={toggleVideo}
-              class={`relative flex h-12 w-12 items-center justify-center rounded-full transition-all ${
+              class={`relative flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full transition-all shrink-0 ${
                 isVideoOff()
                   ? "bg-red-500 hover:bg-red-600 text-white"
                   : (theme() === "dark" ? "bg-gray-700 hover:bg-gray-600 text-white" : "bg-gray-150 hover:bg-gray-200 text-gray-700")
               }`}>
               <Icon
                 path={isVideoOff() ? videoCameraSlash : videoCamera}
-                class={`h-5 w-5 ${isVideoOff() || theme() === "dark" ? "text-white" : "text-gray-700"}`}
+                class={`h-4 w-4 sm:h-5 sm:w-5 ${isVideoOff() || theme() === "dark" ? "text-white" : "text-gray-700"}`}
               />
             </button>
 
             <button
               onClick={() => setIsHandRaised(!isHandRaised())}
-              class={`flex h-12 w-12 items-center justify-center rounded-full transition-all ${
+              class={`flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full transition-all shrink-0 ${
                 isHandRaised()
                   ? "bg-yellow-500 hover:bg-yellow-600 text-white"
                   : (theme() === "dark" ? "bg-gray-700 hover:bg-gray-600 text-white" : "bg-gray-150 hover:bg-gray-200 text-gray-700")
               }`}>
-              <Icon path={handRaised} class={`h-5 w-5 ${isHandRaised() || theme() === "dark" ? "text-white" : "text-gray-700"}`} />
+              <Icon
+                path={handRaised}
+                class={`h-4 w-4 sm:h-5 sm:w-5 ${isHandRaised() || theme() === "dark" ? "text-white" : "text-gray-700"}`}
+              />
             </button>
 
             <button
               onClick={fetchApiKey}
-              class={`flex h-12 w-12 items-center justify-center rounded-full transition-all ${
+              class={`flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full transition-all shrink-0 ${
                 theme() === "dark" ? "bg-gray-700 hover:bg-gray-600 text-white" : "bg-gray-150 hover:bg-gray-200 text-gray-700"
               }`}>
-              <Icon path={key} class={`h-5 w-5 ${theme() === "dark" ? "text-white" : "text-gray-700"}`} />
+              <Icon path={key} class={`h-4 w-4 sm:h-5 sm:w-5 ${theme() === "dark" ? "text-white" : "text-gray-700"}`} />
+            </button>
+
+            <button
+              onClick={() => setIsChatOpen(!isChatOpen())}
+              class={`flex lg:hidden h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full transition-all shrink-0 ${
+                isChatOpen()
+                  ? "bg-blue-600 text-white"
+                  : (theme() === "dark" ? "bg-gray-700 hover:bg-gray-600 text-white" : "bg-gray-150 hover:bg-gray-200 text-gray-700")
+              }`}>
+              <div class="relative">
+                <Icon path={chatBubbleLeftRight} class="h-4 w-4 sm:h-5 sm:w-5" />
+                <Show when={unreadChatCount() > 0}>
+                  <span
+                    class="absolute -top-1.5 -right-2 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-red-500 text-[8px] font-black text-white px-0.5 animate-pulse">
+                    {unreadChatCount()}
+                  </span>
+                </Show>
+              </div>
             </button>
 
             <div class="relative">
               <button
                 onClick={() => setShowMoreMenu(!showMoreMenu())}
-                class={`flex h-12 w-12 items-center justify-center rounded-full transition-all ${
+                class={`flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full transition-all shrink-0 ${
                   theme() === "dark" ? "bg-gray-700 hover:bg-gray-600 text-white" : "bg-gray-150 hover:bg-gray-200 text-gray-700"
                 }`}>
-                <Icon path={ellipsisHorizontal} class={`h-5 w-5 ${theme() === "dark" ? "text-white" : "text-gray-700"}`} />
+                <Icon path={ellipsisHorizontal} class={`h-4 w-4 sm:h-5 sm:w-5 ${theme() === "dark" ? "text-white" : "text-gray-700"}`} />
               </button>
 
               {/* Dropdown Menu */}
               <Show when={showMoreMenu()}>
                 <div
-                  class={`absolute bottom-full left-1/2 mb-4 -translate-x-1/2 w-48 rounded-2xl p-2 shadow-xl z-50 border meeting-dropdown ${
+                  class={`absolute bottom-full right-0 sm:right-auto sm:left-1/2 mb-4 origin-bottom-right sm:origin-bottom sm:-translate-x-1/2 w-[220px] max-w-[90vw] max-h-[65vh] overflow-y-auto rounded-2xl p-2 shadow-xl z-50 border meeting-dropdown custom-scrollbar ${
                     theme() === "dark" ? "bg-[#1e1e1e] border-white/10 text-white" : "bg-white border-gray-200 text-gray-800"
                   }`}>
                   <div class="px-3 pt-2 pb-1 text-[11px] font-bold text-white uppercase tracking-wider">{"Công cụ"}</div>
@@ -7112,7 +7020,7 @@ export component Assembly(props: any) {
                     <span class="text-base text-pink-400">{"🧽"}</span>
                     {"Cục tẩy"}
                   </button>
-                  if (drawingTool() === "eraser" && whiteboardMode() === "canvas") {
+                  <Show when={drawingTool() === "eraser" && whiteboardMode() === "canvas"}>
                     <div class="px-4 py-2 border-t border-white/5 mt-1 flex items-center gap-2">
                       <input
                         type="checkbox"
@@ -7125,7 +7033,7 @@ export component Assembly(props: any) {
                         {"Bảo vệ bản vẽ Agent"}
                       </label>
                     </div>
-                  }
+                  </Show>
                   <button
                     onClick={() => {
                       undoLastDraw();
@@ -7165,35 +7073,61 @@ export component Assembly(props: any) {
                     {"Lập trình AI"}
                   </button>
                   {/* Đổi màu button */}
-                  <div class="relative w-full border-t border-white/5">
-                    <button
-                      type="button"
-                      class="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-gray-200 hover:bg-gray-700 transition-colors pointer-events-none">
-                      <span class="relative h-4 w-4">
-                        {/* Xanh lá */}
+                  <div class="relative w-full border-t border-white/5 mt-1">
+                    <div class="px-3 pt-3 pb-2 text-[11px] font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                      <span class="relative h-3 w-3">
                         <span class="absolute inset-0 text-green-500" style="clip-path: polygon(0 0, 49% 0, 43% 100%, 0 100%)">
-                          <Icon path={swatch} class="h-4 w-4" />
+                          <Icon path={swatch} class="h-3 w-3" />
                         </span>
-                        {/* Đỏ */}
                         <span class="absolute inset-0 text-red-500" style="clip-path: polygon(49% 0, 100% 0, 100% 31%, 44% 84%)">
-                          <Icon path={swatch} class="h-4 w-4" />
+                          <Icon path={swatch} class="h-3 w-3" />
                         </span>
-                        {/* Xanh dương */}
                         <span class="absolute inset-0 text-blue-500" style="clip-path: polygon(44% 84%, 100% 31%, 100% 100%, 43% 100%)">
-                          <Icon path={swatch} class="h-4 w-4" />
+                          <Icon path={swatch} class="h-3 w-3" />
                         </span>
                       </span>
-                      {"Đổi màu"}
-                    </button>
-                    {/* Position the input to completely cover the container to anchor the native popup correctly */}
-                    <input
-                      ref={colorInputRef}
-                      type="color"
-                      value={selectedColor() || "#3b82f6"}
-                      onInput={(e) => setSelectedColor(e.currentTarget.value)}
-                      class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                      title="Pha màu tùy chỉnh"
-                    />
+                      {"Đổi màu bút"}
+                    </div>
+                    <div class="px-4 pb-3 flex flex-wrap gap-2.5">
+                      for (const color of [
+                        "#ef4444",
+                        "#f97316",
+                        "#eab308",
+                        "#22c55e",
+                        "#3b82f6",
+                        "#a855f7",
+                        "#ec4899",
+                        "#ffffff",
+                        "#000000",
+                      ]) {
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedColor(color);
+                            setShowMoreMenu(false);
+                          }}
+                          class={`w-6 h-6 rounded-full border-2 transition-all ${
+                            selectedColor() === color
+                              ? "border-white scale-110 shadow-lg shadow-white/20"
+                              : "border-transparent hover:scale-110"
+                          }`}
+                          style={{ "background-color": color }}
+                          title={`Màu ${color}`}
+                        />
+                      }
+                      <div
+                        class="relative w-6 h-6 rounded-full border-2 border-transparent overflow-hidden hover:scale-110 transition-transform shadow-inner"
+                        style="background: conic-gradient(red, yellow, lime, aqua, blue, magenta, red);">
+                        <input
+                          ref={colorInputRef}
+                          type="color"
+                          value={selectedColor() || "#3b82f6"}
+                          onInput={(e) => setSelectedColor(e.currentTarget.value)}
+                          class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                          title="Pha màu tùy chỉnh"
+                        />
+                      </div>
+                    </div>
                   </div>
                   <div class="px-3 pt-3 pb-1 border-t border-white/5 mt-1 text-[11px] font-bold text-white uppercase tracking-wider">
                     {"Cảm xúc"}
@@ -7262,22 +7196,22 @@ export component Assembly(props: any) {
               </Show>
             </div>
 
-            <div class="h-8 w-px bg-gray-600" />
+            <div class="h-6 sm:h-8 w-px bg-gray-600 hidden sm:block" />
 
             <button
               onClick={leaveMeeting}
-              class="flex items-center gap-2 rounded-full bg-red-600 px-6 py-3 font-bold text-white transition-all hover:bg-red-700 hover:shadow-lg hover:shadow-red-500/30">
-              <Icon path={power} class="h-5 w-5" />
-              {"Rời phòng"}
+              class="flex items-center justify-center gap-2 rounded-full bg-red-600 h-10 w-10 sm:h-auto sm:w-auto sm:px-6 sm:py-3 font-bold text-white transition-all hover:bg-red-700 hover:shadow-lg hover:shadow-red-500/30 shrink-0">
+              <Icon path={power} class="h-4 w-4 sm:h-5 sm:w-5" />
+              <span class="hidden sm:inline">{"Rời phòng"}</span>
             </button>
           </div>
         </div>
         {/* Sidebar */}
         <div
-          class={`flex w-full flex-col border-l lg:w-80 ${
-            theme() === "dark" ? "border-white/10 bg-[#0f0f0f]" : "border-gray-200 bg-white"
-          }`}>
-          <div class={`flex border-b ${theme() === "dark" ? "border-white/10" : "border-gray-200"}`}>
+          class={`fixed inset-0 z-50 lg:static flex w-full h-full shrink-0 flex-col border-t lg:border-t-0 lg:border-l lg:w-80 transition-transform duration-300 ${
+            isChatOpen() ? "translate-x-0 flex" : "translate-x-full lg:translate-x-0 hidden lg:flex"
+          } ${theme() === "dark" ? "border-white/10 bg-[#0f0f0f]" : "border-gray-200 bg-white"}`}>
+          <div class={`flex border-b shrink-0 ${theme() === "dark" ? "border-white/10" : "border-gray-200"}`}>
             <button
               onClick={() => setActiveTab("participants")}
               class={`flex-1 py-3 text-[10px] font-bold transition-colors ${
@@ -7294,6 +7228,7 @@ export component Assembly(props: any) {
                   setActiveTab("trade");
                   setWhiteboardMode("trade");
                   setShowWhiteboard(true);
+                  if (window.innerWidth < 1024) setIsChatOpen(false);
                 }}
                 class={`flex-1 py-3 text-[10px] font-bold transition-colors ${
                   activeTab() === "trade" ? "border-b-2 border-blue-500 text-blue-400" : "text-gray-400 hover:text-gray-200"
@@ -7321,6 +7256,11 @@ export component Assembly(props: any) {
                 </div>
                 <span>{"Tin nhắn"}</span>
               </div>
+            </button>
+            <button
+              onClick={() => setIsChatOpen(false)}
+              class="lg:hidden flex items-center justify-center px-4 hover:bg-black/10 dark:hover:bg-white/10 text-gray-500 dark:text-gray-400">
+              <span class="text-base font-bold">{"X"}</span>
             </button>
           </div>
           <div class="flex flex-1 flex-col overflow-hidden">

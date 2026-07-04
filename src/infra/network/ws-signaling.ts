@@ -7,6 +7,18 @@ const PORT = 8080;
 
 // Create HTTP server for fallback messages and REST endpoints
 const server = http.createServer((req, res) => {
+  // Handle CORS and Private Network Access (PNA) preflight
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE, UPGRADE");
+  res.setHeader("Access-Control-Allow-Headers", "*");
+  res.setHeader("Access-Control-Allow-Private-Network", "true");
+
+  if (req.method === "OPTIONS") {
+    res.writeHead(204);
+    res.end();
+    return;
+  }
+
   const parsedUrl = url.parse(req.url || "", true);
   if (parsedUrl.pathname === "/gold-prices" || parsedUrl.pathname === "/gold-prices/live") {
     const randomChangeBuy = (Math.random() - 0.5) * 400000;
@@ -15,7 +27,6 @@ const server = http.createServer((req, res) => {
     const mockSell = 151800000 + Math.round(randomChangeSell);
     res.writeHead(200, {
       "Content-Type": "application/json",
-      "Access-Control-Allow-Origin": "*",
     });
     res.end(
       JSON.stringify({

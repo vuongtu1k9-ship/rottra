@@ -379,6 +379,7 @@ export const systemSetting = pgTable("SystemSetting", {
   autoSeason: boolean().default(false),
   autoBot: boolean().default(true),
   wifiPerf: boolean().default(false),
+  autoBoost: boolean().default(false),
   updatedAt: timestamp({ withTimezone: true, mode: "string" }).defaultNow(),
 });
 
@@ -652,26 +653,74 @@ export const strategyPreset = pgTable(
   ],
 );
 
-export const agentTraining = pgTable("AgentTraining", {
-  id: text().primaryKey().notNull(),
-  intent: text().notNull(),
-  utterance: text().notNull(),
-  answer: text().notNull(),
-  addAt: timestamp({ withTimezone: true, mode: "string" }).defaultNow(),
-});
+export const agentTraining = pgTable(
+  "AgentTraining",
+  {
+    id: text().primaryKey().notNull(),
+    intent: text().notNull(),
+    utterance: text().notNull(),
+    answer: text().notNull(),
+    addAt: timestamp({ withTimezone: true, mode: "string" }).defaultNow(),
+  },
+  (table: any) => [index("idx_agent_training_intent").on(table.intent), index("idx_agent_training_add_at").on(table.addAt)],
+);
 
-export const naturalLanguageLog = pgTable("NaturalLanguageLog", {
-  id: text().primaryKey().notNull(),
-  query: text(),
-  cleanedQuery: text("cleaned_query"),
-  wordCount: integer("word_count"),
-  charCount: integer("char_count"),
-  entropy: real(),
-  wordFrequencies: jsonb("word_frequencies"),
-  intent: varchar({ length: 100 }),
-  confidence: real(),
-  addAt: timestamp({ withTimezone: true, mode: "string" }).defaultNow(),
-});
+export const naturalLanguageLog = pgTable(
+  "NaturalLanguageLog",
+  {
+    id: text().primaryKey().notNull(),
+    query: text(),
+    cleanedQuery: text("cleaned_query"),
+    wordCount: integer("word_count"),
+    charCount: integer("char_count"),
+    entropy: real(),
+    wordFrequencies: jsonb("word_frequencies"),
+    intent: varchar({ length: 100 }),
+    confidence: real(),
+    addAt: timestamp({ withTimezone: true, mode: "string" }).defaultNow(),
+  },
+  (table: any) => [index("idx_natural_language_log_intent").on(table.intent), index("idx_natural_language_log_add_at").on(table.addAt)],
+);
+
+export const feedbackLog = pgTable(
+  "FeedbackLog",
+  {
+    id: text().primaryKey().notNull(),
+    query: text().notNull(),
+    intent: text(),
+    rating: varchar({ length: 10 }).notNull(), // "up" | "down"
+    score: real(),
+    compressedAccuracy: real(),
+    userId: text("user_id"),
+    responseSnippet: text("response_snippet"),
+    addAt: timestamp({ withTimezone: true, mode: "string" }).defaultNow(),
+  },
+  (table: any) => [
+    index("idx_feedback_log_add_at").on(table.addAt),
+    index("idx_feedback_log_rating").on(table.rating),
+    index("idx_feedback_log_intent").on(table.intent),
+  ],
+);
+
+export const responseVersionLog = pgTable(
+  "ResponseVersionLog",
+  {
+    id: text().primaryKey().notNull(),
+    query: text().notNull(),
+    intent: text(),
+    version: varchar({ length: 100 }).notNull(), // e.g. "fastpath-basal-ganglia", "rag-hybrid", "persona-toLuong"
+    responseSnippet: text("response_snippet"),
+    confidence: real(),
+    latencyMs: integer("latency_ms"),
+    userId: text("user_id"),
+    addAt: timestamp({ withTimezone: true, mode: "string" }).defaultNow(),
+  },
+  (table: any) => [
+    index("idx_response_version_log_add_at").on(table.addAt),
+    index("idx_response_version_log_version").on(table.version),
+    index("idx_response_version_log_intent").on(table.intent),
+  ],
+);
 
 export const vietnameseLexicon = pgTable("VietnameseLexicon", {
   id: text().primaryKey().notNull(),
@@ -803,3 +852,14 @@ export const seoCache = pgTable(
   },
   (table: any) => [index("idx_seo_cache_product").on(table.productSlug), index("idx_seo_cache_location").on(table.locationSlug)],
 );
+
+export const dpoTrainingData = pgTable("DpoTrainingData", {
+  id: varchar("id", { length: 36 }).primaryKey().notNull(),
+  prompt: text("prompt").notNull(),
+  chosenResponse: text("chosen_response").notNull(),
+  rejectedResponse: text("rejected_response").notNull(),
+  createdAt: timestamp("created_at", { mode: "string" }).defaultNow().notNull(),
+});
+
+// Re-export federated learning tables
+export { flRound, flGradientUpdate, flModelVersion, flNode, flPrivacyBudget } from "./fl-schema-additions";

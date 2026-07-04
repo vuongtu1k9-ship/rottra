@@ -1,0 +1,10 @@
+{
+  "name": "rottra",
+  "pages_build_output_dir": "dist",
+  "kv_namespaces": [
+    {
+      "binding": "ROTTRA_KV",
+      "id": "62be373872fd44f6b822a09d91f807b5"
+    }
+  ]
+}

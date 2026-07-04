@@ -308,14 +308,15 @@ export component HeavyChart() {
           );
           setAllGroups(newGroups);
 
-          // Select Antigravity ProMax as default if exists
-          const antiId = Object.keys(fetchedPresets).find((k) => fetchedPresets[k].name.includes("Antigravity"));
-          if (antiId) {
-            setSelectedPreset(antiId);
-            if (fetchedPresets[antiId].dimensions) {
-              setDimensions([...fetchedPresets[antiId].dimensions]);
+          // Select Rottra AI as default if exists, fallback to Antigravity
+          const defaultId = Object.keys(fetchedPresets).find((k) => fetchedPresets[k].name.includes("Rottra AI")) ||
+                            Object.keys(fetchedPresets).find((k) => fetchedPresets[k].name.includes("Antigravity"));
+          if (defaultId) {
+            setSelectedPreset(defaultId);
+            if (fetchedPresets[defaultId].dimensions) {
+              setDimensions([...fetchedPresets[defaultId].dimensions]);
             }
-            setScores([...fetchedPresets[antiId].values]);
+            setScores([...fetchedPresets[defaultId].values]);
           } else if (Object.keys(fetchedPresets).length > 0) {
             const firstId = Object.keys(fetchedPresets)[0];
             setSelectedPreset(firstId);
@@ -325,9 +326,10 @@ export component HeavyChart() {
             setScores([...fetchedPresets[firstId].values]);
           }
 
-          const claudeId = Object.keys(fetchedPresets).find((k) => fetchedPresets[k].name.includes("Claude"));
-          if (claudeId) {
-            setComparePreset(claudeId);
+          const compId = Object.keys(fetchedPresets).find((k) => fetchedPresets[k].name.includes("Claude")) ||
+                         Object.keys(fetchedPresets).find((k) => fetchedPresets[k].name.includes("Antigravity") && k !== defaultId);
+          if (compId) {
+            setComparePreset(compId);
           }
         }
       }

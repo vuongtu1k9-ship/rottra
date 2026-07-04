@@ -248,7 +248,7 @@ export component Header(props: any) {
     const fetchAgentProfile = async () => {
       try {
         const res = await fetch("/api/agent/system-profile");
-        if (res.ok) {
+        if (res.ok && res.headers.get("content-type")?.includes("application/json")) {
           const data = await res.json();
           if (data.success && data.profile && data.profile.avatar && data.profile.avatar.link) {
             const avatarUrl = data.profile.avatar.link;
@@ -368,6 +368,9 @@ export component Header(props: any) {
   const loginMenu = { label: "Vào", href: "/auth", icon: arrowRightOnRectangle };
 
   const getMenus = () => {
+    if (session().isPending) {
+      return guestMenus;
+    }
     const userRole = role();
     const isMeetingParticipant = ["admin", "ai", "user"].includes(userRole);
     const allowedUserMenus = userMenus.filter((m) => m.label !== "Cuộc họp" || isMeetingParticipant);
@@ -406,8 +409,8 @@ export component Header(props: any) {
         }
         <span class="hidden sm:inline">{t("Rottra")}</span>
       </A>
-      <div class="flex items-center gap-3 md:gap-6 overflow-visible flex-1 justify-end">
-        <ul class="flex gap-3 md:gap-6 items-center overflow-x-auto no-scrollbar pb-1">
+      <div class="flex items-center gap-2 md:gap-6 overflow-visible flex-1 justify-end">
+        <ul class="flex gap-2 md:gap-6 items-center overflow-x-auto no-scrollbar pb-1">
           for (const menu of getMenus()) {
             <li class={menu.label === "Giỏ hàng" ? "relative group" : ""}>
               if (menu.href === "#") {
@@ -459,6 +462,12 @@ export component Header(props: any) {
                   </span>
                 </A>
               }
+            </li>
+          }
+          if (session().isPending) {
+            <li class="flex items-center gap-1.5 font-medium text-gray-400">
+              <div class="w-4 h-4 rounded-full border-2 border-blue-500 border-t-transparent animate-spin shrink-0" />
+              <span class="hidden lg:inline text-xs">{t("Đang tải...")}</span>
             </li>
           }
         </ul>

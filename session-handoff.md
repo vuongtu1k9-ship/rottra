@@ -1,34 +1,48 @@
-# Session Handoff — 2026-06-29
+# Session Handoff — 2026-07-01
 
 ## Work Completed
 
-### Graph-SDM Hybrid AI Prototype
-- Created 3 new modules: `sdm-engine.ts`, `knowledge-graph.ts`, `graph-sdm-hybrid.ts`
-- Trained on 377 patterns, 332 graph nodes, 1877 edges
-- Model saved at `finetune/data/graph_sdm_hybrid.json`
-- Tested: 33-55ms/query, correct responses for greetings, products, agriculture topics
+### Rottra Self-Contained AI (No External LLM)
+- **Removed all cloud APIs** from `ai-sdk.ts`: Gemini, Groq, Mistral, CocoLink functions deleted. Circuit breakers removed.
+- **`ai-sdk.ts` rewritten**: Pipeline now uses fast paths → semantic cache → BasalGanglia routing → hybrid offline inference
+- **`llama-local.ts` fixed**: flashAttention/cacheType type errors resolved, stripThinkingTags added (now unused but kept as reference)
+- **`nlp-intent-parser.ts` created**: exports parseSalesIntents, parseRefundIntents (was imported but never existed)
+- **`agent-chat.ts` fixed**: nlp-intent-parser import resolves, temperature → decodingSettings type
+- **Harness**: 100/100, zero new typecheck errors
 
-### AI System Improvements
-- Fixed ghost text duplication in assistant.tsrx
-- Boosted NLP classifier with bidirectional matching + 55 new utterances
-- Expanded training data to 640 samples (from 135)
-- Fixed 41 typos in domain-training-data.ts
-- Fixed PostgreSQL timestamp overflow (ms → seconds)
+### agent-market.ts Integration
+- Added **Finnhub fallback** for US/international stocks in `fetchStockQuoteFallback()`
+- Added **CoinGecko fallback** for crypto in `fetchCryptoQuote()` when Binance fails
+- Fixed `localModelMatch` reference error in `ai-sdk.ts`
 
-## Blockers
-- Graph-SDM not yet integrated into main chat pipeline (agent-chat.ts)
-- Some queries still return wrong responses (confidence ranking needs tuning)
-- Self-learner system (self-learner.ts) created but not yet hooked into chat flow
+### RAG Cache Warming
+- Created `src/core/neural-memory/cache-warmer.ts` with 23 hot entries:
+  - 11 greeting queries (5 bot personas × "xin chào"/"chào bạn")
+  - 4 product inquiry patterns
+  - 8 intent patterns (weather, currency, navigation, bargaining)
+- Hooked into server startup after RAG engine init
+- Tested: loads in 2ms, semantic cache works
+
+### Verification
+- `bun run test-quick.ts`: **200/200 = 100%** intent classification
+- `bun run dev`: server starts OK, chat API responds with `ROTTRA_LOCAL_FUZZY_COGNITIVE_ENGINE`
+- Harness: 100/100
 
 ## Files Modified
-- `src/client/index.tsrx` — skeleton preservation
-- `src/client/root.tsrx` — non-blocking init, eager Home import, createSignal settings
-- `src/client/views/layout/home.tsrx` — non-blocking data fetch, no Suspense
-- `src/client/views/market-seo.tsrx` — TSRX parse fixes
-- `src/client/views/dashboard/manage-bilingual.tsrx` — TSRX parse fixes
-- `index.html` — non-blocking Google Fonts
+- `src/core/nlp-cognitive/ai-sdk.ts` — REWRITTEN: removed all LLM/cloud code
+- `src/core/nlp-cognitive/llama-local.ts` — Fixed type errors (dead code, kept as reference)
+- `src/core/nlp-cognitive/nlp-intent-parser.ts` — CREATED: sales/refund intent parser
+- `src/core/neural-memory/cache-warmer.ts` — CREATED: 23 hot entries for semantic cache
+- `src/server/api/agent-chat.ts` — Fixed import + temperature type
+- `src/server/api/agent-router.ts` — Added Finnhub + CoinGecko fallbacks
+- `src/routes/api/[...paths].ts` — Hooked cache warmer into startup
+
+## Blockers
+- Pre-existing errors: federated-learning, embedding-finetune, clean_bad_db (not our scope)
+- `onnxruntime-web` not found (browser-only module, pre-existing)
+- Other files still reference cloud API keys (routes, test-api, seo-generator) — outside core inference pipeline
 
 ## Next Session
-- Run Lighthouse audit to confirm LCP improvement
-- Consider SSR for hero section for even faster FCP
-- `feature_list.json` outdated — only tracks feat-001 through feat-005
+- Hebrew ONNX models (when HuggingFace accessible)
+- Consider removing dead code: `llama-local.ts`, `agent-market.ts`
+- Other cloud API key references in non-core files (optional cleanup)

@@ -74,13 +74,13 @@ export class WorkerPool {
   private fallbackExecution(task: any): any {
     const { type, data } = task;
     if (type === "COMPUTE_SIMILARITY") {
-      const { query, cacheKeys } = data;
+      const { query, cacheKeys, topK = 3 } = data;
       const results = cacheKeys.map((key: string) => {
         const sim = this.calculateJaccard(query, key);
         return { key, similarity: sim };
       });
       results.sort((a: any, b: any) => b.similarity - a.similarity);
-      return { type: "SIMILARITY_RESULT", data: results[0] };
+      return { type: "SIMILARITY_RESULT", data: results.slice(0, topK) };
     }
     return null;
   }

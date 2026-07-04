@@ -282,11 +282,11 @@ export const Profile = (props: any) => {
   onMount(() => {
     let ws: WebSocket | null = null;
     let destroyed = false;
-    const wsHost = window.location.hostname;
-
     const connect = () => {
       if (destroyed) return;
-      const newWs = new WebSocket(`ws://${wsHost}:8080/`);
+      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+      const host = window.location.host;
+      const newWs = new WebSocket(`${protocol}//${host}/api/ws-signaling`);
 
       newWs.onmessage = async (event) => {
         try {
@@ -464,6 +464,7 @@ export const Profile = (props: any) => {
               <UserAvatar
                 name={props.user?.name || profile()?.fullName || user()?.name || t("Người dùng")}
                 image={profile()?.avatar?.link || profile()?.imgId?.link || props.user?.image}
+                loading={!props.user && !profile() && !profileNotFound()}
                 class={`w-20 h-20 text-2xl ring-4 ring-blue-50 mb-4 shadow-sm transition-transform ${
                   props.activeSubAgentId ? "cursor-pointer hover:scale-105" : ""
                 }`}
@@ -710,24 +711,6 @@ export const Profile = (props: any) => {
                     {profile()?.bio || t("Trống")}
                   </span>
                 </div>
-                {(() => {
-                  const cleanId = activeUserId()?.replace(/^user_?/, "");
-                  const isSwarmAgent = displayRole() === "agent" || (cleanId ? serverAgentEmployees[cleanId] !== undefined : false);
-                  const employees = isSwarmAgent ? serverAgentEmployees[cleanId] ?? 5 : 0;
-                  if (employees !== undefined && employees !== null && employees > 0) {
-                    return <>
-                      <div class="flex justify-between">
-                        <span class="text-gray-400 font-medium">
-                          {t("Nhân viên:")}
-                        </span>
-                        <span class={`font-bold text-sky-500`}>
-                          {t("{count} người").replace("{count}", formatNumber(employees))}
-                        </span>
-                      </div>
-                    </>;
-                  }
-                  return null;
-                })()}
                 <div class="flex justify-between">
                   {(() => {
                     const uid = props.user?.id || user()?.id;
@@ -952,6 +935,7 @@ export const Profile = (props: any) => {
                   <UserAvatar
                     name={profile()?.fullName || user()?.name || t("Người dùng")}
                     image={profile()?.avatar?.link || profile()?.imgId?.link}
+                    loading={!props.user && !profile() && !profileNotFound()}
                     class="w-24 h-24 text-3xl ring-4 ring-blue-50 transition-transform group-hover:scale-105 shadow-md"
                   />
                   <div
@@ -1273,7 +1257,7 @@ export const Profile = (props: any) => {
                               </div>
                               <div
                                 class="mt-2 text-[10px] text-gray-400 border-t border-purple-500/10 pt-2 leading-relaxed whitespace-pre-line">
-                                {`${t("Tầm nhìn (V)")}: ${skillLevel || 5}/10\n${t("Công sức (E)")}: ${employees}${t("nv")}\n${t(
+                                {`${t("Tầm nhìn (V)")}: ${skillLevel || 5}/10\n${t("Công sức (E)")}: ${employees}\n${t(
                                   "Hệ số tự hủy: S =",
                                 )} ${agentS} (${t("Ego =")} ${formatNumber(agentEgo, {
                                     minimumFractionDigits: 1,
@@ -1763,23 +1747,6 @@ export const Profile = (props: any) => {
                                 {t("{count} đơn vị").replace("{count}", formatNumber(productQty))}
                               </span>
                             </div>
-                            {(() => {
-                              const cleanId = activeUserId()?.replace(/^user_?/, "");
-                              const isSwarmAgent =
-                                displayRole() === "agent" || (cleanId ? serverAgentEmployees[cleanId] !== undefined : false);
-                              const employees = isSwarmAgent ? serverAgentEmployees[cleanId] ?? 5 : 0;
-                              if (employees > 0) {
-                                return <div class={`p-3 rounded-2xl ${theme() === "dark" ? "bg-white/5" : "bg-gray-50"}`}>
-                                  <span class="text-[10px] text-gray-400 block mb-1">
-                                    {t("Số nhân viên")}
-                                  </span>
-                                  <span class="font-extrabold text-sm text-sky-500">
-                                    {t("{count} người").replace("{count}", formatNumber(employees))}
-                                  </span>
-                                </div>;
-                              }
-                              return null;
-                            })()}
                           </div>
                         </div>}
                     </div>

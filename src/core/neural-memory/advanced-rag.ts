@@ -73,6 +73,7 @@ Quy tắc:
 4. LUÔN giữ nguyên ngôn ngữ gốc.
 5. Trả về JSON: { "subQueries": ["câu 1", "câu 2", ...], "strategy": "parallel" | "sequential" | "hierarchical" }`,
       prompt: `Hãy phân tích câu hỏi sau và chia thành các câu hỏi nhỏ hơn:\n\n"${query}"`,
+      isInternalReasoning: true,
     });
 
     if (text) {
@@ -124,6 +125,7 @@ Quy tắc:
 1. Trả về JSON: { "abstractQuery": "câu hỏi tổng quát", "concreteQuery": "câu hỏi gốc" }
 2. GIỮ NGUYÊN ngôn ngữ (tiếng Việt)`,
       prompt: `Viết lại câu hỏi cụ thể sau thành câu hỏi tổng quát (trừu tượng hơn):\n\n"${query}"`,
+      isInternalReasoning: true,
     });
 
     if (text) {
@@ -167,6 +169,7 @@ Quy tắc:
 3. GIỮ NGUYÊN ngôn ngữ (tiếng Việt)
 4. Trả về JSON: { "hypotheticalDocument": "nội dung đoạn văn giả định" }`,
       prompt: `Viết một đoạn tài liệu giả định trả lời câu hỏi sau:\n\n"${query}"`,
+      isInternalReasoning: true,
     });
 
     if (text) {

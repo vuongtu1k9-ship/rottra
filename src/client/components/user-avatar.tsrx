@@ -1,20 +1,5 @@
 import { Show, createSignal, createEffect } from "solid-js";
 
-const AVATAR_GRADIENTS = [
-  "from-red-500 to-rose-600",
-  "from-orange-500 to-amber-600",
-  "from-yellow-500 to-amber-500",
-  "from-green-500 to-emerald-600",
-  "from-teal-500 to-cyan-600",
-  "from-blue-500 to-indigo-600",
-  "from-indigo-500 to-purple-600",
-  "from-purple-500 to-pink-600",
-  "from-pink-500 to-rose-600",
-  "from-fuchsia-500 to-purple-600",
-  "from-sky-500 to-blue-600",
-  "from-emerald-500 to-teal-600",
-];
-
 function getNameHash(name: string): number {
   let hash = 0;
   const cleanName = name.trim();
@@ -26,56 +11,87 @@ function getNameHash(name: string): number {
 
 export function getInitials(name: string): string {
   if (!name) return "?";
-  const parts = name.trim().split(/\s+/);
-  if (parts.length === 0) return "?";
-  const lastWord = parts[parts.length - 1];
-  return lastWord.charAt(0).toUpperCase();
+  const cleanName = name.trim();
+  if (cleanName.length === 0) return "?";
+  return cleanName.charAt(0).toUpperCase();
 }
 
 export function getGradientForName(name: string): string {
-  if (!name) return "from-gray-400 to-gray-500";
+  if (!name) return "linear-gradient(135deg, #9ca3af, #6b7280)";
   const hash = getNameHash(name);
-  return AVATAR_GRADIENTS[hash % AVATAR_GRADIENTS.length];
+  const hue = hash % 360;
+  // OKLCH values: L (Lightness), C (Chroma), H (Hue)
+  // L=0.62/0.48 ensures uniform perceived brightness across all hues, guaranteeing text legibility.
+  const color1 = `oklch(0.62 0.18 ${hue})`;
+  const color2 = `oklch(0.48 0.18 ${(hue + 35) % 360})`;
+  return `linear-gradient(135deg, ${color1}, ${color2})`;
 }
 
 export component UserAvatar(props: {
   name: string;
   image?: string | null;
+  loading?: boolean;
   class?: string;
   onClick?: (e: MouseEvent) => void;
 }) {
   const [imageError, setImageError] = createSignal(false);
+  const [imageLoaded, setImageLoaded] = createSignal(false);
 
-  // Reset error state if image changes
+  // Reset states if image changes
   createEffect(() => {
     props.image;
     setImageError(false);
+    setImageLoaded(false);
   });
 
   const initials = () => getInitials(props.name || "User");
   const gradient = () => getGradientForName(props.name || "User");
   const hasValidImage = () => {
     const img = props.image;
-    return img && img !== "" && img !== "/default-avatar.png" && !img.includes("default-avatar.png") && !imageError();
+    if (!img || img === "" || img === "/default-avatar.png" || img.includes("default-avatar.png") || imageError()) {
+      return false;
+    }
+    // Block Gravatar default avatar hash, but allow if it's a locally uploaded custom file
+    if (img.includes("c14419f70af6aa5bf55e0163e939afac") && !img.startsWith("/uploads/")) {
+      return false;
+    }
+    return true;
   };
 
   <Show
-    when={hasValidImage()}
+    when={!props.loading}
     fallback={<tsx>
       <div
-        class={`flex items-center justify-center rounded-full bg-gradient-to-br ${gradient()} text-white font-bold select-none border border-white/10 shadow-sm ${
-          props.class || "w-10 h-10 text-sm"
-        }`}
-        onClick={props.onClick}>
-        {initials()}
-      </div>
+        class={`animate-pulse bg-gray-200 dark:bg-white/10 rounded-full border border-white/10 shadow-sm ${props.class || "w-10 h-10"}`}
+      />
     </tsx>}>
-    <img
-      src={props.image!}
-      class={`rounded-full object-cover border border-white/10 shadow-sm ${props.class || "w-10 h-10"}`}
-      alt={props.name}
-      onClick={props.onClick}
-      onError={() => setImageError(true)}
-    />
+    <Show
+      when={hasValidImage()}
+      fallback={<tsx>
+        <div
+          class={`flex items-center justify-center rounded-full text-white font-bold select-none border border-white/10 shadow-sm ${
+            props.class || "w-10 h-10 text-sm"
+          }`}
+          style={{ background: gradient() }}
+          onClick={props.onClick}>
+          {initials()}
+        </div>
+      </tsx>}>
+      <Show when={!imageLoaded()}>
+        <div
+          class={`animate-pulse bg-gray-200 dark:bg-white/10 rounded-full border border-white/10 shadow-sm ${props.class || "w-10 h-10"}`}
+        />
+      </Show>
+      <img
+        src={props.image!}
+        class={`rounded-full object-cover border border-white/10 shadow-sm ${props.class || "w-10 h-10"} ${
+          imageLoaded() ? "" : "absolute w-0 h-0 opacity-0 pointer-events-none"
+        }`}
+        alt={props.name}
+        onClick={props.onClick}
+        onLoad={() => setImageLoaded(true)}
+        onError={() => setImageError(true)}
+      />
+    </Show>
   </Show>
 }

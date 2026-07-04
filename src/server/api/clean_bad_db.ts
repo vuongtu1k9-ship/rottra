@@ -1,4 +1,4 @@
-import { db } from "~/infra/database/setup";
+import { db } from "~/infra/database/db-pool";
 import { agentTraining } from "~/infra/database/schema";
 import { eq } from "drizzle-orm";
 

@@ -2,9 +2,11 @@ import { isServer } from "solid-js/web";
 import { authClient } from "~/client/utils/auth-client";
 
 let syncTimeout: any = null;
+// Profile sync is initially enabled and auto-disables on HTTP failure
+let isProfileSyncAvailable = true;
 
 export const syncUserPreferences = async (prefs: Record<string, any>) => {
-  if (isServer) return;
+  if (isServer || !isProfileSyncAvailable) return;
 
   // Debounce the sync to avoid spamming the server
   if (syncTimeout) clearTimeout(syncTimeout);
@@ -14,32 +16,42 @@ export const syncUserPreferences = async (prefs: Record<string, any>) => {
       const session = await authClient.getSession();
       if (!session?.data?.session) return;
 
-      await fetch("/api/profile", {
+      const res = await fetch("/api/profile", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(prefs),
       });
+
+      if (!res.ok) {
+        console.warn("[UserSync] Profile API is not available (static host). Disabling sync.");
+        isProfileSyncAvailable = false;
+      }
     } catch (e) {
       console.error("Failed to sync user preferences", e);
+      isProfileSyncAvailable = false;
     }
   }, 1000);
 };
 
 export const fetchUserPreferences = async () => {
-  if (isServer) return null;
+  if (isServer || !isProfileSyncAvailable) return null;
   try {
     const session = await authClient.getSession();
     if (!session?.data?.session) return null;
 
     const res = await fetch("/api/profile");
-    if (res.ok) {
+    if (res.ok && res.headers.get("content-type")?.includes("application/json")) {
       const data = await res.json();
       if (data.success && data.profile) {
         return data.profile;
       }
+    } else {
+      // If it's not JSON or ok, disable profile sync (static SPA fallback)
+      isProfileSyncAvailable = false;
     }
   } catch (e) {
     console.error("Failed to fetch user preferences", e);
+    isProfileSyncAvailable = false;
   }
   return null;
 };

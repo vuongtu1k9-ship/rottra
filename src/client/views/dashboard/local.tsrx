@@ -582,48 +582,6 @@ export component Local() {
     }, 1000);
   };
   <div class="w-full h-[calc(100vh-120px)] relative rounded-3xl overflow-hidden border border-gray-100/10">
-    <style>
-      /* Pulse effect for nodes */
-      @keyframes leafletPulsing {
-        0% {
-          transform: scale(0.5);
-          opacity: 0.8;
-        }
-        100% {
-          transform: scale(1.8);
-          opacity: 0;
-        }
-      }
-
-      /* Cyber neon style for the map in dark mode */
-      .cyber-map .leaflet-tile-pane {
-        filter: hue-rotate(200deg) saturate(1.6) brightness(0.7) contrast(1.25) invert(0.05);
-      }
-      .cyber-map {
-        background-color: #07070c !important;
-      }
-
-      /* Glowing paths for polylines and geoJSON borders */
-      .cyber-map .leaflet-interactive {
-        filter: drop-shadow(0 0 6px #06b6d4) drop-shadow(0 0 2px #3b82f6);
-      }
-
-      /* Futuristic dark mode Popups */
-      .cyber-map .leaflet-popup-content-wrapper {
-        background: rgba(10, 10, 16, 0.85) !important;
-        color: #e5e7eb !important;
-        border: 1px solid rgba(59, 130, 246, 0.25) !important;
-        backdrop-filter: blur(12px) !important;
-        border-radius: 16px !important;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6) !important;
-      }
-      .cyber-map .leaflet-popup-tip {
-        background: rgba(10, 10, 16, 0.85) !important;
-        border-left: 1px solid rgba(59, 130, 246, 0.25) !important;
-        border-bottom: 1px solid rgba(59, 130, 246, 0.25) !important;
-      }
-      /* Pulse effect for nodes */
-    </style>
     <div ref={mapContainer} class={`w-full h-full z-0 ${theme() === "dark" ? "cyber-map" : ""}`} />
 
     {/* Thanh bản quyền tự chế bằng SolidJS JSX (Thay thế Leaflet Attribution mặc định) */}

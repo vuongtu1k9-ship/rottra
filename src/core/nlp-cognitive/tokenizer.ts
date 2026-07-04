@@ -13,6 +13,60 @@ import {
   getTokenizerInfo,
 } from "./multilingual-tokenizer";
 
+// ══════════════════════════════════════════════════════════════
+// ONLINE LEARNING: Override map for instant feedback-based corrections
+// ══════════════════════════════════════════════════════════════
+
+const intentOverrideMap = new Map<string, { intent: string; confidence: number; timestamp: number }>();
+const OVERRIDE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+const OVERRIDE_COOLDOWN_MS = 5 * 60 * 1000; // 5 min between overrides for same query
+
+/**
+ * Record a feedback-based intent correction for instant online learning.
+ * Called when user gives thumbs-down and the correct intent is known.
+ */
+export function recordIntentOverride(query: string, correctIntent: string, confidence: number = 0.9): void {
+  const normalized = query
+    .trim()
+    .toLowerCase()
+    .replace(/[^\w\s]/g, "");
+  const existing = intentOverrideMap.get(normalized);
+  if (existing && Date.now() - existing.timestamp < OVERRIDE_COOLDOWN_MS) return;
+
+  intentOverrideMap.set(normalized, {
+    intent: correctIntent,
+    confidence,
+    timestamp: Date.now(),
+  });
+
+  // Cleanup expired entries periodically
+  if (intentOverrideMap.size > 500) {
+    const now = Date.now();
+    for (const [key, val] of intentOverrideMap) {
+      if (now - val.timestamp > OVERRIDE_TTL_MS) intentOverrideMap.delete(key);
+    }
+  }
+}
+
+/**
+ * Check override map before running the full classification pipeline.
+ * Returns override result if found and not expired, null otherwise.
+ */
+function checkIntentOverride(normalizedQuery: string): ClassificationResult | null {
+  const override = intentOverrideMap.get(normalizedQuery);
+  if (!override) return null;
+  if (Date.now() - override.timestamp > OVERRIDE_TTL_MS) {
+    intentOverrideMap.delete(normalizedQuery);
+    return null;
+  }
+  return {
+    intent: override.intent,
+    confidence: override.confidence,
+    classificationMethod: "SEMANTIC_ANCHOR_EXACT",
+    matchedKeyword: `[online-learned: ${normalizedQuery.slice(0, 30)}]`,
+  };
+}
+
 export const SEMANTIC_ANCHORS: Record<string, string[]> = {
   CONFIRMATION: [
     "chac khong",
@@ -292,14 +346,8 @@ export const SEMANTIC_ANCHORS: Record<string, string[]> = {
   AGENTIC_WORKFLOW: [
     "thiếu hụt",
     "điều phối",
-    "giao hàng",
-    "chuyển hàng",
-    "xử lý",
     "thieu hut",
     "dieu phoi",
-    "giao hang",
-    "chuyen hang",
-    "xu ly",
     "điều xe",
     "vận chuyển",
     "vật cản",
@@ -319,14 +367,6 @@ export const SEMANTIC_ANCHORS: Record<string, string[]> = {
     "tai khoan",
     "profile",
     "ho so",
-    "don hang",
-    "don hang cua toi",
-    "order",
-    "orders",
-    "san pham",
-    "goods",
-    "product",
-    "products",
     "cuoc hop",
     "meeting",
     "assembly",
@@ -441,6 +481,21 @@ export const SEMANTIC_ANCHORS: Record<string, string[]> = {
     "xin chao sep",
     "chao ad",
     "chao admin",
+    "ban dang lam",
+    "co ai khong",
+    "ban oi",
+    "cho minh hoi",
+    "minh muon hoi",
+    "ban ten gi",
+    "ai tao ra",
+    "ban la ai",
+    "ban lam duoc",
+    "ban co nguoi",
+    "ke chuyen cuoi",
+    "tam biet",
+    "bye",
+    "gap lai sau",
+    "chuc ngu ngon",
   ],
   STATUS: [
     "trang thai",
@@ -468,8 +523,302 @@ export const SEMANTIC_ANCHORS: Record<string, string[]> = {
     "thong tin cua ban",
     "ban la con bot nao",
   ],
+  MARKET_PRICE: [
+    "gia lua hom",
+    "gia lua om5451",
+    "gia lua st25",
+    "gia ca phe",
+    "gia arabica",
+    "gia ho tieu",
+    "gia tieu den",
+    "gia tieu trang",
+    "gia dieu nhan",
+    "gia dieu tho",
+    "gia sau rieng",
+    "gia bo hass",
+    "gia bo 034",
+    "gia xoai cat",
+    "gia xoai dai",
+    "gia mit thai",
+    "gia cam vinh",
+    "gia cam cara",
+    "gia chanh leo",
+    "gia cao su",
+    "gia dua ben",
+    "gia dua tuoi",
+    "gia ngo giong",
+    "gia ngo lai",
+    "gia khoai lang",
+    "gia khoai mon",
+    "gia rau muong",
+    "gia ca chua",
+    "gia ot hiem",
+    "gia toi lao",
+    "gia gung",
+    "gia nghe",
+    "gia nam linh",
+    "gia nam rom",
+    "gia phan bon",
+    "gia phan dap",
+    "gia phan kcl",
+    "gia phan npk",
+    "gia giong lua",
+    "gia giong bo",
+    "gia thuoc bvtv",
+    "gia dat nong",
+    "gia thue dat",
+    "gia may cay",
+    "gia drone phun",
+    "ty gia usd",
+    "gia vang sjc",
+    "gia sat thep",
+    "gia xang dau",
+    "gia dien",
+    "gia cuoc van",
+    "so sanh gia",
+    "gia ban lua",
+    "gia lua tuoi",
+    "gia lua ir50404",
+  ],
+  FARMING_TECHNIQUE: [
+    "cach trong lua",
+    "ky thuat trong",
+    "lam dat chuan",
+    "gieo hat lua",
+    "bon phan dot",
+    "tuoi nuoc luc",
+    "cat co khi",
+    "phun thuoc tru",
+    "ca phe bi",
+    "tieu bi vang",
+    "lua bi dom",
+    "mit bi chay",
+    "ot bi heo",
+    "dua bi benh",
+    "sau an la",
+    "ruong lua bi",
+    "cach phong chong",
+    "trong ho tieu",
+    "cach xu ly",
+    "phan bon la",
+    "cach u phan",
+    "trong nam rom",
+    "cach lam gia",
+    "trong chuoi cay",
+    "cach phong sau",
+    "bon voi cho",
+    "trong mit thai",
+    "trong lua organic",
+    "cach tang do",
+    "khi nao thu",
+    "bao quan lua",
+    "cach say lua",
+    "trong rau mau",
+    "cach trong sau",
+    "cay an qua",
+    "mua nay nen",
+    "giong lua chiu",
+    "trong bo ban",
+    "giong xoai trai",
+    "trong cam nang",
+    "phan bon tot",
+    "cai thien nang",
+    "cach thu hoach",
+    "bao quan nong",
+    "cach phong tru",
+    "mua vu trong",
+    "trong rau sach",
+    "dat xau trong",
+    "bat dau trong",
+    "vung nui tu",
+    "trong ot hieu",
+    "trong dua leo",
+    "trong dieu bao",
+    "cach ghep cay",
+  ],
+  WEATHER_SEASON: [
+    "thoi tiet hom",
+    "thoi tiet ngay",
+    "du bao thoi",
+    "nang nong keo",
+    "mua mua nen",
+    "bao sap den",
+    "han han keo",
+    "ret dam anh",
+    "do am khong",
+    "luong mua anh",
+    "mua nay trong",
+    "mua nao sau",
+    "du bao lu",
+    "thoi tiet thu",
+    "suong muoi anh",
+    "du bao el",
+    "nhiet do ly",
+    "gio mua dong",
+    "mua lon keo",
+    "nhiet do cao",
+    "troi mua qua",
+    "thoi tiet mua",
+    "thoi tiet mien",
+    "du bao tay",
+    "du bao dbscl",
+    "mua xuan trong",
+    "mua he trong",
+    "mua thu trong",
+    "mua dong trong",
+    "thoi tiet thuan",
+    "nhiet do dat",
+    "do am dat",
+    "thoi tiet co",
+    "gio manh anh",
+    "suong gia mua",
+    "nang gat keo",
+    "mua da gay",
+    "du bao cho",
+  ],
+  FINANCE_COST: [
+    "tinh chi phi",
+    "lai suat vay",
+    "diem hoa von",
+    "so sanh lai",
+    "tinh loi nhuan",
+    "may moc nong",
+    "chi phi thue",
+    "dau tu nha",
+    "vay von ngan",
+    "bao hiem mua",
+    "chinh sach ho",
+    "loi nhuan quy",
+    "ton kho con",
+    "gia von san",
+    "phan tich dong",
+    "tinh npv du",
+    "roi du an",
+    "chi phi van",
+    "phan tich loi",
+    "ty suat loi",
+    "toi uu chi",
+    "phan tich chi",
+    "tinh gia von",
+    "chi phi lam",
+    "chi phi mua",
+    "tinh khau hao",
+    "tinh thue nong",
+    "chi phi chung",
+    "tinh doanh thu",
+    "tinh gia thanh",
+  ],
+  CUSTOMER_SERVICE: [
+    "san pham bi",
+    "don hang bi",
+    "phan bon gia",
+    "giao hang cham",
+    "san pham khong",
+    "muon khieu nai",
+    "doi tra mat",
+    "mua phai hang",
+    "phan hoi san",
+    "khieu nai dich",
+    "lien he ho",
+    "gap su co",
+    "gop y san",
+    "danh gia dich",
+    "giao hang tan",
+  ],
+  SMART_AGRI: [
+    "cam bien do",
+    "he thong tuoi",
+    "drone phun thuoc",
+    "camera ai phat",
+    "nha kinh thong",
+    "phan bon chinh",
+    "iot gateway nong",
+    "quan ly nang",
+    "pid dieu khien",
+    "lora zigbee",
+    "gps nong nghiep",
+    "camera multispectral",
+    "ai phat hien",
+    "robot hai trai",
+    "do nhiet do",
+    "bay den thong",
+    "tram quan trac",
+    "sensor dat nong",
+    "tuoi tieu tu",
+  ],
+  NEGOTIATION_PROMO: [
+    "giam gia duoc",
+    "mua so luong",
+    "co khuyen mai",
+    "gia nay mac",
+    "co ma giam",
+    "mua kem duoc",
+    "deal soc",
+    "gia cuoi cung",
+    "thuong luong gia",
+    "gia tot hon",
+    "mua 10 tan",
+    "khuyen mai thang",
+    "uu dai khach",
+    "gia si bao",
+    "gia le bao",
+  ],
+  PRODUCT_DETAIL: [
+    "san pham co",
+    "so sanh san",
+    "danh gia san",
+    "nguon goc san",
+    "san pham organic",
+    "han su dung",
+    "san pham dong",
+    "mua so luong",
+    "co mau thu",
+    "san pham chung",
+    "chat luong san",
+    "so sanh doi",
+    "dac diem noi",
+    "san pham an",
+  ],
+  ORDER_PAYMENT: [
+    "don hang cua",
+    "thanh toan bang",
+    "giao hang bao",
+    "phi van chuyen",
+    "huy don hang",
+    "doi tra san",
+    "kiem tra ma",
+    "nhan hang chua",
+    "thanh toan khi",
+    "chuyen khoan ngan",
+    "vi momo",
+    "zalopay",
+    "cod thanh toan",
+    "thanh toan tra",
+    "dat hang qua",
+  ],
+  CONVERSATIONAL: [
+    "toi buon",
+    "toi vui",
+    "toi met",
+    "dong vien toi",
+    "toi stress qua",
+    "toi tuc gian",
+    "noi tieng anh",
+    "doi sang english",
+    "noi tieng viet",
+    "ban dep khong",
+    "ban hat duoc",
+    "ke chuyen vui",
+    "hom nay ngay",
+    "may gio roi",
+    "thu may",
+    "ngay mai ngay",
+    "ban bao nhieu",
+    "ban lam viec",
+    "ten ban la",
+    "ban biet tieng",
+  ],
 };
-
 export const tokenizeLinear = (text: string): string[] => {
   const tokens: string[] = [];
   const len = text.length;
@@ -910,6 +1259,7 @@ Respond with ONLY the exact intent name in uppercase (e.g. GREETING). Do not wri
       const response = await generateTextLocal({
         system: systemPrompt,
         prompt: `Input query: "${query}"`,
+        isInternalReasoning: true,
       });
 
       const detectedIntent = response.text
@@ -1031,6 +1381,10 @@ export const classifyIntent = async (queryText: string): Promise<ClassificationR
     };
   }
 
+  // Online learning: check override map from feedback corrections
+  const overrideResult = checkIntentOverride(qClean);
+  if (overrideResult) return overrideResult;
+
   // Handle very short queries (1-3 words) that might be questions
   const shortQueryPatterns = [
     { patterns: ["bao nhieu", "gì", "gia", "giá"], intent: "SEARCH" },
@@ -1049,7 +1403,59 @@ export const classifyIntent = async (queryText: string): Promise<ClassificationR
     }
   }
 
-  const strategies: IntentClassificationStrategy[] = [semanticAnchorExactStrategy, semanticAnchorFuzzyStrategy, llmIntentStrategy];
+  // P1-1: Centroid classifier — embedding-based, sits between fuzzy and LLM
+  const centroidStrategy: IntentClassificationStrategy = {
+    classify: async (query: string, cleanedQuery: string): Promise<ClassificationResult | null> => {
+      try {
+        const { classifyByCentroids, initIntentCentroids } = await import("./intent-centroids");
+        await initIntentCentroids();
+        const result = await classifyByCentroids(cleanedQuery);
+        if (result && result.score >= 0.55) {
+          return {
+            intent: result.intent,
+            confidence: Math.min(0.92, 0.7 + result.score * 0.3),
+            classificationMethod: "NLP_MACHINE_LEARNING",
+          };
+        }
+      } catch {}
+      return null;
+    },
+  };
+
+  // P1-2: Graph-SDM hybrid — SDM pattern recall + Knowledge Graph context
+  const graphSdmStrategy: IntentClassificationStrategy = {
+    classify: async (query: string, cleanedQuery: string): Promise<ClassificationResult | null> => {
+      try {
+        const { getHybridEngine } = await import("./graph-sdm-hybrid");
+        const engine = await getHybridEngine();
+        const stats = engine.getStats();
+        if (!stats.ready || stats.patterns === 0) return null;
+
+        // Use SDM's findBestMatch to get intent from matched pattern
+        const sdm = (engine as any).sdm;
+        if (sdm && typeof sdm.findBestMatch === "function") {
+          const match = sdm.findBestMatch(cleanedQuery);
+          if (match && match.score >= 0.3 && match.pattern?.metadata?.intent) {
+            return {
+              intent: match.pattern.metadata.intent,
+              confidence: Math.min(0.88, 0.5 + match.score * 0.5),
+              matchedKeyword: match.pattern.metadata.utterance?.substring(0, 50),
+              classificationMethod: "SEMANTIC_ANCHOR_FUZZY",
+            };
+          }
+        }
+      } catch {}
+      return null;
+    },
+  };
+
+  const strategies: IntentClassificationStrategy[] = [
+    semanticAnchorExactStrategy,
+    semanticAnchorFuzzyStrategy,
+    centroidStrategy,
+    graphSdmStrategy,
+    llmIntentStrategy,
+  ];
 
   for (const strategy of strategies) {
     const result = await strategy.classify(normalizedQuery, qClean);

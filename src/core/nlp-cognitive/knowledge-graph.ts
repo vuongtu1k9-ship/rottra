@@ -372,4 +372,132 @@ export class KnowledgeGraph {
       }
     }
   }
+
+  // ══════════════════════════════════════════════════════════════
+  // AUTO-EXPANSION: Extract entities from conversations
+  // ══════════════════════════════════════════════════════════════
+
+  private static sessionEntityCount = new Map<string, number>();
+  private static lastExtractionTime = new Map<string, number>();
+  private static readonly MAX_ENTITIES_PER_CONVERSATION = 5;
+  private static readonly MAX_ENTITIES_PER_SESSION = 20;
+  private static readonly EXTRACTION_DEBOUNCE_MS = 5 * 60 * 1000; // 5 min
+
+  private static readonly STOP_WORDS = new Set([
+    "cho",
+    "của",
+    "và",
+    "là",
+    "có",
+    "được",
+    "không",
+    "này",
+    "đó",
+    "với",
+    "trong",
+    "từ",
+    "để",
+    "các",
+    "một",
+    "những",
+    "đã",
+    "sẽ",
+    "đang",
+    "bao",
+    "gì",
+    "như",
+    "thì",
+    "hay",
+    "hoặc",
+    "nhưng",
+    "vì",
+    "nên",
+    "mà",
+    "rất",
+    "còn",
+    "đến",
+    "trên",
+    "dưới",
+    "sau",
+    "trước",
+    "khi",
+    "nếu",
+    "cũng",
+    "đó",
+    "này",
+    "kia",
+    "ấy",
+    "đây",
+    "nọ",
+    "hãy",
+    "xin",
+    "hỏi",
+  ]);
+
+  /**
+   * Auto-extract entities from a conversation turn (query + response).
+   * Rate limited: max 5 entities per conversation, 20 per session, 5 min debounce.
+   */
+  extractFromConversation(query: string, response: string, sessionId: string = "default"): KGNode[] {
+    // Rate limiting
+    const sessionCount = KnowledgeGraph.sessionEntityCount.get(sessionId) || 0;
+    if (sessionCount >= KnowledgeGraph.MAX_ENTITIES_PER_SESSION) return [];
+
+    const debounceKey = `${sessionId}:${query.slice(0, 50)}`;
+    const lastTime = KnowledgeGraph.lastExtractionTime.get(debounceKey) || 0;
+    if (Date.now() - lastTime < KnowledgeGraph.EXTRACTION_DEBOUNCE_MS) return [];
+    KnowledgeGraph.lastExtractionTime.set(debounceKey, Date.now());
+
+    // Extract noun phrases (2-4 word chunks with content words)
+    const combinedText = `${query} ${response}`.toLowerCase();
+    const words = combinedText.split(/\s+/).filter((w) => w.length >= 2);
+
+    // Generate candidate chunks: sliding window of 2-4 words
+    const chunks: string[] = [];
+    for (let size = 2; size <= 4; size++) {
+      for (let i = 0; i <= words.length - size; i++) {
+        const chunk = words.slice(i, i + size);
+        // Filter chunks that are mostly stop words
+        const contentWords = chunk.filter((w) => !KnowledgeGraph.STOP_WORDS.has(w));
+        if (contentWords.length >= 1 && chunk.join(" ").length >= 4) {
+          chunks.push(chunk.join(" "));
+        }
+      }
+    }
+
+    // Deduplicate and limit
+    const uniqueChunks = [...new Set(chunks)].slice(0, KnowledgeGraph.MAX_ENTITIES_PER_CONVERSATION);
+    const newNodes: KGNode[] = [];
+
+    for (const chunk of uniqueChunks) {
+      const node = this.addNode(chunk, "entity", { source: "auto-conversation" });
+      newNodes.push(node);
+
+      // Connect to existing related entities
+      for (const [existingId, existingNode] of this.nodes) {
+        if (existingId !== node.id && existingNode.type === "entity") {
+          const sim = this.cosineSim(node.embedding, existingNode.embedding);
+          if (sim > 0.4) {
+            this.addEdge(node.id, existingId, "related_to", sim);
+          }
+        }
+      }
+
+      // Connect co-occurring entities in this conversation
+      for (const other of newNodes) {
+        if (other.id !== node.id) {
+          this.addEdge(node.id, other.id, "context_of", 0.8);
+        }
+      }
+    }
+
+    // Update session counter
+    KnowledgeGraph.sessionEntityCount.set(sessionId, sessionCount + newNodes.length);
+
+    if (newNodes.length > 0) {
+      console.log(`[KnowledgeGraph] Auto-extracted ${newNodes.length} entities from conversation (session: ${sessionId})`);
+    }
+
+    return newNodes;
+  }
 }

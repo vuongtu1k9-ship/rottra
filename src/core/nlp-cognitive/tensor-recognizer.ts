@@ -5,13 +5,9 @@ let session: any = null;
 let labels: Record<string, string> = {};
 let isInitializing = false;
 
-async function getOrt() {
-  if (ortInstance) return ortInstance;
-  const ort = await import("onnxruntime-web");
-  ort.env.wasm.numThreads = 1;
-  ort.env.wasm.wasmPaths = "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.26.0/dist/";
-  ortInstance = ort;
-  return ort;
+async function getOrt(): Promise<any> {
+  console.warn("ONNX Runtime Web has been purged from RottraAI. Running in Native Fallback mode.");
+  return null;
 }
 
 // Initialize ONNX Session and fetch labels
@@ -21,6 +17,11 @@ export async function initTensorEngine() {
   try {
     console.log("🟢 [Tensor Engine] Initializing ONNX Runtime Web...");
     const ort = await getOrt();
+    if (!ort) {
+      console.warn("⚠️ [Tensor Engine] ONNX not available. Skipping initialization.");
+      isInitializing = false;
+      return;
+    }
 
     // Fetch config for labels (Try local first, fallback to CDN)
     let config;

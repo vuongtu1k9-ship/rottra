@@ -67,20 +67,25 @@ export const fetchWikidataEntity = async (searchQuery: string): Promise<any | nu
   }
 };
 
-// 3. Open Library API - Sách nông nghiệp
-export const fetchOpenLibrary = async (topic: string): Promise<any | null> => {
-  const cacheKey = `openlib_${topic}`;
+// 3. Google Books API - Sách và tài liệu nông nghiệp (Tốt nhất cho Developer)
+export const fetchGoogleBooks = async (topic: string): Promise<any | null> => {
+  const cacheKey = `gbooks_${topic}`;
   const cached = getCachedData(cacheKey);
   if (cached) return cached;
 
   try {
-    const res = await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(topic)}&limit=3`, {
+    const res = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(topic)}&maxResults=3&langRestrict=vi`, {
       signal: AbortSignal.timeout(3500),
     });
     if (!res.ok) return null;
     const data: any = await res.json();
-    if (data.docs && data.docs.length > 0) {
-      const docs = data.docs.map((d: any) => ({ title: d.title, author: d.author_name?.[0], year: d.first_publish_year }));
+    if (data.items && data.items.length > 0) {
+      const docs = data.items.map((item: any) => ({
+        title: item.volumeInfo.title,
+        author: item.volumeInfo.authors?.[0] || "Khuyết danh",
+        description: item.volumeInfo.description ? item.volumeInfo.description.substring(0, 150) + "..." : "Không có tóm tắt",
+        year: item.volumeInfo.publishedDate?.substring(0, 4) || "N/A",
+      }));
       setCachedData(cacheKey, docs);
       return docs;
     }
@@ -126,13 +131,10 @@ export const searchDuckDuckGo = async (query: string): Promise<{ abstract: strin
   if (cached) return cached;
 
   try {
-    const res = await fetch(
-      `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`,
-      {
-        signal: AbortSignal.timeout(5000),
-        headers: { "User-Agent": "RottraAI/1.0" },
-      },
-    );
+    const res = await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`, {
+      signal: AbortSignal.timeout(5000),
+      headers: { "User-Agent": "RottraAI/1.0" },
+    });
     if (!res.ok) return null;
     const data: any = await res.json();
 
@@ -154,7 +156,10 @@ export const searchDuckDuckGo = async (query: string): Promise<{ abstract: strin
 };
 
 // 6. Wikipedia Search API - Tìm kiếm bài viết liên quan
-export const searchWikipedia = async (query: string, lang: string = "vi"): Promise<Array<{ title: string; snippet: string; url: string }> | null> => {
+export const searchWikipedia = async (
+  query: string,
+  lang: string = "vi",
+): Promise<Array<{ title: string; snippet: string; url: string }> | null> => {
   const cacheKey = `wiki_search_${lang}_${query.toLowerCase().replace(/\s+/g, "_")}`;
   const cached = getCachedData(cacheKey);
   if (cached) return cached;
@@ -192,13 +197,10 @@ export const fetchWiktionary = async (word: string, lang: string = "vi"): Promis
   if (cached) return cached;
 
   try {
-    const res = await fetch(
-      `https://${lang}.wiktionary.org/api/rest_v1/page/definition/${encodeURIComponent(word)}`,
-      {
-        signal: AbortSignal.timeout(3000),
-        headers: { "User-Agent": "RottraAI/1.0" },
-      },
-    );
+    const res = await fetch(`https://${lang}.wiktionary.org/api/rest_v1/page/definition/${encodeURIComponent(word)}`, {
+      signal: AbortSignal.timeout(3000),
+      headers: { "User-Agent": "RottraAI/1.0" },
+    });
     if (!res.ok) return null;
     const data: any = await res.json();
 

@@ -135,6 +135,7 @@ Hãy đưa ra các thông số thiết kế video phù hợp nhất với tâm t
             system: systemPrompt,
             prompt: `Hãy thiết kế video ad cho sản phẩm ${dbProduct.name} của tôi dưới dạng đối tượng JSON.`,
             responseSchema: videoAdSchema,
+            isInternalReasoning: true,
           });
 
           if (aiResponse && aiResponse.text) {

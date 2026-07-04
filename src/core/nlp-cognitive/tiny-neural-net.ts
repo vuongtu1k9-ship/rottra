@@ -15,27 +15,21 @@ function zeroMatrix(rows: number, cols: number): number[][] {
   return Array.from({ length: rows }, () => new Array(cols).fill(0));
 }
 
-// Hàm Sigmoid "Cong xác suất lên 1"
-function sigmoid(x: number): number {
-  return 1 / (1 + Math.exp(-x));
-}
+// BQN-style Array Algebra Utilities
+const sigmoid = (x: number) => 1 / (1 + Math.exp(-x));
+const sigmoidDerivative = (x: number) => x * (1 - x); // Do x ở đây đã là output của sigmoid
 
-// Đạo hàm Sigmoid "Hạ độ dốc về 0"
-function sigmoidDerivative(x: number): number {
-  return x * (1 - x); // Do x ở đây đã là output của sigmoid
-}
+const transpose = (m: number[][]) => m[0].map((_, i) => m.map(row => row[i]));
+const vecDot = (a: number[], b: number[]) => a.reduce((sum, v, i) => sum + v * b[i], 0);
 
-// Nhân ma trận
+const zipWith = (a: number[], b: number[], f: (x: number, y: number) => number) => a.map((v, i) => f(v, b[i]));
+const zipMat = (a: number[][], b: number[][], f: (x: number, y: number) => number) => a.map((row, i) => zipWith(row, b[i], f));
+const mapMat = (m: number[][], f: (x: number) => number) => m.map(row => row.map(f));
+
+// Nhân ma trận (BQN-Style)
 function dotProduct(m1: number[][], m2: number[][]): number[][] {
-  const result = Array.from({ length: m1.length }, () => new Array(m2[0].length).fill(0));
-  for (let i = 0; i < m1.length; i++) {
-    for (let j = 0; j < m2[0].length; j++) {
-      for (let k = 0; k < m1[0].length; k++) {
-        result[i][j] += m1[i][k] * m2[k][j];
-      }
-    }
-  }
-  return result;
+  const m2T = transpose(m2);
+  return m1.map(row => m2T.map(col => vecDot(row, col)));
 }
 
 export class TinyNeuralNet {
@@ -61,77 +55,62 @@ export class TinyNeuralNet {
 
   // Chạy tiến (Forward propagation)
   public predict(inputs: number[][]): number[][] {
-    const hiddenLayer = this.forwardLayer(inputs, this.weights0);
-    const outputLayer = this.forwardLayer(hiddenLayer, this.weights1);
+    const hiddenLayer = mapMat(dotProduct(inputs, this.weights0), sigmoid);
+    const outputLayer = mapMat(dotProduct(hiddenLayer, this.weights1), sigmoid);
     return outputLayer;
   }
 
-  private forwardLayer(inputs: number[][], weights: number[][]): number[][] {
-    const dot = dotProduct(inputs, weights);
-    return dot.map((row) => row.map((val) => sigmoid(val)));
-  }
-
-  // Huấn luyện bằng ADAM Optimizer siêu tốc
-  public train(inputs: number[][], outputs: number[][], epochs: number = 100, lr: number = 0.01) {
+  // Huấn luyện bằng ADAM Optimizer siêu tốc kết hợp Neuromodulation (Dopamine)
+  public train(inputs: number[][], outputs: number[][], epochs: number = 100, baseLr: number = 0.01, dopamineReward: number = 1.0) {
     const beta1 = 0.9;
     const beta2 = 0.999;
     const epsilon = 1e-8;
+    const lr = baseLr * dopamineReward;
+
+    // Helper: BQN-style ADAM Update apply
+    const applyAdam = (w: number[][], m: number[][], v: number[][], grad: number[][], t: number) => {
+      const gNeg = mapMat(grad, g => -g); // Cực tiểu hóa Loss
+      const mNew = zipMat(m, gNeg, (oldM, g) => beta1 * oldM + (1 - beta1) * g);
+      const vNew = zipMat(v, gNeg, (oldV, g) => beta2 * oldV + (1 - beta2) * g * g);
+      
+      const wNew = zipMat(w, zipMat(mNew, vNew, (newM, newV) => {
+        const m_hat = newM / (1 - Math.pow(beta1, t));
+        const v_hat = newV / (1 - Math.pow(beta2, t));
+        return (lr * m_hat) / (Math.sqrt(v_hat) + epsilon);
+      }), (oldW, step) => oldW - step);
+
+      return { wNew, mNew, vNew };
+    };
 
     for (let epoch = 0; epoch < epochs; epoch++) {
       this.t += 1; // Tăng time step
 
       // 1. Lan truyền tiến
-      const hiddenLayer = this.forwardLayer(inputs, this.weights0);
-      const outputLayer = this.forwardLayer(hiddenLayer, this.weights1);
+      const hiddenLayer = mapMat(dotProduct(inputs, this.weights0), sigmoid);
+      const outputLayer = mapMat(dotProduct(hiddenLayer, this.weights1), sigmoid);
 
-      // 2. Tính sai số (Loss / Error) - Loss = Target - Output
-      const outputError = Array.from({ length: outputs.length }, (_, i) => outputs[i].map((val, j) => val - outputLayer[i][j]));
+      // 2. Tính sai số (Loss / Error) & Delta
+      const outputError = zipMat(outputs, outputLayer, (tgt, out) => tgt - out);
+      const outputDelta = zipMat(outputError, outputLayer, (err, out) => err * sigmoidDerivative(out));
 
-      // 3. Tính Delta Output (Gradient)
-      const outputDelta = outputLayer.map((row, i) => row.map((val, j) => outputError[i][j] * sigmoidDerivative(val)));
+      // 3. Lỗi lây lan ngược về Hidden Layer
+      const hiddenError = dotProduct(outputDelta, transpose(this.weights1));
+      const hiddenDelta = zipMat(hiddenError, hiddenLayer, (err, hid) => err * sigmoidDerivative(hid));
 
-      // 4. Lỗi lây lan ngược về Hidden Layer
-      const weights1T = this.weights1[0].map((_, colIndex) => this.weights1.map((row) => row[colIndex]));
-      const hiddenError = dotProduct(outputDelta, weights1T);
+      // 4. Tính Gradient
+      const gradW1 = dotProduct(transpose(hiddenLayer), outputDelta);
+      const gradW0 = dotProduct(transpose(inputs), hiddenDelta);
 
-      // 5. Delta Hidden Layer
-      const hiddenDelta = hiddenLayer.map((row, i) => row.map((val, j) => hiddenError[i][j] * sigmoidDerivative(val)));
+      // 5. Cập nhật bằng ADAM
+      const adamW1 = applyAdam(this.weights1, this.m1, this.v1, gradW1, this.t);
+      this.weights1 = adamW1.wNew;
+      this.m1 = adamW1.mNew;
+      this.v1 = adamW1.vNew;
 
-      // 6. Tính Gradient (Đạo hàm) cho Weights1
-      const hiddenLayerT = hiddenLayer[0].map((_, colIndex) => hiddenLayer.map((row) => row[colIndex]));
-      const gradW1 = dotProduct(hiddenLayerT, outputDelta);
-
-      // Tính Gradient (Đạo hàm) cho Weights0
-      const inputsT = inputs[0].map((_, colIndex) => inputs.map((row) => row[colIndex]));
-      const gradW0 = dotProduct(inputsT, hiddenDelta);
-
-      // 7. ADAM Optimizer Cập nhật Trọng số W1
-      for (let i = 0; i < this.weights1.length; i++) {
-        for (let j = 0; j < this.weights1[0].length; j++) {
-          const g = -gradW1[i][j]; // Chuyển dấu vì bài toán cực tiểu hóa Loss
-          this.m1[i][j] = beta1 * this.m1[i][j] + (1 - beta1) * g;
-          this.v1[i][j] = beta2 * this.v1[i][j] + (1 - beta2) * g * g;
-
-          const m_hat = this.m1[i][j] / (1 - Math.pow(beta1, this.t));
-          const v_hat = this.v1[i][j] / (1 - Math.pow(beta2, this.t));
-
-          this.weights1[i][j] -= (lr * m_hat) / (Math.sqrt(v_hat) + epsilon);
-        }
-      }
-
-      // 8. ADAM Optimizer Cập nhật Trọng số W0
-      for (let i = 0; i < this.weights0.length; i++) {
-        for (let j = 0; j < this.weights0[0].length; j++) {
-          const g = -gradW0[i][j];
-          this.m0[i][j] = beta1 * this.m0[i][j] + (1 - beta1) * g;
-          this.v0[i][j] = beta2 * this.v0[i][j] + (1 - beta2) * g * g;
-
-          const m_hat = this.m0[i][j] / (1 - Math.pow(beta1, this.t));
-          const v_hat = this.v0[i][j] / (1 - Math.pow(beta2, this.t));
-
-          this.weights0[i][j] -= (lr * m_hat) / (Math.sqrt(v_hat) + epsilon);
-        }
-      }
+      const adamW0 = applyAdam(this.weights0, this.m0, this.v0, gradW0, this.t);
+      this.weights0 = adamW0.wNew;
+      this.m0 = adamW0.mNew;
+      this.v0 = adamW0.vNew;
     }
   }
 

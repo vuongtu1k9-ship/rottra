@@ -60,9 +60,18 @@ export async function initTranslationCache(): Promise<void> {
 // Queue for batching translation requests
 let translationQueue: Set<string> = new Set();
 let debounceTimeout: any = null;
+let isTranslationServiceAvailable = true;
+
+if (typeof window !== "undefined") {
+  try {
+    if (sessionStorage.getItem("rottra_translation_disabled") === "true") {
+      isTranslationServiceAvailable = false;
+    }
+  } catch {}
+}
 
 async function processTranslationQueue(lang: string) {
-  if (translationQueue.size === 0) return;
+  if (!isTranslationServiceAvailable || translationQueue.size === 0) return;
 
   const textsToTranslate = Array.from(translationQueue);
   translationQueue.clear();
@@ -74,7 +83,7 @@ async function processTranslationQueue(lang: string) {
       body: JSON.stringify({ texts: textsToTranslate, targetLang: lang }),
     });
 
-    if (res.ok) {
+    if (res.ok && res.headers.get("content-type")?.includes("application/json")) {
       const data = await res.json();
       if (data.success && data.translations) {
         setTranslations(lang, (prev) => ({ ...prev, ...data.translations }));
@@ -87,13 +96,22 @@ async function processTranslationQueue(lang: string) {
           translationCache.putBulk(entries).catch(() => {});
         }
       }
+    } else {
+      if (res.status === 405 || res.status === 404 || !res.headers.get("content-type")?.includes("application/json")) {
+        console.warn("[AITranslator] Translation service is not available (static host). Disabling dynamic requests.");
+        isTranslationServiceAvailable = false;
+        try { sessionStorage.setItem("rottra_translation_disabled", "true"); } catch {}
+      }
     }
   } catch (error) {
     console.error("Dynamic translation failed:", error);
+    isTranslationServiceAvailable = false;
+    try { sessionStorage.setItem("rottra_translation_disabled", "true"); } catch {}
   }
 }
 
 function requestTranslation(key: string, lang: string) {
+  if (!isTranslationServiceAvailable) return;
   if (!translations[lang]?.[key]) {
     translationQueue.add(key);
 
@@ -133,7 +151,7 @@ export function t(key: string): string {
   }
 
   // Request dynamic translation
-  if (typeof window !== "undefined") {
+  if (typeof window !== "undefined" && isTranslationServiceAvailable) {
     requestTranslation(key, lang);
   }
 
@@ -151,43 +169,46 @@ export function formatNumber(num: number, options?: Intl.NumberFormatOptions): s
   }
 }
 
+export const CURRENCY_SYMBOLS: Record<string, string> = {
+  en: "$",
+  zh: "¥",
+  ja: "¥",
+  fi: "€",
+  he: "₪",
+  vi: "₫",
+};
+
 export function currencySymbol(): string {
-  switch (currentLang()) {
-    case "en":
-      return "$";
-    case "zh":
-    case "ja":
-      return "¥";
-    case "fi":
-      return "€";
-    case "he":
-      return "₪";
-    default:
-      return "₫";
-  }
+  return CURRENCY_SYMBOLS[currentLang()] || "₫";
 }
 
 const [exchangeRates, setExchangeRates] = createSignal<Record<string, number>>({});
 
+const DEFAULT_EXCHANGE_RATES: Record<string, number> = {
+  VND: 1,
+  USD: 0.000041,
+  CNY: 0.00030,
+  JPY: 0.0064,
+  EUR: 0.000038,
+  ILS: 0.00015,
+};
+
 async function fetchExchangeRates() {
   try {
-    const res = await fetch("https://open.er-api.com/v6/latest/VND");
-    const data = await res.json();
-    if (data && data.rates) {
-      const rates = data.rates;
-      const computedRates: Record<string, number> = {
-        VND: 1,
-        USD: rates.USD || 0,
-        CNY: rates.CNY || 0,
-        JPY: rates.JPY || 0,
-        EUR: rates.EUR || 0,
-        ILS: rates.ILS || 0,
-      };
-      setExchangeRates(computedRates);
+    const res = await fetch("/api/exchange-rate");
+    if (res.ok && res.headers.get("content-type")?.includes("application/json")) {
+      const data = await res.json();
+      if (data && data.success && data.rates) {
+        const computedRates: Record<string, number> = { VND: 1, ...data.rates };
+        setExchangeRates(computedRates);
+        return;
+      }
     }
   } catch (e) {
     console.error("Failed to fetch exchange rates", e);
   }
+  // Fallback to static mock exchange rates if offline or static host
+  setExchangeRates(DEFAULT_EXCHANGE_RATES);
 }
 
 if (typeof window !== "undefined") {
@@ -221,6 +242,8 @@ export function formatCurrency(num: number, options?: Intl.NumberFormatOptions):
     const rates = exchangeRates();
     if (rates && rates[targetCode]) {
       convertedNum = num * rates[targetCode];
+    } else {
+      return "...";
     }
   }
 

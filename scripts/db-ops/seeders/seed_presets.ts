@@ -79,8 +79,8 @@ const PRESETS = [
   },
   {
     category: "Mã Nguồn Mở (Open Source) 🦙",
-    name: "Rottra AI (7B) 🤖",
-    description: "Mã nguồn mở xuất sắc từ Alibaba, độ chính xác cao trong toán học và lập trình.",
+    name: "Rottra AI 🤖",
+    description: "Mô hình ngôn ngữ cục bộ tối ưu hóa riêng cho hệ thống đại lý thông minh Rottra.",
     values: [9, 8, 8, 8, 8, 8, 8, 8, 7, 7],
   },
 ];

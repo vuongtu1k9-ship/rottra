@@ -16,29 +16,23 @@ const MAX_CACHE_SIZE = 500;
 // Lazy-loaded in-memory cache to eliminate disk I/O bottlenecks during user queries
 let inMemoryCache: CacheEntry[] | null = null;
 
-// Local implementation of Jaccard Bigram Similarity to break circular import with tokenizer.ts
 function calculateWordSimilarity(w1: string, w2: string): number {
   if (w1 === w2) return 1.0;
   if (w1.length < 2 || w2.length < 2) return 0.0;
 
-  const getBigrams = (str: string) => {
-    const bigrams = new Set<string>();
-    for (let i = 0; i < str.length - 1; i++) {
-      bigrams.add(str.substring(i, i + 2));
-    }
-    return bigrams;
-  };
+  const words1 = w1.split(/\s+/).filter((w) => w.length > 0);
+  const words2 = w2.split(/\s+/).filter((w) => w.length > 0);
 
-  const b1 = getBigrams(w1);
-  const b2 = getBigrams(w2);
+  const set1 = new Set(words1);
+  const set2 = new Set(words2);
 
   let intersection = 0;
-  for (const val of b1) {
-    if (b2.has(val)) intersection++;
+  for (const w of set1) {
+    if (set2.has(w)) intersection++;
   }
 
-  const union = b1.size + b2.size - intersection;
-  return intersection / union;
+  const union = set1.size + set2.size - intersection;
+  return union === 0 ? 0 : intersection / union;
 }
 
 // Local implementation of shorthand normalization to break circular import with tokenizer.ts

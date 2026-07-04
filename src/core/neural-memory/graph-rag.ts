@@ -302,40 +302,12 @@ export function compileCSRGraph(nodes: GraphNode[], edges: GraphEdge[]): CSRGrap
   };
 }
 
-class GraphSearchBuffers {
-  private static visitedBuffer = new Uint8Array(1024);
-  private static similaritiesBuffer = new Float32Array(1024);
-  private static degreesBuffer = new Float32Array(1024);
-  private static lock = false;
-
-  static getBuffers(size: number) {
-    if (this.lock) {
-      return {
-        visited: new Uint8Array(size),
-        similarities: new Float32Array(size),
-        degrees: new Float32Array(size),
-      };
-    }
-    this.lock = true;
-
-    if (size > this.visitedBuffer.length) {
-      const newSize = Math.max(size, this.visitedBuffer.length * 2);
-      this.visitedBuffer = new Uint8Array(newSize);
-      this.similaritiesBuffer = new Float32Array(newSize);
-      this.degreesBuffer = new Float32Array(newSize);
-    }
-
-    const visited = this.visitedBuffer.subarray(0, size);
-    const similarities = this.similaritiesBuffer.subarray(0, size);
-    const degrees = this.degreesBuffer.subarray(0, size);
-
-    visited.fill(0);
-    similarities.fill(0);
-    degrees.fill(0);
-
-    this.lock = false;
-    return { visited, similarities, degrees };
-  }
+function createSearchBuffers(size: number) {
+  return {
+    visited: new Uint8Array(size),
+    similarities: new Float32Array(size),
+    degrees: new Float32Array(size),
+  };
 }
 
 // High-performance Semantic Beam Search using pre-allocated arrays
@@ -349,7 +321,7 @@ export function semanticBeamSearch(
   const V = csr.nodes.length;
   if (V === 0) return [];
 
-  const { visited, similarities, degrees } = GraphSearchBuffers.getBuffers(V);
+  const { visited, similarities, degrees } = createSearchBuffers(V);
   const queryVector32 = new Float32Array(queryVector);
 
   // Calculate degree centrality (normalized)

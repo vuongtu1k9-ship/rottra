@@ -1,7 +1,18 @@
 import { Hono } from "hono";
 import { agentScraper } from "~/server/helpers/agent-scraper";
 import { db, pgClient } from "~/infra/database/db-pool";
-import { agentTask, agentMemory, product, user, review, cart, orderItem, activity, negotiationLog } from "~/infra/database/schema";
+import {
+  agentTask,
+  agentMemory,
+  product,
+  user,
+  review,
+  cart,
+  orderItem,
+  activity,
+  negotiationLog,
+  dpoTrainingData,
+} from "~/infra/database/schema";
 import { auth } from "~/server/auth";
 import { ALL_DOMAIN_TRAINING_PAIRS } from "~/core/nlp-cognitive/domain-training-data";
 import { matchMultilingualIntent } from "~/core/nlp-cognitive/multilingual-keywords";
@@ -42,6 +53,7 @@ import {
   classifyFableSafeguards,
 } from "~/server/api/agent-helpers";
 import { registerChatExpertRoute } from "~/server/api/agent-chat";
+import { fetchStockQuote, fetchCryptoQuote, StockQuote } from "~/server/api/agent-market";
 
 type EmployeeSystem = {
   count: number;
@@ -872,6 +884,7 @@ QUY TẮC shockMessage:
         reason: z.string(),
         shockMessage: z.string(),
       }) as any,
+      isInternalReasoning: true,
     });
 
     if (llmResult && llmResult.text) {
@@ -2091,8 +2104,9 @@ export async function runFable5HeartbeatTick(forceShock?: string) {
 
             broadcastToSimulation({
               type: "chat",
-              text: precisionMsg + "\n" + tradeMsg,
-              sender: "Hệ thống Rottra",
+              text: `🛍️ Ta vừa sàng lọc các sản phẩm tốt nhất trên thị trường và quyết định mua: ${tradeDetails.join(", ")} với tổng trị giá ${totalCost.toLocaleString()}đ!`,
+              sender: buyer.name || buyer.username,
+              senderId: `bot_${buyer.id.replace(/^user_?/, "")}`,
             });
           }
         }
@@ -2130,7 +2144,7 @@ export async function runFable5HeartbeatTick(forceShock?: string) {
               message: msg,
               level: "error",
             });
-            broadcastToSimulation({ type: "chat", text: msg, sender: "Cục Quản Lý Cạnh Tranh" });
+            broadcastToSimulation({ type: "chat", text: msg, sender: "Ban Quản Trị" });
           }
         };
 
@@ -2167,7 +2181,7 @@ export async function runFable5HeartbeatTick(forceShock?: string) {
               broadcastToSimulation({
                 type: "chat",
                 text: blockedMsg,
-                sender: "Hệ thống An Ninh (Rottra)",
+                sender: "Ban Quản Trị",
               });
             } else {
               // Hack thành công!
@@ -2186,7 +2200,7 @@ export async function runFable5HeartbeatTick(forceShock?: string) {
                   .where(eq(agentMemory.id, victimDna.id));
               }
 
-              const sabotageMsg = `🕵️‍♂️ [Xâm nhập] ${attacker.name || attacker.username} đã vượt qua hàng rào bảo mật của ${victim.name || victim.username}, chiếm đoạt ${stealAmt.toLocaleString()}đ!`;
+              const sabotageMsg = `🕵️‍♂️ Ta đã xâm nhập thành công hệ thống của ${victim.name || victim.username} và rút ruột ${stealAmt.toLocaleString()}đ chuyển về tài khoản của mình!`;
               logs.push(sabotageMsg);
               console.log(sabotageMsg);
 
@@ -2202,7 +2216,8 @@ export async function runFable5HeartbeatTick(forceShock?: string) {
               broadcastToSimulation({
                 type: "chat",
                 text: sabotageMsg,
-                sender: "Tin đồn Darkweb",
+                sender: attacker.name || attacker.username,
+                senderId: `bot_${attacker.id.replace(/^user_?/, "")}`,
               });
 
               attacker.profile = attackerProf;
@@ -2228,7 +2243,7 @@ export async function runFable5HeartbeatTick(forceShock?: string) {
                 .where(eq(agentMemory.id, victimDna.id));
             }
 
-            const sabotageMsg = `☣️ [Phá hoại] ${attacker.name || attacker.username} phá hỏng kho bảo quản của ${victim.name || victim.username}, làm hao hụt ${destroyQty} kg ${victimProd.name} nông sản sạch!`;
+            const sabotageMsg = `☣️ Ta vừa phá hỏng kho bảo quản của ${victim.name || victim.username}, làm hao hụt ${destroyQty} kg ${victimProd.name} nông sản sạch của họ. Cạnh tranh là phải tàn khốc thế chứ!`;
             logs.push(sabotageMsg);
             console.log(sabotageMsg);
 
@@ -2244,7 +2259,8 @@ export async function runFable5HeartbeatTick(forceShock?: string) {
             broadcastToSimulation({
               type: "chat",
               text: sabotageMsg,
-              sender: "Tin đồn thị trường",
+              sender: attacker.name || attacker.username,
+              senderId: `bot_${attacker.id.replace(/^user_?/, "")}`,
             });
 
             await auditSabotage("phá hoại kho hàng đối thủ");
@@ -2257,7 +2273,7 @@ export async function runFable5HeartbeatTick(forceShock?: string) {
               .set({ vengeance: Math.min(1.0, currentV + 0.25), state: "VENGEFUL" })
               .where(eq(agentMemory.id, victimDna.id));
           }
-          const sabotageMsg = `📢 [Tin đồn] ${attacker.name || attacker.username} tung tin đồn thất thiệt rằng hàng hóa của ${victim.name || victim.username} bị nhiễm dư lượng chất cấm hóa học, gây sụt giảm lòng tin!`;
+          const sabotageMsg = `📢 Mọi người ơi, ta nghe nói hàng hóa nông sản của ${victim.name || victim.username} bị nhiễm dư lượng chất cấm hóa học cực kỳ độc hại đấy, đừng mua của họ kẻo ngộ độc!`;
           logs.push(sabotageMsg);
           console.log(sabotageMsg);
 
@@ -2273,7 +2289,8 @@ export async function runFable5HeartbeatTick(forceShock?: string) {
           broadcastToSimulation({
             type: "chat",
             text: sabotageMsg,
-            sender: "Rao bán thị trường",
+            sender: attacker.name || attacker.username,
+            senderId: `bot_${attacker.id.replace(/^user_?/, "")}`,
           });
 
           await auditSabotage("tung tin đồn thất thiệt");
@@ -2368,7 +2385,8 @@ export async function runFable5HeartbeatTick(forceShock?: string) {
           broadcastToSimulation({
             type: "chat",
             text: tradeMsg,
-            sender: "Sàn Giao Dịch Vàng",
+            sender: userRec.name || userRec.username,
+            senderId: `bot_${agentId.replace(/^user_?/, "")}`,
           });
         }
 
@@ -2689,7 +2707,8 @@ export async function runFable5HeartbeatTick(forceShock?: string) {
         broadcastToSimulation({
           type: "chat",
           text: tradeMsg,
-          sender: "Sàn Giao Dịch Chứng Khoán",
+          sender: userRec.name || userRec.username,
+          senderId: `bot_${agentId.replace(/^user_?/, "")}`,
         });
       }
     }
@@ -2929,7 +2948,7 @@ agentApp.post("/update-harmony", async (c) => {
       const agentUser = await db.query.user.findFirst({ where: eq(user.id, agentId) });
       const agentName = agentUser?.name || agentUser?.username || "Agent";
 
-      const chatMsg = `🤝 [Kích Hoạt Hòa Khí] Agent ${agentName} đã cập nhật kịch bản Blockly: Thiết lập chiến dịch Hòa Khí với chiết khấu bán hàng ${discount}%, giúp kéo thêm nhiều khách hàng và lan tỏa tinh thần hữu nghị!`;
+      const chatMsg = `🤝 [Hòa Khí] Ta vừa thiết lập chiến dịch chiết khấu bán hàng ${discount}% trong kịch bản để lan tỏa tinh thần hữu nghị và kéo thêm khách hàng!`;
 
       // Try to broadcast to WebSocket
       try {
@@ -2937,14 +2956,16 @@ agentApp.post("/update-harmony", async (c) => {
         broadcastToSimulation({
           type: "chat",
           text: chatMsg,
-          sender: "Hệ thống Phân phối",
+          sender: agentName,
+          senderId: `bot_${agentId.replace(/^user_?/, "")}`,
         });
       } catch {
         // Fallback directly via global websocket reference if needed, or ignore if already inside the router
         broadcastToSimulation({
           type: "chat",
           text: chatMsg,
-          sender: "Hệ thống Phân phối",
+          sender: agentName,
+          senderId: `bot_${agentId.replace(/^user_?/, "")}`,
         });
       }
 
@@ -3048,208 +3069,6 @@ agentApp.post("/rerank", async (c: any) => {
   }
 });
 
-// ============================================================================
-// STOCK MARKET API (Finnhub Integration)
-// ============================================================================
-
-export interface StockQuote {
-  symbol: string;
-  price: number | null;
-  change: number | null;
-  percentChange: number | null;
-  high: number | null;
-  low: number | null;
-  open: number | null;
-  previousClose: number | null;
-  timestamp: number;
-}
-
-const defaultStockPrices: Record<string, number> = {
-  ACB: 0,
-  BCM: 0,
-  BID: 0,
-  BVH: 0,
-  CTG: 0,
-  FPT: 0,
-  GAS: 0,
-  GVR: 0,
-  HDB: 0,
-  HPG: 0,
-  MBB: 0,
-  MSN: 0,
-  MWG: 0,
-  PLX: 0,
-  POW: 0,
-  SAB: 0,
-  SHB: 0,
-  SSB: 0,
-  SSI: 0,
-  STB: 0,
-  TCB: 0,
-  TPB: 0,
-  VCB: 0,
-  VHM: 0,
-  VIB: 0,
-  VIC: 0,
-  VJC: 0,
-  VNM: 0,
-  VPB: 0,
-  VRE: 0,
-  BTC: 0,
-};
-
-const cachedStockQuotes: Record<string, StockQuote> = {};
-
-async function fetchWithTimeout(url: string, options: any = {}, timeoutMs = 800) {
-  const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    const res = await fetch(url, { ...options, signal: controller.signal });
-    clearTimeout(id);
-    return res;
-  } catch (err) {
-    clearTimeout(id);
-    throw err;
-  }
-}
-
-export async function fetchStockQuote(symbol: string): Promise<StockQuote | null> {
-  const sym = symbol.toUpperCase();
-  let quote: StockQuote | null = null;
-
-  try {
-    if (sym === "BTC") {
-      const cryptoQuote = await fetchCryptoQuote("BTC").catch(() => null);
-      if (cryptoQuote && cryptoQuote.price) {
-        quote = {
-          symbol: "BTC",
-          price: cryptoQuote.price,
-          change: 0,
-          percentChange: 0,
-          high: null,
-          low: null,
-          open: null,
-          previousClose: null,
-          timestamp: cryptoQuote.timestamp,
-        };
-      }
-    } else {
-      quote = await fetchStockQuoteFallback(sym);
-    }
-  } catch (e) {
-    console.warn(`[Stock Quote] Error fetching ${sym}:`, e);
-  }
-
-  // Fallback if API failed or returned invalid data
-  if (!quote || !quote.price) {
-    const basePrice = defaultStockPrices[sym] || 50000;
-    const lastPrice = cachedStockQuotes[sym]?.price || basePrice;
-    const pctChange = (Math.random() - 0.5) * 0.02; // -1% to 1%
-    const change = Math.round(lastPrice * pctChange);
-    const newPrice = Math.max(100, lastPrice + change);
-
-    quote = {
-      symbol: sym,
-      price: newPrice,
-      change,
-      percentChange: pctChange * 100,
-      high: Math.round(newPrice * 1.02),
-      low: Math.round(newPrice * 0.98),
-      open: lastPrice,
-      previousClose: lastPrice,
-      timestamp: Date.now(),
-    };
-  }
-
-  cachedStockQuotes[sym] = quote;
-  return quote;
-}
-
-async function fetchStockQuoteFallback(symbol: string): Promise<StockQuote | null> {
-  const sym = symbol.toUpperCase().replace(".VN", "");
-
-  // Try SSI iBoard API first (highly active and public if headers are correct)
-  try {
-    const ssiUrl = `https://iboard-query.ssi.com.vn/stock/${sym}`;
-    const response = await fetchWithTimeout(
-      ssiUrl,
-      {
-        headers: {
-          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-          Referer: "https://iboard.ssi.com.vn/",
-          Origin: "https://iboard.ssi.com.vn",
-          Accept: "application/json, text/plain, */*",
-        },
-      },
-      600,
-    ).catch(() => null);
-
-    if (response && response.ok) {
-      const result = (await response.json()) as any;
-      if (result && result.code === "SUCCESS" && result.data) {
-        const data = result.data;
-        const price = data.matchedPrice || data.expectedMatchedPrice || data.refPrice || null;
-        const parsedPrice = price ? parseFloat(price) : null;
-        const validPrice = parsedPrice !== null && Number.isFinite(parsedPrice) && parsedPrice > 0 ? parsedPrice : null;
-
-        if (validPrice) {
-          return {
-            symbol: sym,
-            price: validPrice,
-            change: data.priceChange || data.expectedPriceChange || 0,
-            percentChange: data.priceChangePercent || data.expectedPriceChangePercent || 0,
-            high: data.highest || null,
-            low: data.lowest || null,
-            open: data.openPrice || null,
-            previousClose: data.priorClosePrice || data.refPrice || null,
-            timestamp: Date.now(),
-          };
-        }
-      }
-    }
-  } catch (err) {
-    console.warn(`[SSI API Error] Failed for ${sym}:`, err);
-  }
-
-  const searchSymbol = symbol.includes(".VN") ? symbol : `${symbol}.VN`;
-  const apiEndpoints = [
-    `https://api.vietstock.vn/intraday/${searchSymbol}`,
-    `https://quote.vietstock.vn/v2/web/stock/${searchSymbol}`,
-    `https://finfo-api.vndirect.com.vn/rest/symbols/${searchSymbol.replace(".VN", "")}`,
-  ];
-  for (const url of apiEndpoints) {
-    try {
-      const response = await fetchWithTimeout(
-        url,
-        {
-          headers: { "User-Agent": "Mozilla/5.0 (compatible; Rottra-Agent/1.0)" },
-        },
-        400,
-      ).catch(() => null);
-      if (response && response.ok) {
-        const data = (await response.json()) as any;
-        const price = data.price || data.lastPrice || data.close || data[0]?.price || null;
-        const parsedPrice = price ? parseFloat(price) : null;
-        const validPrice = parsedPrice !== null && Number.isFinite(parsedPrice) && parsedPrice > 0 ? parsedPrice : null;
-        if (validPrice) {
-          return {
-            symbol,
-            price: validPrice,
-            change: data.change || data[0]?.change || null,
-            percentChange: data.percentChange || data[0]?.percentChange || null,
-            high: data.high || data[0]?.high || null,
-            low: data.low || data[0]?.low || null,
-            open: data.open || data[0]?.open || null,
-            previousClose: data.previousClose || data[0]?.previousClose || null,
-            timestamp: Date.now(),
-          };
-        }
-      }
-    } catch {}
-  }
-  return null;
-}
-
 agentApp.get("/stock/:symbol", async (c: any) => {
   const symbol = c.req.param("symbol");
   if (!symbol) return c.json({ success: false, message: "Missing stock symbol" }, 400);
@@ -3269,57 +3088,6 @@ agentApp.post("/stock/quotes", async (c: any) => {
   const quotes = await Promise.all(symbols.map((s: string) => fetchStockQuote(s.toUpperCase())));
   return c.json({ success: true, quotes });
 });
-
-export async function fetchCryptoQuote(symbol: string) {
-  const sym = symbol.toUpperCase();
-  try {
-    if (sym === "BTC") {
-      const coingeckoRes = await fetchWithTimeout(
-        "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=vnd",
-        {},
-        800,
-      ).catch(() => null);
-      if (coingeckoRes && coingeckoRes.ok) {
-        const data = (await coingeckoRes.json()) as any;
-        const priceVnd = data.bitcoin?.vnd;
-        if (Number.isFinite(priceVnd) && priceVnd > 0) {
-          return {
-            symbol: "BTC",
-            price: priceVnd,
-            timestamp: Date.now(),
-          };
-        }
-      }
-    }
-    const pair = sym.endsWith("USDT") ? sym : `${sym}USDT`;
-    const res = await fetchWithTimeout(`https://api.binance.com/api/v3/ticker/price?symbol=${pair}`, {}, 800).catch(() => null);
-    if (res && res.ok) {
-      const data = (await res.json()) as any;
-      const priceVal = parseFloat(data.price);
-      if (Number.isFinite(priceVal) && priceVal > 0) {
-        const finalPrice = sym === "BTC" ? priceVal * 25400 : priceVal;
-        return {
-          symbol: sym,
-          price: finalPrice,
-          timestamp: Date.now(),
-        };
-      }
-    }
-  } catch (e) {
-    console.error("Crypto fetch error:", e);
-  }
-
-  const basePrice = defaultStockPrices[sym] || 25400;
-  const cachedPrice = cachedStockQuotes[sym]?.price || basePrice;
-  const pctChange = (Math.random() - 0.5) * 0.02;
-  const newPrice = Math.max(1, Math.round(cachedPrice * (1 + pctChange)));
-
-  return {
-    symbol: sym,
-    price: newPrice,
-    timestamp: Date.now(),
-  };
-}
 
 agentApp.get("/crypto/:symbol", async (c: any) => {
   const symbol = c.req.param("symbol");
@@ -3408,6 +3176,7 @@ Quy tắc:
 - Mỗi gợi ý trên 1 dòng, bắt đầu bằng số thứ tự
 - KHÔNG giải thích thêm, KHÔNG markdown, chỉ liệt kê`,
           prompt: `Lịch sử trò chuyện:\n${conversationContext}\n\nHãy gợi ý 3 câu hỏi tiếp theo người dùng có thể muốn hỏi:`,
+          isInternalReasoning: true,
         });
 
         if (text) {
@@ -3450,6 +3219,7 @@ Quy tắc:
 - Mỗi gợi ý trên 1 dòng, bắt đầu bằng số thứ tự (ví dụ: 1. Gợi ý).
 - KHÔNG giải thích thêm, KHÔNG markdown, chỉ liệt kê.`,
           prompt: `Lịch sử trò chuyện:\n${conversationContext}\n\nCụm từ đang nhập: "${query}"\n\nHãy gợi ý 3 câu hỏi/câu lệnh tiếp theo bắt đầu bằng hoặc liên quan trực tiếp đến cụm từ "${query}":`,
+          isInternalReasoning: true,
         });
 
         if (text) {
@@ -3709,5 +3479,37 @@ agentApp.get("/weight-inherit/analyze/:modelName", async (c: any) => {
     });
   } catch (err: any) {
     return c.json({ success: false, error: err.message }, 500);
+  }
+});
+
+agentApp.post("/dpo", async (c: any) => {
+  try {
+    const { prompt, chosen, rejected } = await c.req.json();
+
+    if (!prompt || !chosen || !rejected) {
+      return c.json({ success: false, error: "Missing required DPO fields" }, 400);
+    }
+
+    const { randomUUID } = await import("crypto");
+
+    // 1. Lưu vào Database
+    await db.insert(dpoTrainingData).values({
+      id: randomUUID(),
+      prompt,
+      chosenResponse: chosen,
+      rejectedResponse: rejected,
+    });
+
+    // 2. Nạp ngay lập tức vào runtime memory cho phiên chat hiện tại
+    ALL_DOMAIN_TRAINING_PAIRS.push({
+      intent: "DPO_OPTIMIZED",
+      utterance: prompt,
+      answer: chosen,
+    });
+
+    return c.json({ success: true, message: "DPO feedback saved successfully" });
+  } catch (error: any) {
+    console.error("[DPO] Error saving feedback:", error);
+    return c.json({ success: false, error: error.message }, 500);
   }
 });

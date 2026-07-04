@@ -36,6 +36,11 @@ export const Form = (props: any) => {
     setWeightUnit(newUnit);
   };
 
+  // Price unit & value signals for currency
+  const initialPrice = props.initialData?.price || 0;
+  const [priceUnit, setPriceUnit] = createSignal("₫");
+  const [priceValue, setPriceValue] = createSignal(initialPrice || "");
+
   onMount(() => {
     if (typeof window !== "undefined") {
       window.dispatchEvent(new CustomEvent("form_drawer_toggled", { detail: { isOpen: true } }));
@@ -307,8 +312,22 @@ export const Form = (props: any) => {
 
       if (submitData.heavy_temp !== undefined) {
         const val = Number(submitData.heavy_temp) || 0;
-        submitData.heavy = weightUnit() === "kg" ? val * 1000 : val;
+        submitData.heavy = weightUnit() === "kg";
         delete submitData.heavy_temp;
+      }
+
+      if (submitData.price_temp !== undefined) {
+        const val = Number(submitData.price_temp) || 0;
+        submitData.price = val;
+        submitData.currency = priceUnit(); // Send the selected currency to the backend API
+        delete submitData.price_temp;
+      }
+
+      // Default quantity to 1 if not entered or empty
+      if (!submitData.quantity || String(submitData.quantity).trim() === "") {
+        submitData.quantity = 1;
+      } else {
+        submitData.quantity = Number(submitData.quantity);
       }
 
       if (props.id === "modal-edit-profile") {
@@ -623,7 +642,11 @@ export const Form = (props: any) => {
               <fieldset id={"field-group-" + field.name} class="space-y-2">
                 <label for={field.name} class="flex items-center justify-between px-1">
                   <span class="text-xs font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
-                    {field.name === "heavy" ? "Trọng lượng" : field.label}
+                    {field.name === "heavy"
+                      ? "Trọng lượng"
+                      : field.name === "price"
+                        ? "Giá tiền"
+                        : field.label}
                     {field.name === "heavy" &&
                       <select
                         value={weightUnit()}
@@ -633,6 +656,19 @@ export const Form = (props: any) => {
                         }`}>
                         <option value="g">g</option>
                         <option value="kg">kg</option>
+                      </select>}
+                    {field.name === "price" &&
+                      <select
+                        value={priceUnit()}
+                        onChange={(e) => setPriceUnit((e.target as HTMLSelectElement).value)}
+                        class={`px-2 py-0.5 border rounded-lg text-[10px] font-black uppercase cursor-pointer outline-none transition-all focus:ring-2 focus:ring-blue-500/20 ${
+                          theme() === "dark" ? "bg-white/5 border-white/10 text-white" : "bg-gray-50 border-gray-200 text-gray-700"
+                        }`}>
+                        <option value="₫">₫</option>
+                        <option value="$">$</option>
+                        <option value="¥">¥</option>
+                        <option value="€">€</option>
+                        <option value="₪">₪</option>
                       </select>}
                   </span>
                   {field.required
@@ -647,6 +683,7 @@ export const Form = (props: any) => {
                       id="heavy"
                       name="heavy_temp"
                       required={field.required}
+                      step="any"
                       value={weightValue()}
                       onInput={(e) => setWeightValue(Number((e.target as HTMLInputElement).value) || 0)}
                       placeholder="Nhập trọng lượng..."
@@ -656,158 +693,137 @@ export const Form = (props: any) => {
                           : "bg-gray-50/50 border-gray-200 text-gray-700 placeholder:text-gray-300"
                       }`}
                     />
-                  : field.type === "textarea"
-                    ? <textarea
-                        id={field.name}
-                        name={field.name}
+                  : field.name === "price"
+                    ? <input
+                        type="number"
+                        id="price"
+                        name="price_temp"
                         required={field.required}
-                        value={props.initialData?.[field.name] || ""}
-                        placeholder={field.placeholder || "Nhập nội dung..."}
-                        class={`w-full px-5 py-4 border rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all resize-none min-h-[120px] font-medium shadow-inner ${
+                        step="any"
+                        value={priceValue()}
+                        onInput={(e) => setPriceValue(Number((e.target as HTMLInputElement).value) || 0)}
+                        placeholder="Nhập giá tiền..."
+                        class={`w-full px-5 py-4 border rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-medium shadow-inner ${
                           theme() === "dark"
                             ? "bg-[#1e1e1e] border-white/10 text-white placeholder-gray-600"
                             : "bg-gray-50/50 border-gray-200 text-gray-700 placeholder:text-gray-300"
                         }`}
                       />
-                    : field.type === "image"
-                      ? <div class="relative group">
-                          <input
-                            type="file"
-                            accept="image/*"
-                            id={field.name}
-                            name={field.name}
-                            required={field.required && !props.initialData?.[field.name]?.link}
-                            class={`w-full px-5 py-4 border rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-medium shadow-inner file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 ${
-                              theme() === "dark" ? "bg-[#1e1e1e] border-white/10 text-white" : "bg-gray-50/50 border-gray-200 text-gray-700"
-                            }`}
-                          />
-                          {props.initialData?.[field.name]?.link &&
-                            <div class="mt-2 text-xs font-bold flex items-center gap-2 px-1">
-                              <span class="text-green-500">Đã tải lên:</span>
-                              <a
-                                href={props.initialData[field.name].link}
-                                target="_blank"
-                                class="text-blue-500 hover:underline">Xem ảnh hiện tại</a>
-                            </div>}
-                        </div>
-                      : field.type === "select"
+                    : field.type === "textarea"
+                      ? <textarea
+                          id={field.name}
+                          name={field.name}
+                          required={field.required}
+                          value={props.initialData?.[field.name] || ""}
+                          placeholder={field.placeholder || "Nhập nội dung..."}
+                          class={`w-full px-5 py-4 border rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all resize-none min-h-[120px] font-medium shadow-inner ${
+                            theme() === "dark"
+                              ? "bg-[#1e1e1e] border-white/10 text-white placeholder-gray-600"
+                              : "bg-gray-50/50 border-gray-200 text-gray-700 placeholder:text-gray-300"
+                          }`}
+                        />
+                      : field.type === "image"
                         ? <div class="relative group">
-                            <select
+                            <input
+                              type="file"
+                              accept="image/*"
                               id={field.name}
                               name={field.name}
-                              required={field.required}
-                              class={`w-full px-5 py-4 border rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all appearance-none font-medium cursor-pointer shadow-inner ${
+                              required={field.required && !props.initialData?.[field.name]?.link}
+                              class={`w-full px-5 py-4 border rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-medium shadow-inner file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 ${
                                 theme() === "dark"
                                   ? "bg-[#1e1e1e] border-white/10 text-white"
                                   : "bg-gray-50/50 border-gray-200 text-gray-700"
-                              }`}>
-                              {(field.options || []).map(
-                                (optItem: any) => <>
-                                  <option value={optItem.value} selected={props.initialData?.[field.name] === optItem.value}>
-                                    {optItem.label}
-                                  </option>
-                                </>,
-                              )}
-                            </select>
-                            <div
-                              class="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 group-hover:text-blue-500 transition-colors">
-                              <Icon path={chevronDown} class="w-5 h-5" />
-                            </div>
+                              }`}
+                            />
+                            {props.initialData?.[field.name]?.link &&
+                              <div class="mt-2 text-xs font-bold flex items-center gap-2 px-1">
+                                <span class="text-green-500">Đã tải lên:</span>
+                                <a
+                                  href={props.initialData[field.name].link}
+                                  target="_blank"
+                                  class="text-blue-500 hover:underline">Xem ảnh hiện tại</a>
+                              </div>}
                           </div>
-                        : field.type === "checkbox"
-                          ? <div
-                              class={`flex items-center gap-4 p-4 border rounded-2xl cursor-pointer transition-colors group shadow-inner ${
-                                theme() === "dark"
-                                  ? "bg-[#1e1e1e] border-white/10 hover:bg-white/5"
-                                  : "bg-gray-50/50 border-gray-200 hover:bg-white"
-                              }`}>
-                              <div class="relative flex items-center">
-                                <input
-                                  type="checkbox"
-                                  id={field.name}
-                                  name={field.name}
-                                  required={field.required}
-                                  checked={props.initialData?.[field.name] || false}
-                                  class="w-6 h-6 text-blue-600 border-gray-300 rounded-lg focus:ring-blue-500 cursor-pointer"
-                                />
-                              </div>
-                              <label
-                                for={field.name}
-                                class={`text-sm font-bold select-none cursor-pointer transition-colors ${
-                                  theme() === "dark" ? "text-gray-400 group-hover:text-white" : "text-gray-600 group-hover:text-gray-800"
+                        : field.type === "select"
+                          ? <div class="relative group">
+                              <select
+                                id={field.name}
+                                name={field.name}
+                                required={field.required}
+                                class={`w-full px-5 py-4 border rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all appearance-none font-medium cursor-pointer shadow-inner ${
+                                  theme() === "dark"
+                                    ? "bg-[#1e1e1e] border-white/10 text-white"
+                                    : "bg-gray-50/50 border-gray-200 text-gray-700"
                                 }`}>
-                                {field.placeholder || "Xác nhận và đồng ý"}
-                              </label>
-                            </div>
-                          : field.type === "date"
-                            ? <div class="relative group">
-                                <input
-                                  type="date"
-                                  id={field.name}
-                                  name={field.name}
-                                  required={field.required}
-                                  value={props.initialData?.[field.name]
-                                    ? new Date(props.initialData[field.name]).toISOString().split("T")[0]
-                                    : ""}
-                                  class={`w-full px-5 py-4 border rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all appearance-none font-medium shadow-inner ${
-                                    theme() === "dark"
-                                      ? "bg-[#1e1e1e] border-white/10 text-white"
-                                      : "bg-gray-50/50 border-gray-200 text-gray-700"
-                                  }`}
-                                  style={{ "color-scheme": theme() === "dark" ? "dark" : "light" }}
-                                />
-                                <div
-                                  class="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 group-hover:text-blue-500 transition-colors">
-                                  <Icon path={calendarDays} class="w-5 h-5" />
-                                </div>
+                                {(field.options || []).map(
+                                  (optItem: any) => <>
+                                    <option value={optItem.value} selected={props.initialData?.[field.name] === optItem.value}>
+                                      {optItem.label}
+                                    </option>
+                                  </>,
+                                )}
+                              </select>
+                              <div
+                                class="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 group-hover:text-blue-500 transition-colors">
+                                <Icon path={chevronDown} class="w-5 h-5" />
                               </div>
-                            : field.type === "lwh"
-                              ? <div class="grid grid-cols-3 gap-2">
+                            </div>
+                          : field.type === "checkbox"
+                            ? <div
+                                class={`flex items-center gap-4 p-4 border rounded-2xl cursor-pointer transition-colors group shadow-inner ${
+                                  theme() === "dark"
+                                    ? "bg-[#1e1e1e] border-white/10 hover:bg-white/5"
+                                    : "bg-gray-50/50 border-gray-200 hover:bg-white"
+                                }`}>
+                                <div class="relative flex items-center">
                                   <input
-                                    type="number"
-                                    name={`${field.name}_length`}
+                                    type="checkbox"
+                                    id={field.name}
+                                    name={field.name}
                                     required={field.required}
-                                    placeholder="Dài (cm)"
-                                    value={props.initialData?.[field.name]?.length || ""}
-                                    class={`w-full px-4 py-4 border rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-medium shadow-inner ${
-                                      theme() === "dark"
-                                        ? "bg-[#1e1e1e] border-white/10 text-white"
-                                        : "bg-gray-50/50 border-gray-200 text-gray-700"
-                                    }`}
-                                  />
-                                  <input
-                                    type="number"
-                                    name={`${field.name}_width`}
-                                    required={field.required}
-                                    placeholder="Rộng (cm)"
-                                    value={props.initialData?.[field.name]?.width || ""}
-                                    class={`w-full px-4 py-4 border rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-medium shadow-inner ${
-                                      theme() === "dark"
-                                        ? "bg-[#1e1e1e] border-white/10 text-white"
-                                        : "bg-gray-50/50 border-gray-200 text-gray-700"
-                                    }`}
-                                  />
-                                  <input
-                                    type="number"
-                                    name={`${field.name}_height`}
-                                    required={field.required}
-                                    placeholder="Cao (cm)"
-                                    value={props.initialData?.[field.name]?.height || ""}
-                                    class={`w-full px-4 py-4 border rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-medium shadow-inner ${
-                                      theme() === "dark"
-                                        ? "bg-[#1e1e1e] border-white/10 text-white"
-                                        : "bg-gray-50/50 border-gray-200 text-gray-700"
-                                    }`}
+                                    checked={props.initialData?.[field.name] || false}
+                                    class="w-6 h-6 text-blue-600 border-gray-300 rounded-lg focus:ring-blue-500 cursor-pointer"
                                   />
                                 </div>
-                              : field.type === "coordinates"
-                                ? <div class="grid grid-cols-2 gap-2">
+                                <label
+                                  for={field.name}
+                                  class={`text-sm font-bold select-none cursor-pointer transition-colors ${
+                                    theme() === "dark" ? "text-gray-400 group-hover:text-white" : "text-gray-600 group-hover:text-gray-800"
+                                  }`}>
+                                  {field.placeholder || "Xác nhận và đồng ý"}
+                                </label>
+                              </div>
+                            : field.type === "date"
+                              ? <div class="relative group">
+                                  <input
+                                    type="date"
+                                    id={field.name}
+                                    name={field.name}
+                                    required={field.required}
+                                    value={props.initialData?.[field.name]
+                                      ? new Date(props.initialData[field.name]).toISOString().split("T")[0]
+                                      : ""}
+                                    class={`w-full px-5 py-4 border rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all appearance-none font-medium shadow-inner ${
+                                      theme() === "dark"
+                                        ? "bg-[#1e1e1e] border-white/10 text-white"
+                                        : "bg-gray-50/50 border-gray-200 text-gray-700"
+                                    }`}
+                                    style={{ "color-scheme": theme() === "dark" ? "dark" : "light" }}
+                                  />
+                                  <div
+                                    class="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 group-hover:text-blue-500 transition-colors">
+                                    <Icon path={calendarDays} class="w-5 h-5" />
+                                  </div>
+                                </div>
+                              : field.type === "lwh"
+                                ? <div class="grid grid-cols-3 gap-2">
                                     <input
-                                      type="text"
-                                      name={`${field.name}_lat`}
+                                      type="number"
+                                      name={`${field.name}_length`}
                                       required={field.required}
-                                      placeholder="Vĩ độ (Lat)"
-                                      value={props.initialData?.[field.name]?.lat || ""}
+                                      placeholder="Dài (cm)"
+                                      value={props.initialData?.[field.name]?.length || ""}
                                       class={`w-full px-4 py-4 border rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-medium shadow-inner ${
                                         theme() === "dark"
                                           ? "bg-[#1e1e1e] border-white/10 text-white"
@@ -815,11 +831,23 @@ export const Form = (props: any) => {
                                       }`}
                                     />
                                     <input
-                                      type="text"
-                                      name={`${field.name}_lng`}
+                                      type="number"
+                                      name={`${field.name}_width`}
                                       required={field.required}
-                                      placeholder="Kinh độ (Lng)"
-                                      value={props.initialData?.[field.name]?.lng || ""}
+                                      placeholder="Rộng (cm)"
+                                      value={props.initialData?.[field.name]?.width || ""}
+                                      class={`w-full px-4 py-4 border rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-medium shadow-inner ${
+                                        theme() === "dark"
+                                          ? "bg-[#1e1e1e] border-white/10 text-white"
+                                          : "bg-gray-50/50 border-gray-200 text-gray-700"
+                                      }`}
+                                    />
+                                    <input
+                                      type="number"
+                                      name={`${field.name}_height`}
+                                      required={field.required}
+                                      placeholder="Cao (cm)"
+                                      value={props.initialData?.[field.name]?.height || ""}
                                       class={`w-full px-4 py-4 border rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-medium shadow-inner ${
                                         theme() === "dark"
                                           ? "bg-[#1e1e1e] border-white/10 text-white"
@@ -827,19 +855,47 @@ export const Form = (props: any) => {
                                       }`}
                                     />
                                   </div>
-                                : <input
-                                    type={field.type || "text"}
-                                    id={field.name}
-                                    name={field.name}
-                                    required={field.required}
-                                    value={props.initialData?.[field.name] || ""}
-                                    placeholder={field.placeholder || "Nhập thông tin..."}
-                                    class={`w-full px-5 py-4 border rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-medium shadow-inner ${
-                                      theme() === "dark"
-                                        ? "bg-[#1e1e1e] border-white/10 text-white placeholder-gray-600"
-                                        : "bg-gray-50/50 border-gray-200 text-gray-700 placeholder:text-gray-300"
-                                    }`}
-                                  />}
+                                : field.type === "coordinates"
+                                  ? <div class="grid grid-cols-2 gap-2">
+                                      <input
+                                        type="text"
+                                        name={`${field.name}_lat`}
+                                        required={field.required}
+                                        placeholder="Vĩ độ (Lat)"
+                                        value={props.initialData?.[field.name]?.lat || ""}
+                                        class={`w-full px-4 py-4 border rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-medium shadow-inner ${
+                                          theme() === "dark"
+                                            ? "bg-[#1e1e1e] border-white/10 text-white"
+                                            : "bg-gray-50/50 border-gray-200 text-gray-700"
+                                        }`}
+                                      />
+                                      <input
+                                        type="text"
+                                        name={`${field.name}_lng`}
+                                        required={field.required}
+                                        placeholder="Kinh độ (Lng)"
+                                        value={props.initialData?.[field.name]?.lng || ""}
+                                        class={`w-full px-4 py-4 border rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-medium shadow-inner ${
+                                          theme() === "dark"
+                                            ? "bg-[#1e1e1e] border-white/10 text-white"
+                                            : "bg-gray-50/50 border-gray-200 text-gray-700"
+                                        }`}
+                                      />
+                                    </div>
+                                  : <input
+                                      type={field.type || "text"}
+                                      id={field.name}
+                                      name={field.name}
+                                      required={field.required}
+                                      step={field.type === "number" ? "any" : undefined}
+                                      value={props.initialData?.[field.name] || ""}
+                                      placeholder={field.placeholder || "Nhập thông tin..."}
+                                      class={`w-full px-5 py-4 border rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-medium shadow-inner ${
+                                        theme() === "dark"
+                                          ? "bg-[#1e1e1e] border-white/10 text-white placeholder-gray-600"
+                                          : "bg-gray-50/50 border-gray-200 text-gray-700 placeholder:text-gray-300"
+                                      }`}
+                                    />}
               </fieldset>
             </>,
           )}

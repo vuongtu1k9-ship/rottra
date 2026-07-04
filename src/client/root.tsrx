@@ -40,7 +40,14 @@ const Protect = (props: { component: any; adminOnly?: boolean }) => {
       }
     });
 
-    return <Show when={session()?.data?.user} fallback={null}>
+    return <Show
+      when={!session().isPending && session()?.data?.user}
+      fallback={<tsx>
+        <div class="flex flex-col items-center justify-center min-h-[60vh] p-8 text-center animate-in fade-in duration-300">
+          <div class="w-12 h-12 rounded-full border-4 border-blue-500 border-t-transparent animate-spin mb-4" />
+          <p class="text-sm font-semibold text-gray-500 dark:text-gray-400">Đang xác thực tài khoản...</p>
+        </div>
+      </tsx>}>
       <Comp />
     </Show>;
   };
@@ -110,7 +117,10 @@ export component RootLayout(props: any) {
 
   onMount(() => {
     initTranslationCache().catch(() => {});
-    preCacheTranslations().catch(() => {});
+    // Defer pre-caching translations to avoid blocking initial API/auth requests
+    setTimeout(() => {
+      preCacheTranslations().catch(() => {});
+    }, 1500);
   });
 
   <>

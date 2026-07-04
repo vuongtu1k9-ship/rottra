@@ -13,6 +13,7 @@ type ConversationContext = {
   summary?: string | undefined;
   lastAccessTime: number;
   topicKeywords: string[];
+  topicKeywordSet?: Set<string>; // P3: O(1) lookup cache
 };
 
 class ConversationMemory {
@@ -30,7 +31,7 @@ class ConversationMemory {
     return ConversationMemory.instance;
   }
 
-  private calculateImportance(content: string, intent?: string): number {
+  private calculateImportance(content: string, intent?: string, timestamp?: number): number {
     let score = 1;
 
     const length = content.length;
@@ -84,37 +85,57 @@ class ConversationMemory {
     const hasStructuredData = /[:\-]\s/.test(content) && content.split("\n").length > 2;
     if (hasStructuredData) score += 1;
 
-    return Math.min(10, score);
+    // P3: Temporal decay — messages older than 1h lose 1 point, older than 6h lose 2, older than 24h lose 3
+    if (timestamp) {
+      const ageHours = (Date.now() - timestamp) / (1000 * 60 * 60);
+      if (ageHours > 24) score -= 3;
+      else if (ageHours > 6) score -= 2;
+      else if (ageHours > 1) score -= 1;
+    }
+
+    return Math.max(1, Math.min(10, score));
   }
 
   addMessage(sessionId: string, role: "user" | "assistant" | "system", content: string, intent?: string): number {
     let ctx = this.cache.get(sessionId);
     if (!ctx) {
-      ctx = { messages: [], lastAccessTime: Date.now(), topicKeywords: [] };
+      ctx = { messages: [], lastAccessTime: Date.now(), topicKeywords: [], topicKeywordSet: new Set() };
     }
 
-    const importance = this.calculateImportance(content, intent);
-    ctx.messages.push({ role, content, timestamp: Date.now(), intent, importance });
-    ctx.lastAccessTime = Date.now();
+    const now = Date.now();
+    const importance = this.calculateImportance(content, intent, now);
+    ctx.messages.push({ role, content, timestamp: now, intent, importance });
+    ctx.lastAccessTime = now;
 
+    // P3: Use Set for O(1) topic keyword deduplication
+    if (!ctx.topicKeywordSet) ctx.topicKeywordSet = new Set(ctx.topicKeywords);
     const words = content
       .toLowerCase()
       .split(/\s+/)
       .filter((w) => w.length > 3);
     for (const w of words) {
-      if (!ctx.topicKeywords.includes(w)) {
+      if (!ctx.topicKeywordSet.has(w)) {
+        ctx.topicKeywordSet.add(w);
         ctx.topicKeywords.push(w);
       }
     }
     if (ctx.topicKeywords.length > 30) {
-      ctx.topicKeywords = ctx.topicKeywords.slice(-30);
+      const removed = ctx.topicKeywords.splice(0, ctx.topicKeywords.length - 30);
+      for (const r of removed) ctx.topicKeywordSet.delete(r);
     }
 
     if (ctx.messages.length > this.maxMessages) {
       const splitPoint = ctx.messages.length - this.summaryThreshold;
       const oldMessages = ctx.messages.slice(0, splitPoint);
       const recentMessages = ctx.messages.slice(-this.summaryThreshold);
-      ctx.summary = this.summarize(oldMessages);
+      // P3: Fire-and-forget async LLM summarization (non-blocking)
+      this.summarizeAsync(oldMessages)
+        .then((s) => {
+          ctx!.summary = s;
+        })
+        .catch(() => {
+          ctx!.summary = this.summarizeHeuristic(oldMessages);
+        });
       ctx.messages = recentMessages;
     }
 
@@ -156,10 +177,21 @@ class ConversationMemory {
       const ctx = this.cache.get(sid);
       if (ctx) {
         for (const kw of ctx.topicKeywords) allKeywords.add(kw);
-        const importantMsgs = ctx.messages.filter((m) => (m.importance ?? 1) >= 4);
+        // P3: Apply temporal decay when merging across sessions
+        const importantMsgs = ctx.messages
+          .filter((m) => (m.importance ?? 1) >= 3)
+          .map((m) => ({
+            ...m,
+            importance: this.calculateImportance(m.content, m.intent, m.timestamp),
+          }));
         allMemories.push(...importantMsgs);
         if (ctx.summary) {
-          allMemories.push({ role: "system", content: ctx.summary, timestamp: ctx.lastAccessTime, importance: 8 });
+          allMemories.push({
+            role: "system",
+            content: ctx.summary,
+            timestamp: ctx.lastAccessTime,
+            importance: this.calculateImportance(ctx.summary, undefined, ctx.lastAccessTime),
+          });
         }
       }
     }
@@ -173,7 +205,32 @@ class ConversationMemory {
     };
   }
 
-  private summarize(messages: Message[]): string {
+  private async summarizeAsync(messages: Message[]): Promise<string> {
+    // Try LLM summarization for better quality
+    try {
+      const { generateTextLocal } = await import("~/core/nlp-cognitive/ai-sdk");
+      const transcript = messages
+        .slice(-8)
+        .map((m) => `${m.role}: ${m.content.substring(0, 150)}`)
+        .join("\n");
+
+      const prompt = `Tóm tắt ngắn gọn (2-3 câu) nội dung chính của cuộc hội thoại sau. Chỉ ghi lại thông tin quan trọng, quyết định, hoặc câu hỏi chưa giải quyết:
+
+${transcript}
+
+Tóm tắt:`;
+
+      const result = await generateTextLocal({ prompt, isInternalReasoning: true });
+      if (result && result.text && result.text.length > 20) {
+        return result.text.trim();
+      }
+    } catch {}
+
+    // Fallback: heuristic summarization
+    return this.summarizeHeuristic(messages);
+  }
+
+  private summarizeHeuristic(messages: Message[]): string {
     const highImportance = messages.filter((m) => (m.importance ?? 1) >= 4);
     const userMessages = messages.filter((m) => m.role === "user");
 
@@ -201,6 +258,93 @@ class ConversationMemory {
   clear(sessionId: string): void {
     this.cache.delete(sessionId);
   }
+
+  // ══════════════════════════════════════════════════════════════
+  // SESSION CONTEXT: Track user context for personalized responses
+  // ══════════════════════════════════════════════════════════════
+
+  private sessionContexts = new Map<string, SessionContext>();
+
+  getSessionContext(sessionId: string): SessionContext {
+    if (!this.sessionContexts.has(sessionId)) {
+      this.sessionContexts.set(sessionId, {
+        isReturningUser: false,
+        conversationCount: 0,
+        preferredLanguage: "vi",
+        dominantIntents: [],
+        lastActiveProduct: null as any,
+        lastActivePage: null as any,
+      });
+    }
+    return this.sessionContexts.get(sessionId)!;
+  }
+
+  updateSessionContext(sessionId: string, updates: Partial<SessionContext>): void {
+    const ctx = this.getSessionContext(sessionId);
+    Object.assign(ctx, updates);
+    this.sessionContexts.set(sessionId, ctx);
+  }
+
+  /**
+   * Auto-detect context signals from a message.
+   * Call this in addMessage or from the chat handler.
+   */
+  detectContextSignals(sessionId: string, query: string, response?: string): void {
+    const ctx = this.getSessionContext(sessionId);
+    ctx.conversationCount++;
+
+    // Detect product mentions (simple keyword matching)
+    const productPatterns = /(?:sản phẩm|product|{prod}|cà phê|lúa|ngô|tiêu|điều|ca cao|thanh long|xoài|bưởi)/i;
+    const productMatch = query.match(productPatterns);
+    if (productMatch) {
+      ctx.lastActiveProduct = productMatch[0];
+    }
+
+    // Track dominant intents
+    const ctx2 = this.cache.get(sessionId);
+    if (ctx2) {
+      const intentCounts = new Map<string, number>();
+      for (const msg of ctx2.messages) {
+        if (msg.intent && msg.intent !== "UNKNOWN") {
+          intentCounts.set(msg.intent, (intentCounts.get(msg.intent) || 0) + 1);
+        }
+      }
+      ctx.dominantIntents = Array.from(intentCounts.entries())
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 3)
+        .map(([intent]) => intent);
+    }
+
+    // Detect language preference
+    if (/[a-zA-Z]{3,}/.test(query) && !/[àáảãạăắằẵặâấầẫậèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵ]/i.test(query)) {
+      ctx.preferredLanguage = "en";
+    }
+  }
+
+  /**
+   * Format session context as a system prompt section for personalized responses.
+   */
+  formatContextForPrompt(sessionId: string): string {
+    const ctx = this.getSessionContext(sessionId);
+    const parts: string[] = [];
+
+    if (ctx.isReturningUser) parts.push("User là khách quen.");
+    if (ctx.lastActiveProduct) parts.push(`Sản phẩm quan tâm: ${ctx.lastActiveProduct}.`);
+    if (ctx.dominantIntents.length > 0) parts.push(`Chủ đề thường hỏi: ${ctx.dominantIntents.join(", ")}.`);
+    if (ctx.conversationCount > 5) parts.push(`Đã chat ${ctx.conversationCount} tin trong session này.`);
+    if (ctx.preferredLanguage !== "vi") parts.push(`User prefer language: ${ctx.preferredLanguage}.`);
+
+    return parts.length > 0 ? `\n[User Context]: ${parts.join(" ")}` : "";
+  }
+}
+
+export interface SessionContext {
+  isReturningUser: boolean;
+  lastActiveProduct: string | undefined;
+  lastActivePage: string | undefined;
+  conversationCount: number;
+  preferredLanguage: string;
+  dominantIntents: string[];
 }
 
 export const conversationMemory = ConversationMemory.getInstance();

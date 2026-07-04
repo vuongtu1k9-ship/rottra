@@ -57,9 +57,10 @@ bun run src/db/master_seed.ts
 
 - **Language:** TypeScript strict-mode. Always keep type definitions accurate.
 - **Reactivity (SolidJS):** Use signals and stores for state. Do NOT destruct component `props` to maintain reactivity.
-- **Styling:** TailwindCSS 4.0 (integrated via `@tailwindcss/vite` in `vite.config.ts`).
+- **Styling:** TailwindCSS 4.0 use OKLCH color space (integrated via `@tailwindcss/vite` in `vite.config.ts`).
 - **Database:** Query via Drizzle ORM. Handle optional property types carefully under `exactOptionalPropertyTypes: true` compiler configurations.
 - **Operational Health:** Ensure `./init.sh` and `bun run build` compile with exit code 0 before completing any work.
+
 
 ## Agent Rules & Workflow
 

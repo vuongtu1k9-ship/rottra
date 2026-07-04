@@ -415,6 +415,7 @@ Thông tin từ lexicon: ${lexiconContext || "Không có"}
 Bối cảnh tri thức: ${graphRagContext || "Không có"}
 
 Hãy trả lời câu hỏi trên một cách tự nhiên, hữu ích và ngắn gọn. Nếu là câu hỏi về sản phẩm, lô hàng, giá cả → đưa ra thông tin thực tế. Nếu là câu hỏi chung → trả lời thân thiện.`,
+          isInternalReasoning: true,
         });
         verbalStrikeText =
           llmResult.text ||

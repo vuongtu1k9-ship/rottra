@@ -2,29 +2,68 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-:root {
-  --background-rgb: 255, 255, 255;
-  --foreground-rgb: 0, 0, 0;
+/* OKLCH Color Palette - TailwindCSS v4.0 */
+@theme {
+  /* === Core Colors === */
+  --color-background: oklch(1 0 0);              /* White */
+  --color-foreground: oklch(0.145 0 0);          /* Near black */
+
+  /* === Brand Colors === */
+  --color-primary-50: oklch(0.97 0.01 285);
+  --color-primary-100: oklch(0.93 0.02 285);
+  --color-primary-200: oklch(0.87 0.04 285);
+  --color-primary-300: oklch(0.78 0.07 285);
+  --color-primary-400: oklch(0.68 0.14 285);
+  --color-primary-500: oklch(0.55 0.20 285);     /* Purple brand color */
+  --color-primary-600: oklch(0.48 0.20 285);
+  --color-primary-700: oklch(0.40 0.17 285);
+  --color-primary-800: oklch(0.33 0.13 285);
+  --color-primary-900: oklch(0.27 0.10 285);
+  --color-primary-950: oklch(0.18 0.07 285);
+
+  /* === Neutral (Gray) === */
+  --color-neutral-50: oklch(0.985 0 0);
+  --color-neutral-100: oklch(0.967 0 0);
+  --color-neutral-200: oklch(0.929 0 0);
+  --color-neutral-300: oklch(0.872 0 0);
+  --color-neutral-400: oklch(0.708 0 0);
+  --color-neutral-500: oklch(0.556 0 0);
+  --color-neutral-600: oklch(0.439 0 0);
+  --color-neutral-700: oklch(0.371 0 0);
+  --color-neutral-800: oklch(0.269 0 0);
+  --color-neutral-900: oklch(0.205 0 0);
+  --color-neutral-950: oklch(0.145 0 0);
+
+  /* === Success (Green) === */
+  --color-success-500: oklch(0.723 0.219 149);
+
+  /* === Warning (Amber) === */
+  --color-warning-500: oklch(0.769 0.188 70);
+
+  /* === Danger (Red) === */
+  --color-danger-500: oklch(0.637 0.237 25);
+
+  /* === Info (Cyan) === */
+  --color-info-500: oklch(0.715 0.143 215);
 }
 
-/* Chế độ tối ép buộc bằng class */
+/* Dark mode overrides */
 :root.dark {
-  --background-rgb: 32, 32, 32;
-  --foreground-rgb: 204, 204, 204;
+  --color-background: oklch(0.205 0 0);
+  --color-foreground: oklch(0.929 0 0);
 }
 
-/* Chế độ tối theo hệ thống (chỉ áp dụng nếu không ép bằng class .light) */
+/* System preference fallback */
 @media (prefers-color-scheme: dark) {
   :root:not(.light) {
-    --background-rgb: 32, 32, 32;
-    --foreground-rgb: 204, 204, 204;
+    --color-background: oklch(0.205 0 0);
+    --color-foreground: oklch(0.929 0 0);
   }
 }
 
-/* Chế độ sáng ép buộc bằng class */
 :root.light {
-  --background-rgb: 255, 255, 255;
-  --foreground-rgb: 0, 0, 0;
+  --color-background: oklch(1 0 0);
+  --color-foreground: oklch(0.145 0 0);
 }
 
 body {
@@ -187,4 +226,44 @@ body {
 
 .mermaid-diagram-placeholder .node:active {
   transform: scale(0.97);
+}
+
+/* Pulse effect for nodes */
+@keyframes leafletPulsing {
+  0% {
+    transform: scale(0.5);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1.8);
+    opacity: 0;
+  }
+}
+
+/* Cyber neon style for the map in dark mode */
+.cyber-map .leaflet-tile-pane {
+  filter: hue-rotate(200deg) saturate(1.6) brightness(0.7) contrast(1.25) invert(0.05);
+}
+.cyber-map {
+  background-color: #07070c !important;
+}
+
+/* Glowing paths for polylines and geoJSON borders */
+.cyber-map .leaflet-interactive {
+  filter: drop-shadow(0 0 6px #06b6d4) drop-shadow(0 0 2px #3b82f6);
+}
+
+/* Futuristic dark mode Popups */
+.cyber-map .leaflet-popup-content-wrapper {
+  background: rgba(10, 10, 16, 0.85) !important;
+  color: #e5e7eb !important;
+  border: 1px solid rgba(59, 130, 246, 0.25) !important;
+  backdrop-filter: blur(12px) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6) !important;
+}
+.cyber-map .leaflet-popup-tip {
+  background: rgba(10, 10, 16, 0.85) !important;
+  border-left: 1px solid rgba(59, 130, 246, 0.25) !important;
+  border-bottom: 1px solid rgba(59, 130, 246, 0.25) !important;
 }

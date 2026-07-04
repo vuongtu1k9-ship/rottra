@@ -3,7 +3,9 @@ import path from "node:path";
 
 console.log("🌱 [Master Seed] Bắt đầu chạy toàn bộ Seeder CSDL...");
 
-const dbDir = path.dirname(new URL(import.meta.url).pathname);
+import { fileURLToPath } from "node:url";
+
+const dbDir = path.dirname(fileURLToPath(import.meta.url));
 
 const seeders = [
   "seed_presets.ts",

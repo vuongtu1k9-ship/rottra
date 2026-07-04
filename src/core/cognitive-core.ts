@@ -18,6 +18,8 @@ export interface CognitiveResponse {
   context: CognitiveContext;
   sources?: string[];
   confidence: number;
+  needsClarification?: boolean;
+  clarificationOptions?: string[];
 }
 
 class CognitiveCore {
@@ -44,6 +46,19 @@ class CognitiveCore {
     };
 
     if (classification.confidence < 0.3) {
+      // Active learning: provide clarification options instead of generic apology
+      const clarificationOptions = generateClarificationOptions(query, classification);
+      if (clarificationOptions.length > 0) {
+        const optionsList = clarificationOptions.map((o, i) => `${i + 1}. ${o}`).join("\n");
+        return {
+          reply: `Em chưa chắc chắn lắm về câu hỏi này. Anh muốn hỏi về:\n${optionsList}\n\nHoặc anh có thể diễn đạt lại giúp em ạ!`,
+          context,
+          sources: [],
+          confidence: 0.3,
+          needsClarification: true,
+          clarificationOptions,
+        };
+      }
       return {
         reply: "Xin lỗi, tôi chưa hiểu rõ câu hỏi. Bạn vui lòng diễn đạt lại được không?",
         context,
@@ -130,3 +145,36 @@ class CognitiveCore {
 }
 
 export const cognitiveCore = CognitiveCore.getInstance();
+
+// ══════════════════════════════════════════════════════════════
+// ACTIVE LEARNING: Generate clarification options for low-confidence queries
+// ══════════════════════════════════════════════════════════════
+
+function generateClarificationOptions(query: string, classification: ClassificationResult): string[] {
+  const options: string[] = [];
+  const q = query.toLowerCase();
+
+  // Map common ambiguous patterns to possible intents
+  const intentHints: [RegExp, string[]][] = [
+    [/(giá|bao nhiêu|cost|price)/, ["Xem giá sản phẩm", "So sánh giá thị trường"]],
+    [/(mua|order|purchase|ship)/, ["Đặt hàng", "Kiểm tra tình trạng đơn hàng"]],
+    [/(thời tiết|weather|mưa|nắng)/, ["Dự báo thời tiết hôm nay", "Thời tiết tuần tới"]],
+    [/(nông nghiệp|farmer|crop|lúa|cà phê)/, ["Kỹ thuật trồng trọt", "Giá nông sản thị trường"]],
+    [/(đổi trả|return|complaint|khiếu nại)/, ["Đổi trả sản phẩm", "Khiếu nại chất lượng"]],
+    [/(tài chính|chi phí|lợi nhuận|ROI)/, ["Phân tích chi phí", "Tính lợi nhuận"]],
+  ];
+
+  for (const [pattern, hints] of intentHints) {
+    if (pattern.test(q)) {
+      options.push(...hints);
+      if (options.length >= 3) break;
+    }
+  }
+
+  // If no pattern matched, provide generic but useful options
+  if (options.length === 0) {
+    options.push("Thông tin sản phẩm nông sản", "Giá cả thị trường hôm nay", "Kỹ thuật canh tác");
+  }
+
+  return options.slice(0, 3);
+}

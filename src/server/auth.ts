@@ -7,7 +7,14 @@ import crypto from "crypto";
 
 export const auth = betterAuth({
   baseURL: process.env.BETTER_AUTH_URL || "http://localhost:5173/api/auth",
-  trustedOrigins: ["http://localhost:5173", "http://127.0.0.1:5173", "http://192.168.1.63:5173", "http://192.168.1.145:5173"],
+  trustHeaders: true,
+  trustedOrigins: [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://192.168.1.63:5173",
+    "http://192.168.1.145:5173",
+    "https://rottra.pages.dev"
+  ],
   database: drizzleAdapter(db, {
     provider: "pg",
     schema,

@@ -1,0 +1,23 @@
+[
+  {
+    "query": "Phương sai mẫu là gì",
+    "role": "guest",
+    "usePrivateBrain": false,
+    "status": 200,
+    "reply": "[Suy luận logic: Không nhận diện được nhân vật. Sử dụng cấu hình cơ bản.] Chào bạn, tôi đã tiếp nhận thông tin về lô nông sản hảo hạng giá 50,000₫. Hãy cho tôi biết yêu cầu cụ thể!"
+  },
+  {
+    "query": "Phương sai mẫu là gì",
+    "role": "user",
+    "usePrivateBrain": false,
+    "status": 200,
+    "reply": "[Suy luận logic: Không nhận diện được nhân vật. Sử dụng cấu hình cơ bản.] Chào bạn, tôi đã tiếp nhận thông tin về lô nông sản hảo hạng giá 50,000₫. Hãy cho tôi biết yêu cầu cụ thể!"
+  },
+  {
+    "query": "Phương sai mẫu là gì",
+    "role": "admin",
+    "usePrivateBrain": false,
+    "status": 200,
+    "reply": "[Suy luận logic: Không nhận diện được nhân vật. Sử dụng cấu hình cơ bản.] Chào bạn, tôi đã tiếp nhận thông tin về lô nông sản hảo hạng giá 50,000₫. Hãy cho tôi biết yêu cầu cụ thể!"
+  }
+]
