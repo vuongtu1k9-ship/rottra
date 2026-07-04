@@ -436,6 +436,8 @@
 - `src/client/components/user-avatar.tsrx` - Tự động cập nhật.
 - `src/client/views/assembly.tsrx` - Tự động cập nhật.
 - `src/core/cognitive-swarm/game-theory.ts` - Tự động cập nhật.
+- `revert-name.js` - Tự động cập nhật.
+- `revert.js` - Tự động cập nhật.
 
 ## Evidence of Completion
 
