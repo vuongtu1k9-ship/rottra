@@ -41,7 +41,10 @@ export const onRequest: PagesFunction<{ ROTTRA_KV?: KVNamespace; BACKEND_URL?: s
       redirect: "manual",
     });
 
-    return response;
+    // Create a new response to allow modifying headers
+    const newResponse = new Response(response.body, response);
+    newResponse.headers.set("X-Debug-Backend", targetUrl.toString());
+    return newResponse;
   } catch (err: any) {
     return new Response(
       JSON.stringify({

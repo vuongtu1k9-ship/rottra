@@ -439,6 +439,8 @@
 - `revert-name.js` - Tự động cập nhật.
 - `revert.js` - Tự động cập nhật.
 - `src/infra/database/db-pool.ts` - Tự động cập nhật.
+- `functions/api/[[route]].ts` - Tự động cập nhật.
+- `railway.json` - Tự động cập nhật.
 
 ## Evidence of Completion
 
