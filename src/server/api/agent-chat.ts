@@ -4846,6 +4846,52 @@ Tạo 3 câu hỏi tiếp theo liên quan trực tiếp đến nội dung trên.
       }
     } catch {}
 
+    // Tự động tìm kiếm sản phẩm liên quan trong cơ sở dữ liệu nếu sếp muốn xem/mua hàng
+    let productsList: any[] = [];
+    try {
+      const lowerQuery = query.toLowerCase();
+      const isShoppingQuery =
+        lowerQuery.includes("mua") ||
+        lowerQuery.includes("ban") ||
+        lowerQuery.includes("bán") ||
+        lowerQuery.includes("san pham") ||
+        lowerQuery.includes("sản phẩm") ||
+        lowerQuery.includes("laptop") ||
+        lowerQuery.includes("gia") ||
+        lowerQuery.includes("giá") ||
+        lowerQuery.includes("macbook") ||
+        lowerQuery.includes("dell") ||
+        lowerQuery.includes("cafe") ||
+        lowerQuery.includes("cà phê") ||
+        lowerQuery.includes("st25") ||
+        lowerQuery.includes("sau rieng") ||
+        lowerQuery.includes("sầu riêng") ||
+        lowerQuery.includes("xoai") ||
+        lowerQuery.includes("xoài");
+
+      if (isShoppingQuery) {
+        const allProds = await getCachedProducts();
+        const keywords = ["gao", "cafe", "tra", "sau rieng", "xoai", "rau", "heo", "bo", "mang phu", "keo cat", "may say", "mit say", "cam bien", "bo dieu khien", "phan bon", "than sinh", "laptop", "macbook", "dell", "xps"];
+        const queryNorm = normalizeQuery(query);
+        const matchedKeywords = keywords.filter(kw => lowerQuery.includes(kw) || queryNorm.includes(kw));
+        
+        if (matchedKeywords.length > 0) {
+          productsList = allProds.filter((p: any) => {
+            const nameNorm = normalizeQuery(p.name);
+            const catNorm = normalizeQuery(p.category || "");
+            return matchedKeywords.some(kw => nameNorm.includes(kw) || catNorm.includes(kw));
+          });
+        }
+        
+        // Nếu không tìm thấy sản phẩm cụ thể, lấy 6 sản phẩm đầu tiên làm nổi bật
+        if (productsList.length === 0) {
+          productsList = allProds.slice(0, 6);
+        }
+      }
+    } catch (prodSearchErr) {
+      console.error("Lỗi khi tìm kiếm sản phẩm trong agent-chat:", prodSearchErr);
+    }
+
     return c.json({
       success: true,
       source: ragHandled && ragAnswer ? "YOUTUBE_LEARNER" : aiSource,
@@ -4853,6 +4899,7 @@ Tạo 3 câu hỏi tiếp theo liên quan trực tiếp đến nội dung trên.
       replyB: replyB,
       suggestions,
       sFormulaMetrics,
+      results: productsList,
     });
   } catch (error: any) {
     return c.json({ success: false, reply: "Lỗi hệ thống: " + error.message }, 500);

@@ -401,7 +401,11 @@
 
 ## Files Modified This Session
 
-- `Dockerfile` - Tự động cập nhật.
+- `bun.lock` - Tự động cập nhật.
+- `package.json` - Tự động cập nhật.
+- `src/server/prod.ts` - Tự động cập nhật.
+- `src/server/api/agent-chat.ts` - Tự động cập nhật.
+- `src/server/api/chat-stream.ts` - Tự động cập nhật.
 
 ## Evidence of Completion
 

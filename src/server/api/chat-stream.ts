@@ -97,11 +97,14 @@ chatApp.post("/", async (c) => {
             await new Promise((r) => setTimeout(r, 2)); // ultra-fast 2ms per chunk
           }
 
-          // Inject fallback mode metadata if the source was a local engine
-          // [FALLBACK_MODE] removed — internal metadata, not for user display
           // Stream suggestions if available
           if (data.suggestions && data.suggestions.length > 0) {
             controller.enqueue(encoder.encode(`\n[SUGGESTIONS:${JSON.stringify(data.suggestions)}]`));
+          }
+
+          // Stream products if available
+          if (data.results && data.results.length > 0) {
+            controller.enqueue(encoder.encode(`\n[PRODUCTS:${JSON.stringify(data.results)}]`));
           }
 
           // Proactive suggestions based on context
@@ -110,8 +113,6 @@ chatApp.post("/", async (c) => {
             controller.enqueue(encoder.encode(`\n[PROACTIVE:${JSON.stringify(proactiveSuggestions)}]`));
           }
           if (data.replyB) {
-            // using base64 or encodeURIComponent is safer for regex parsing, but JSON stringify works too.
-            // Let's use a clear delimiter
             controller.enqueue(encoder.encode(`\n[REPLY_B:${JSON.stringify(data.replyB)}]`));
           }
         } catch (error: any) {

@@ -16,10 +16,12 @@ import {
   pencil,
   arrowPath,
   xCircle,
+  shoppingCart,
 } from "solid-heroicons/outline";
 import { theme } from "~/client/stores/theme-store";
 import { formatMarkdown } from "~/server/helpers/markdown-parser";
 import { currentLang, t } from "~/client/stores/i18n-store";
+import { cartItems, updateCart } from "~/client/stores/cart-store";
 
 let isProductDataChecked = false;
 
@@ -735,7 +737,7 @@ export component Assistant(props: any) {
         return;
       }
 
-      const botMsg = { text: responseText, isUser: false };
+      const botMsg = { text: responseText, isUser: false, products: aiData.results || [] };
       setChat((prev) => {
         const next = [...prev, botMsg];
         if (typeof window !== "undefined") {
@@ -992,6 +994,15 @@ export component Assistant(props: any) {
             cleanBotText = cleanBotText.replace(/\[REPLY_B:.*?\]/g, "").trim();
           }
 
+          let foundProducts: any[] = [];
+          const prodMatch = currentBotText.match(/\[PRODUCTS:([^\]]+)\]/);
+          if (prodMatch) {
+            try {
+              foundProducts = JSON.parse(prodMatch[1]);
+            } catch (e) {}
+            cleanBotText = cleanBotText.replace(/\[PRODUCTS:[^\]]+\]/g, "").trim();
+          }
+
           let isFallbackMode = false;
           if (cleanBotText.includes("[FALLBACK_MODE]")) {
             isFallbackMode = true;
@@ -1008,6 +1019,9 @@ export component Assistant(props: any) {
             }
             if (foundReplyB) {
               next[next.length - 1].replyB = foundReplyB;
+            }
+            if (foundProducts && foundProducts.length > 0) {
+              next[next.length - 1].products = foundProducts;
             }
             return next;
           });
@@ -1094,6 +1108,101 @@ export component Assistant(props: any) {
     handleEditMessage(idx, text || "");
   };
 
+  const renderProductCarousel = (msg: any) => {
+    if (!msg.products || msg.products.length === 0) return null;
+    
+    const formatCurrency = (val: number) => {
+      return val.toLocaleString("vi-VN") + " ₫";
+    };
+
+    const getPrimaryImage = (p: any) => {
+      let link = "/assets/Rottra-default-agri.png";
+      if (p.media) {
+        if (Array.isArray(p.media) && p.media.length > 0) {
+          const first = p.media[0];
+          link = typeof first === "string" ? first : first.link || first.src || link;
+        } else if (typeof p.media === "string") {
+          try {
+            const parsed = JSON.parse(p.media);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              const first = parsed[0];
+              link = typeof first === "string" ? first : first.link || first.src || link;
+            }
+          } catch (e) {}
+        }
+      }
+      return link;
+    };
+
+    const isLoggedIn = () => !!session()?.data?.user;
+
+    const handleAddToCart = (p: any) => {
+      const pid = p.id || p._id;
+      if (!pid) return;
+      const cart = [...cartItems()];
+      const existing = cart.find((i: any) => i.goods === pid);
+      if (existing) {
+        existing.quantity++;
+      } else {
+        cart.push({ goods: pid, quantity: 1, item: p });
+      }
+      updateCart(cart, isLoggedIn());
+      alert(`Đã thêm ${p.name} vào giỏ hàng! 🛒`);
+    };
+
+    return <tsx>
+      <div class="flex flex-col gap-2 mt-4 w-full select-none">
+        <div class="relative w-full flex items-center">
+          <div 
+            class="w-full flex gap-4 overflow-x-auto scrollbar-hide py-2 px-1 scroll-smooth"
+            style="scroll-snap-type: x mandatory; -ms-overflow-style: none; scrollbar-width: none;"
+          >
+            {msg.products.map((p: any) => {
+              const imgUrl = getPrimaryImage(p);
+              return (
+                <div 
+                  class="flex-shrink-0 w-[220px] bg-white dark:bg-zinc-900 rounded-2xl border border-gray-150 dark:border-white/10 overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col justify-between"
+                  style="scroll-snap-align: start;"
+                >
+                  <div class="aspect-[4/3] w-full bg-gray-50 dark:bg-zinc-800 relative">
+                    <img 
+                      src={imgUrl} 
+                      alt={p.name} 
+                      class="w-full h-full object-cover"
+                      loading="lazy"
+                    />
+                  </div>
+                  <div class="p-3 flex flex-col gap-1 text-left flex-grow justify-between">
+                    <div>
+                      <h4 class="font-bold text-[12px] text-gray-800 dark:text-zinc-100 line-clamp-1">
+                        {p.name}
+                      </h4>
+                      <div class="text-[10px] text-gray-500 dark:text-zinc-400 font-medium mt-0.5 line-clamp-2">
+                        {p.description || "Nông sản chất lượng cao từ hệ sinh thái Rottra."}
+                      </div>
+                    </div>
+                    <div class="mt-2.5">
+                      <div class="text-blue-600 dark:text-blue-400 font-bold text-xs">
+                        {formatCurrency(Number(p.price))}
+                      </div>
+                      <button
+                        onClick={() => handleAddToCart(p)}
+                        class="mt-2 w-full py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-[10px] shadow-sm transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-1 cursor-pointer"
+                      >
+                        <Icon path={shoppingCart} class="w-3 h-3 animate-pulse" />
+                        <span>Mua ngay</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </tsx>;
+  };
+
   const renderMessageContent = (msg: any) => {
     const msgText = msg.text || "";
     if (msgText === "" && !msg.isUser) {
@@ -1108,7 +1217,12 @@ export component Assistant(props: any) {
     if (msgText.includes("┌") || msgText.includes("┤") || msgText.includes("┼")) {
       return <tsx><pre class={getPreBlockClass()}>{msgText}</pre></tsx>;
     }
-    return <tsx><div class="leading-relaxed text-left break-words" innerHTML={formatMarkdown(msgText)}></div></tsx>;
+    return <tsx>
+      <div class="flex flex-col gap-3">
+        <div class="leading-relaxed text-left break-words" innerHTML={formatMarkdown(msgText)}></div>
+        {renderProductCarousel(msg)}
+      </div>
+    </tsx>;
   };
 
   const handleMessageRef = (el: HTMLDivElement) => {
