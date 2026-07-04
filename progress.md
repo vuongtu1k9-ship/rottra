@@ -442,6 +442,7 @@
 - `functions/api/[[route]].ts` - Tự động cập nhật.
 - `railway.json` - Tự động cập nhật.
 - `src/client/views/dashboard/setting-system.tsrx` - Tự động cập nhật.
+- `runs.json` - Tự động cập nhật.
 
 ## Evidence of Completion
 

@@ -402,11 +402,9 @@ export component Header(props: any) {
         class={`text-xl font-extrabold tracking-tighter hover:text-blue-600 transition-colors flex items-center gap-2 shrink-0 ${
           theme() === "dark" ? "text-white" : "text-gray-900"
         }`}>
-        if (agentAvatar()) {
-          <img src={agentAvatar()} class="w-8 h-8 rounded-full object-cover ring-2 ring-blue-500/20" alt="Rottra Avatar" />
-        } else {
-          <Icon path={buildingStorefront} class={`${getIconSize()} text-blue-600`} />
-        }
+        <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white font-bold text-lg ring-2 ring-blue-500/20 shadow-sm shrink-0">
+          T
+        </div>
         <span class="hidden sm:inline">{t("Rottra")}</span>
       </A>
       <div class="flex items-center gap-2 md:gap-6 overflow-visible flex-1 justify-end">
