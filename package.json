@@ -2,6 +2,7 @@
   "name": "rottra",
   "type": "module",
   "scripts": {
+    "dev": "vite",
     "build": "bun --bun run vite build",
     "deploy": "wrangler pages deploy dist --project-name rottra --branch main --commit-dirty=true",
     "format": "prettier --write \"src/**/*.{ts,tsrx}\"",
@@ -11,6 +12,7 @@
   "dependencies": {
     "@hono/vite-dev-server": "^0.25.3",
     "@kobalte/core": "^0.13.12",
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "@solidjs/router": "^0.16.1",
     "@tensorflow/tfjs": "^4.22.0",
     "@tsrx/solid": "0.1.11",

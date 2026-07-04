@@ -463,7 +463,14 @@ export const Profile = (props: any) => {
               </span>
               <UserAvatar
                 name={props.user?.name || profile()?.fullName || user()?.name || t("Người dùng")}
-                image={profile()?.avatar?.link || profile()?.imgId?.link || props.user?.image}
+                image={(() => {
+                  let defaultAvatar = "/default-avatar.png";
+                  const targetId = props.user?.id || activeUserId();
+                  if (isAgent() && targetId) {
+                    defaultAvatar = `/media/${targetId}.png`;
+                  }
+                  return profile()?.avatar?.link || profile()?.imgId?.link || props.user?.image || defaultAvatar;
+                })()}
                 loading={!props.user && !profile() && !profileNotFound()}
                 class={`w-20 h-20 text-2xl ring-4 ring-blue-50 mb-4 shadow-sm transition-transform ${
                   props.activeSubAgentId ? "cursor-pointer hover:scale-105" : ""

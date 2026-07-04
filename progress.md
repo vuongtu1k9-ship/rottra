@@ -443,6 +443,11 @@
 - `railway.json` - Tự động cập nhật.
 - `src/client/views/dashboard/setting-system.tsrx` - Tự động cập nhật.
 - `runs.json` - Tự động cập nhật.
+- `src/client/components/header.tsrx` - Tự động cập nhật.
+- `index.html` - Tự động cập nhật.
+- `public/default-avatar.png` - Tự động cập nhật.
+- `public/favicon.ico` - Tự động cập nhật.
+- `public/favicon.svg` - Tự động cập nhật.
 
 ## Evidence of Completion
 

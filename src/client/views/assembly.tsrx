@@ -7288,11 +7288,6 @@ export component Assembly(props: any) {
                               ? "Thuộc nhóm: Phe Quang Minh"
                               : "Vai trò: " + user.role}
                         </p>
-                        if (user.employees > 0) {
-                          <p class="text-[9px] font-bold text-sky-400 mt-0.5">
-                            {"Nhân viên: " + user.employees + " người"}
-                          </p>
-                        }
                       </div>
                     </div>
                     <div class="flex gap-2">
@@ -7644,61 +7639,7 @@ export component Assembly(props: any) {
                         </div>
                       </div>
 
-                      {/* Employee count row */}
-                      <div
-                        class={`text-[10px] flex flex-col gap-1 px-2 py-1.5 rounded-lg mt-1 ${
-                          theme() === "dark" ? "bg-black/40" : "bg-gray-200/50"
-                        }`}>
-                        <div class="flex justify-between items-center w-full">
-                          <span class={`${theme() === "dark" ? "text-gray-400" : "text-gray-600"}`}>{"Nhân viên:"}</span>
-                          <div class="flex items-center gap-2">
-                            <span class="font-bold text-sky-400">
-                              {agent.employees !== undefined ? agent.employees : 5}
-                              {" người"}
-                            </span>
-                            <Show when={agent.id === selectedCharId()}>
-                              <div
-                                class={`flex items-center gap-1 border-l pl-2 ${
-                                  theme() === "dark" ? "border-white/10" : "border-gray-200"
-                                }`}>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    fireEmployee();
-                                  }}
-                                  disabled={(agent.employees !== undefined ? agent.employees : 5) <= 0}
-                                  class="px-1.5 py-0.5 rounded bg-red-950/40 hover:bg-red-900/40 text-[9px] font-bold text-red-400 border border-red-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition duration-150"
-                                  title={t("Sa thải 1 nhân sự (Làm giảm sĩ khí và hạ 1 Cấp trình độ thương thuyết)")}>
-                                  {t("Sa thải")}
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    hireEmployee();
-                                  }}
-                                  disabled={(agent.employees !== undefined ? agent.employees : 5) >= 40 || agent.budget < 5000000}
-                                  class="px-1.5 py-0.5 rounded bg-sky-950/40 hover:bg-sky-900/40 text-[9px] font-bold text-sky-400 border border-sky-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition duration-150"
-                                  title={t("Tuyển nhân sự (Phí: {fee}{symbol}, Lương năng lực: {salary}{symbol}/15s)").replace(
-                                    "{fee}",
-                                    formatCurrency(5000000),
-                                  ).replace("{salary}", formatCurrency((agentSkills()[agent.id]?.level || 5) * 100000)).replace(
-                                    /{symbol}/g,
-                                    currencySymbol(),
-                                  )}>
-                                  {t("Tuyển")}
-                                </button>
-                              </div>
-                            </Show>
-                          </div>
-                        </div>
-                        <Show when={agent.id === selectedCharId()}>
-                          <div class="text-[9px] text-gray-500 dark:text-gray-400 mt-0.5 leading-normal italic">
-                            {t(
-                              `* Không bắt buộc tuyển nhân sự, có thể làm 1 mình. Lương nhân sự tự thỏa thuận (điu lương) theo năng lực: Cấp độ x 100.000${currencySymbol()}/15s.`,
-                            )}
-                          </div>
-                        </Show>
-                      </div>
+
 
                       <div class="space-y-1">
                         if (agent.products && agent.products.length > 0) {
