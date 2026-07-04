@@ -995,12 +995,12 @@ export component Assistant(props: any) {
           }
 
           let foundProducts: any[] = [];
-          const prodMatch = currentBotText.match(/\[PRODUCTS:([^\]]+)\]/);
+          const prodMatch = currentBotText.match(/\[PRODUCTS_START\](.*?)\[PRODUCTS_END\]/);
           if (prodMatch) {
             try {
               foundProducts = JSON.parse(prodMatch[1]);
             } catch (e) {}
-            cleanBotText = cleanBotText.replace(/\[PRODUCTS:[^\]]+\]/g, "").trim();
+            cleanBotText = cleanBotText.replace(/\[PRODUCTS_START\].*?\[PRODUCTS_END\]/g, "").trim();
           }
 
           let isFallbackMode = false;

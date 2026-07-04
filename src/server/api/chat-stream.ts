@@ -104,7 +104,7 @@ chatApp.post("/", async (c) => {
 
           // Stream products if available
           if (data.results && data.results.length > 0) {
-            controller.enqueue(encoder.encode(`\n[PRODUCTS:${JSON.stringify(data.results)}]`));
+            controller.enqueue(encoder.encode(`\n[PRODUCTS_START]${JSON.stringify(data.results)}[PRODUCTS_END]`));
           }
 
           // Proactive suggestions based on context
