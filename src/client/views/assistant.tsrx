@@ -977,12 +977,22 @@ export component Assistant(props: any) {
             cleanBotText = currentBotText.replace(/\[VIDEO_URL:([^\]]+)\]/g, "").trim();
           }
 
-          const sugMatch = currentBotText.match(/\[SUGGESTIONS:([^\]]+)\]/);
+          let foundSuggestions: string[] = [];
+          const sugMatch = currentBotText.match(/\[SUGGESTIONS:([\s\S]*?)\]/);
           if (sugMatch) {
             try {
               foundSuggestions = JSON.parse(sugMatch[1]);
             } catch (e) {}
-            cleanBotText = cleanBotText.replace(/\[SUGGESTIONS:[^\]]+\]/g, "").trim();
+            cleanBotText = cleanBotText.replace(/\[SUGGESTIONS:[\s\S]*?\]/g, "").trim();
+          }
+
+          const proactiveMatch = currentBotText.match(/\[PROACTIVE:([\s\S]*?)\]/);
+          if (proactiveMatch) {
+            try {
+              const parsedProactive = JSON.parse(proactiveMatch[1]);
+              foundSuggestions = [...foundSuggestions, ...parsedProactive];
+            } catch (e) {}
+            cleanBotText = cleanBotText.replace(/\[PROACTIVE:[\s\S]*?\]/g, "").trim();
           }
 
           let foundReplyB = "";
@@ -995,12 +1005,12 @@ export component Assistant(props: any) {
           }
 
           let foundProducts: any[] = [];
-          const prodMatch = currentBotText.match(/\[PRODUCTS_START\](.*?)\[PRODUCTS_END\]/);
+          const prodMatch = currentBotText.match(/\[PRODUCTS_START\]([\s\S]*?)\[PRODUCTS_END\]/);
           if (prodMatch) {
             try {
               foundProducts = JSON.parse(prodMatch[1]);
             } catch (e) {}
-            cleanBotText = cleanBotText.replace(/\[PRODUCTS_START\].*?\[PRODUCTS_END\]/g, "").trim();
+            cleanBotText = cleanBotText.replace(/\[PRODUCTS_START\][\s\S]*?\[PRODUCTS_END\]/g, "").trim();
           }
 
           let isFallbackMode = false;
