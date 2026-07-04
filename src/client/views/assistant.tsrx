@@ -886,6 +886,7 @@ export component Assistant(props: any) {
     setActiveSugIndex(0);
 
     setTimeout(async () => {
+      let currentBotText = "";
       try {
         const historyList = chat().map(
           (h) => ({
@@ -935,7 +936,6 @@ export component Assistant(props: any) {
 
         const reader = aiRes.body.getReader();
         const decoder = new TextDecoder();
-        let currentBotText = "";
 
         setChat((prev) => [...prev, { text: "", isUser: false }]);
 
