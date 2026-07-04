@@ -403,7 +403,7 @@ export component Header(props: any) {
           theme() === "dark" ? "text-white" : "text-gray-900"
         }`}>
         if (agentAvatar()) {
-          <img src={agentAvatar()} class="w-8 h-8 rounded-full object-cover shadow-sm shrink-0" alt="Rottra Avatar" />
+          <img src={`${agentAvatar()}?v=2`} class="w-8 h-8 rounded-full object-cover shadow-sm shrink-0" alt="Rottra Avatar" />
         } else {
           <Icon path={buildingStorefront} class={`${getIconSize()} text-blue-600`} />
         }
