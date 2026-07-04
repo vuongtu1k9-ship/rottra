@@ -1930,7 +1930,7 @@ async function getEnrichedProfile(dbUser: any) {
       macroAdjustment: 1.0,
     };
     profile.loanAmount = calculateAgentLoanAmount(dbUser.id);
-  } else if (dbUser?.id === "system_agent_user" || dbUser?.id === "system-agent-user") {
+  } else if (dbUser?.id === "RottraAI" || dbUser?.id === "RottraAI") {
     const loreIds = [
       "toLuong",
       "thuongNguyet",
@@ -2026,12 +2026,12 @@ app.get("/profile/:userId", verifyAuth, async (c: any) => {
       cleanSlug = cleanSlug.replace("user-", "");
     }
     if (
-      cleanSlug === "system-agent-user" ||
-      cleanSlug === "system_agent_user" ||
+      cleanSlug === "RottraAI" ||
+      cleanSlug === "RottraAI" ||
       cleanSlug === "agent-pro-max" ||
       cleanSlug === "agent_pro_max"
     ) {
-      userId = "system_agent_user";
+      userId = "RottraAI";
     } else {
       const agentMap: Record<string, string> = {
         "to-luong": "toLuong",
@@ -2115,7 +2115,7 @@ app.post("/profile", verifyAuth, async (c: any) => {
 
 app.get("/agent/system-profile", async (c: any) => {
   const dbUser = await db.query.user.findFirst({
-    where: eq(user.id, "system_agent_user"),
+    where: eq(user.id, "RottraAI"),
   });
   const profile = (dbUser?.profile as any) || {};
   return c.json({
@@ -2158,7 +2158,7 @@ app.post("/agent/system-profile", verifyAuth, async (c: any) => {
   }
   const body = await c.req.json();
   const dbUser = await db.query.user.findFirst({
-    where: eq(user.id, "system_agent_user"),
+    where: eq(user.id, "RottraAI"),
   });
   const existingProfile = (dbUser?.profile as any) || {};
   const updatedProfile = {
@@ -2178,7 +2178,7 @@ app.post("/agent/system-profile", verifyAuth, async (c: any) => {
       profile: updatedProfile,
       image: updatedProfile.avatar?.link || dbUser?.image,
     })
-    .where(eq(user.id, "system_agent_user"));
+    .where(eq(user.id, "RottraAI"));
 
   return c.json({
     success: true,
@@ -3757,7 +3757,7 @@ app.get("/product", async (c: any) => {
     // Exclude products with no/invalid Expiration Date (expired) or quantity <= 0 from public market
     // Hide system pool products from public market (so system agent doesn't appear as a seller)
     const allproduct = (await db.query.product.findMany({})).filter((p: any) => {
-      if (p.sellerId === "system_agent_user") return false;
+      if (p.sellerId === "RottraAI") return false;
       if (!p.expired || p.expired.trim() === "") return false;
       const parsed = Date.parse(p.expired);
       if (isNaN(parsed)) return false;
@@ -4417,8 +4417,8 @@ app.post("/agent/chat", async (c: any) => {
             return c.json({ text: "⚠️ Vui lòng đăng nhập để thực hiện cập nhật thông tin cá nhân.", results: [] });
           }
 
-          const targetUserId = isUserUpdate ? userObj.id : "system_agent_user";
-          const isAgent = targetUserId === "system_agent_user";
+          const targetUserId = isUserUpdate ? userObj.id : "RottraAI";
+          const isAgent = targetUserId === "RottraAI";
 
           if (isAgent && (!userObj || userObj.role !== "admin")) {
             return c.json({ text: "⚠️ Quyền truy cập bị từ chối. Chỉ Quản trị viên mới có thể cập nhật thông tin trợ lý.", results: [] });
@@ -5339,7 +5339,7 @@ Ensure the reply is beautifully formatted using markdown.`;
     }
 
     const dbUser = await db.query.user.findFirst({
-      where: eq(user.id, "system_agent_user"),
+      where: eq(user.id, "RottraAI"),
     });
     const profile = (dbUser?.profile as any) || {};
     const systemName = profile.fullName || dbUser?.name;

@@ -37,10 +37,10 @@ async function main() {
       const toReassign = agentProds.filter((p) => !toKeep.includes(p.id)).map((p) => p.id);
 
       if (toReassign.length > 0) {
-        // Đưa các sản phẩm còn lại về system_agent_user (Trợ Lý Cao Cấp Rottra)
+        // Đưa các sản phẩm còn lại về RottraAI (Trợ Lý Cao Cấp Rottra)
         for (let i = 0; i < toReassign.length; i += 100) {
           const batch = toReassign.slice(i, i + 100);
-          await db.update(product).set({ sellerId: "system_agent_user" }).where(inArray(product.id, batch));
+          await db.update(product).set({ sellerId: "RottraAI" }).where(inArray(product.id, batch));
         }
         totalReassigned += toReassign.length;
         console.log(`Agent ${agentId} (Độ kỹ ${precision}): Đã giữ lại ${precision} sản phẩm, thu hồi ${toReassign.length} sản phẩm về kho tổng.`);
@@ -48,7 +48,7 @@ async function main() {
     }
   }
 
-  console.log(`✅ Hoàn tất! Đã thu hồi tổng cộng ${totalReassigned} sản phẩm về kho tổng (system_agent_user).`);
+  console.log(`✅ Hoàn tất! Đã thu hồi tổng cộng ${totalReassigned} sản phẩm về kho tổng (RottraAI).`);
   process.exit(0);
 }
 

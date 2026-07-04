@@ -78,8 +78,8 @@ export const Profile = (props: any) => {
       if (slug.startsWith("user")) {
         slug = slug.replace(/^user[-_]?/, "");
       }
-      if (slug === "agent-pro-max" || slug === "agent_pro_max" || slug === "system-agent-user" || slug === "system_agent_user") {
-        return "system_agent_user";
+      if (slug === "agent-pro-max" || slug === "agent_pro_max" || slug === "RottraAI" || slug === "RottraAI") {
+        return "RottraAI";
       }
       const agentMap: Record<string, string> = {
         "to-luong": "toLuong",
@@ -152,7 +152,7 @@ export const Profile = (props: any) => {
   createEffect(() => {
     const fetchSharedQR = async () => {
       try {
-        const res = await fetch("/api/profile/system_agent_user");
+        const res = await fetch("/api/profile/RottraAI");
         const data = await res.json();
         if (data.success && data.profile) {
           setSharedQR({
@@ -445,7 +445,7 @@ export const Profile = (props: any) => {
             <article
               id={"profile-mini-" + (props.user?.id || user()?.id || "guest")}
               class={`p-6 rounded-3xl shadow-sm border flex flex-col items-center text-center hover:shadow-md transition-all relative ${
-                props.user?.id === "system_agent_user" || displayRole() === "agent"
+                props.user?.id === "RottraAI" || displayRole() === "agent"
                   ? "bg-gradient-to-b from-purple-950/20 via-transparent to-transparent border-purple-500/20 shadow-purple-500/5 ring-1 ring-purple-500/10"
                   : theme() === "dark"
                     ? "bg-[#1e1e1e] border-white/10"
@@ -455,11 +455,11 @@ export const Profile = (props: any) => {
                 class={`absolute top-4 right-4 px-2 py-1 rounded-full text-[10px] font-bold uppercase ${
                   displayRole() === "admin"
                     ? "bg-purple-100 text-purple-500"
-                    : props.user?.id === "system_agent_user" || displayRole() === "agent"
+                    : props.user?.id === "RottraAI" || displayRole() === "agent"
                       ? "bg-purple-500/20 text-purple-400 border border-purple-500/30"
                       : "bg-green-100 text-green-700"
                 }`}>
-                {props.user?.id === "system_agent_user" || displayRole() === "agent" ? t("Rottra") : t(displayRole())}
+                {props.user?.id === "RottraAI" || displayRole() === "agent" ? t("Rottra") : t(displayRole())}
               </span>
               <UserAvatar
                 name={props.user?.name || profile()?.fullName || user()?.name || t("Người dùng")}
@@ -495,7 +495,7 @@ export const Profile = (props: any) => {
                   theme() === "dark" ? "bg-white/5 border-white/10" : "bg-gray-50 border-gray-100"
                 }`}>
                 {(() => {
-                  const isSystemAgent = activeUserId() === "system_agent_user" || activeUserId() === "system-agent-user";
+                  const isSystemAgent = activeUserId() === "RottraAI" || activeUserId() === "RottraAI";
 
                   const getSumBudget = () => {
                     let total = 30000000;
@@ -737,7 +737,7 @@ export const Profile = (props: any) => {
                           {t("Phe Quang Minh")}
                         </span>
                       </>;
-                    } else if (uid === "system_agent_user" || displayRole() === "agent") {
+                    } else if (uid === "RottraAI" || displayRole() === "agent") {
                       return <>
                         <span class="text-gray-400 font-medium">
                           {t("Vai trò:")}
@@ -775,7 +775,7 @@ export const Profile = (props: any) => {
                     "uVuongMau",
                     "bachLoc",
                   ];
-                  const isAgentOrSub = uid === "system_agent_user" || displayRole() === "agent" || subAgentIds.includes(uid);
+                  const isAgentOrSub = uid === "RottraAI" || displayRole() === "agent" || subAgentIds.includes(uid);
 
                   if (isAgentOrSub) {
                     const moonlightList = [
@@ -1013,7 +1013,7 @@ export const Profile = (props: any) => {
                 </p>}
             </div>
             {(() => {
-              const isSystemAgent = activeUserId() === "system_agent_user" || activeUserId() === "system-agent-user";
+              const isSystemAgent = activeUserId() === "RottraAI" || activeUserId() === "RottraAI";
 
               const getSumBudget = () => {
                 let total = 30000000;

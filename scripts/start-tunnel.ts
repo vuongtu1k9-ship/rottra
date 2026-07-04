@@ -1,6 +1,6 @@
 import { $ } from "bun";
 
-const PORT = 5173;
+const PORT = 8080;
 
 console.log(`⚡ Starting Cloudflare Tunnel to http://127.0.0.1:${PORT}...`);
 

@@ -74,8 +74,8 @@ export const ManageUsers = (props: any) => {
           ? <div class="col-span-full p-8 text-center text-gray-400 italic">
               {"Chưa có dữ liệu người dùng."}
             </div>
-          : ((usersData() || []).filter((u: any) => u.role === "admin" || u.role === "agent" || u.id === "system_agent_user").map(
-              (user: any) => (user.role === "agent" || user.id === "system_agent_user"
+          : ((usersData() || []).filter((u: any) => u.role === "admin" || u.role === "agent" || u.id === "RottraAI").map(
+              (user: any) => (user.role === "agent" || user.id === "RottraAI"
                 ? <>
                     <div class="flex flex-col items-center gap-2">
                       {}

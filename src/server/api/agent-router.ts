@@ -1521,7 +1521,7 @@ export async function runFable5HeartbeatTick(forceShock?: string) {
               dbOperations.push(
                 db
                   .update(product)
-                  .set({ sellerId: "system_agent_user", price: Math.floor(P_equilibrium * 0.1) })
+                  .set({ sellerId: "RottraAI", price: Math.floor(P_equilibrium * 0.1) })
                   .where(eq(product.sellerId, agentId)),
               );
               debt.amount = 0;
@@ -1759,7 +1759,7 @@ export async function runFable5HeartbeatTick(forceShock?: string) {
       // RISK MANAGEMENT: Giữ lại 40% tiền mặt, chỉ dùng 60% ngân sách để nhập hàng (Cắt lỗ quỹ phòng hộ)
       const safeBudget = Math.floor(buyerBudget * 0.6);
       const systemProducts = allProducts.filter((p: any) => {
-        if (p.sellerId !== "system_agent_user" || p.quantity <= 0 || (p.price || 0) > safeBudget) return false;
+        if (p.sellerId !== "RottraAI" || p.quantity <= 0 || (p.price || 0) > safeBudget) return false;
         const P_eq = getEquilibriumPriceForProduct(p.name);
         return (p.price || 0) <= P_eq * 1.5; // PRICE CEILING: Không mua nếu bị thổi giá quá 50%
       });
@@ -2001,7 +2001,7 @@ export async function runFable5HeartbeatTick(forceShock?: string) {
 
             const sellerProf = (seller.profile as any) || {};
             const unitPrice = sellerProd.price || 10000;
-            const sellerName = seller.id === "system_agent_user" ? "Tổng Kho Nông Sản" : seller.name || seller.username;
+            const sellerName = seller.id === "RottraAI" ? "Tổng Kho Nông Sản" : seller.name || seller.username;
 
             const maxExtra = Math.min(sellerProd.quantity - 1, Math.floor(extraBudget / unitPrice), Math.floor(Math.random() * 5));
             const qty = 1 + Math.max(0, maxExtra);

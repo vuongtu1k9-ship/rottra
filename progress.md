@@ -406,6 +406,17 @@
 - `src/server/prod.ts` - Tự động cập nhật.
 - `src/server/api/agent-chat.ts` - Tự động cập nhật.
 - `src/server/api/chat-stream.ts` - Tự động cập nhật.
+- `src/client/views/assistant.tsrx` - Tự động cập nhật.
+- `src/core/nlp-cognitive/hippocampus.ts` - Tự động cập nhật.
+- `src/client/views/form.tsrx` - Tự động cập nhật.
+- `src/infra/database/schema.ts` - Tự động cập nhật.
+- `src/server/api/rl-engine.ts` - Tự động cập nhật.
+- `src/server/rpc/rpc-router.ts` - Tự động cập nhật.
+- `src/server/api/self-learner.ts` - Tự động cập nhật.
+- `scripts/seed-users.ts` - Tự động cập nhật.
+- `scripts/start-tunnel.ts` - Tự động cập nhật.
+- `src/client/views/dashboard/manage-user.tsrx` - Tự động cập nhật.
+- `src/client/views/profile.tsrx` - Tự động cập nhật.
 
 ## Evidence of Completion
 

@@ -7,7 +7,7 @@ async function main() {
   console.log("🌱 Bắt đầu nạp 10,000 dòng dữ liệu vào Hệ sinh thái Nông Sản Rottra...");
 
   // 1. Tạo User hệ thống nếu chưa có
-  const systemUserId = "system_agent_user";
+  const systemUserId = "RottraAI";
   await db
     .insert(user)
     .values({

@@ -98,9 +98,9 @@ async function seed() {
     });
   }
   if (!targetUser) {
-    console.log("Không tìm thấy admin@Rottra.com hoặc agent@Rottra.com. Đang khởi tạo system_agent_user...");
+    console.log("Không tìm thấy admin@Rottra.com hoặc agent@Rottra.com. Đang khởi tạo RottraAI...");
     const [insertedUser] = await db.insert(user).values({
-      id: "system_agent_user",
+      id: "RottraAI",
       name: "Trợ Lý Cao Cấp Rottra",
       email: "agent@Rottra.com",
       emailVerified: true,
@@ -109,7 +109,7 @@ async function seed() {
       role: "agent",
       username: "agent_Rottra",
     }).onConflictDoNothing().returning();
-    targetUser = insertedUser || { id: "system_agent_user" } as any;
+    targetUser = insertedUser || { id: "RottraAI" } as any;
   }
   const adminId = targetUser.id;
 

@@ -69,7 +69,7 @@ async function main() {
   }
 
   // 3. Tạo user hệ thống nếu chưa có
-  const systemUserId = "system_agent_user";
+  const systemUserId = "RottraAI";
   try {
     await db
       .insert(user)
