@@ -2734,7 +2734,7 @@ app.get("/admin/ai/global-corpus", verifyAuth, async (c: any) => {
     corpus += "\n=== CẤU HÌNH HỆ THỐNG ===\n";
     if (settings && settings[0]) {
       const s = settings[0];
-      corpus += `- Web Name: ${s.webName}\n- Tự động Mùa vụ: ${s.autoSeason}\n- Tự động AI: ${s.autoBot}\n`;
+      corpus += `- Web Name: ${s.webName}\n- Tự động Mùa vụ: ${s.autoSeason}\n`;
     }
 
     return c.json({ success: true, corpus });
@@ -3135,7 +3135,6 @@ app.get("/admin/settings", async (c: any) => {
     if (settings) {
       return c.json({
         ...settings,
-        autoBot: settings.autoBot !== null && settings.autoBot !== undefined ? settings.autoBot : true,
         wifiPerf: settings.wifiPerf !== null && settings.wifiPerf !== undefined ? settings.wifiPerf : false,
         autoBoost: settings.autoBoost !== null && settings.autoBoost !== undefined ? settings.autoBoost : false,
       });
@@ -3152,7 +3151,6 @@ app.get("/admin/settings", async (c: any) => {
         text: "#1f2937",
       },
       autoSeason: false,
-      autoBot: true,
       wifiPerf: false,
       autoBoost: false,
     });
@@ -3175,7 +3173,6 @@ app.post("/admin/settings", verifyAuth, async (c: any) => {
       adminPhone: body.adminPhone,
       colors: body.colors,
       autoSeason: body.autoSeason,
-      autoBot: body.autoBot,
       wifiPerf: body.wifiPerf,
       autoBoost: body.autoBoost,
       updatedAt: new Date().toISOString(),

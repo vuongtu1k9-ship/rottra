@@ -23,7 +23,7 @@ export component SettingSystem(props: any) {
     text: "#1f2937",
   });
 
-  const [autoBot, setAutoBot] = createSignal(false);
+
   const [autoBoost, setAutoBoost] = createSignal(false);
   const [wifiPerf, setWifiPerf] = createSignal(false);
   const [autoPilot, setAutoPilot] = createSignal(
@@ -221,7 +221,7 @@ export component SettingSystem(props: any) {
       setAdminEmail(data.adminEmail ?? "");
       setAdminPhone(data.adminPhone ?? "");
       setColors(data.colors ?? { primary: "#3b82f6", background: "#ffffff", text: "#1f2937" });
-      setAutoBot(data.autoBot ?? false);
+
       setAutoBoost(data.autoBoost ?? false);
       setWifiPerf(data.wifiPerf ?? false);
     }
@@ -252,7 +252,7 @@ export component SettingSystem(props: any) {
           adminEmail: adminEmail(),
           adminPhone: adminPhone(),
           colors: colors(),
-          autoBot: autoBot(),
+
           autoBoost: autoBoost(),
         }),
       });
@@ -338,22 +338,7 @@ export component SettingSystem(props: any) {
               />
             </div>
           </div>
-          <div class={`pt-6 border-t flex items-center justify-between ${theme() === "dark" ? "border-white/10" : "border-gray-100"}`}>
-            <div>
-              <span class={`block text-sm font-bold ${theme() === "dark" ? "text-white" : "text-gray-800"}`}>
-                {"Trợ lý ảo (Browser Bot)"}
-              </span>
-              <span class="text-xs text-gray-500">
-                {"Robot tự động di chuyển quanh web để tăng tương tác"}
-              </span>
-            </div>
-            <label class="relative inline-flex items-center cursor-pointer">
-              <input type="checkbox" checked={autoBot()} onChange={() => setAutoBot(!autoBot())} class="sr-only peer" />
-              <div
-                class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"
-              />
-            </label>
-          </div>
+
           <div class={`pt-6 border-t flex items-center justify-between ${theme() === "dark" ? "border-white/10" : "border-gray-100"}`}>
             <div class="flex items-center gap-3">
               <div class={`p-2 rounded-xl ${theme() === "dark" ? "bg-orange-900/40 text-orange-500" : "bg-orange-50 text-orange-600"}`}>

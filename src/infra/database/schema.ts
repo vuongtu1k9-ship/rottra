@@ -377,7 +377,7 @@ export const systemSetting = pgTable("SystemSetting", {
   adminPhone: text(),
   colors: jsonb(), // Store multiple colors: { primary: string, secondary: string, background: string, text: string }
   autoSeason: boolean().default(false),
-  autoBot: boolean().default(true),
+
   wifiPerf: boolean().default(false),
   autoBoost: boolean().default(false),
   updatedAt: timestamp({ withTimezone: true, mode: "string" }).defaultNow(),
