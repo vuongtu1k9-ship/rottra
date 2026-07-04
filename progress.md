@@ -438,6 +438,7 @@
 - `src/core/cognitive-swarm/game-theory.ts` - Tự động cập nhật.
 - `revert-name.js` - Tự động cập nhật.
 - `revert.js` - Tự động cập nhật.
+- `src/infra/database/db-pool.ts` - Tự động cập nhật.
 
 ## Evidence of Completion
 

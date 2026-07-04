@@ -44,7 +44,7 @@ function initDb() {
       max: 50,
       idle_timeout: 60_000,
       connect_timeout: 10_000,
-      prepare: true,
+      prepare: false,
       onnotice: () => {},
       transform: { undefined: null },
     });

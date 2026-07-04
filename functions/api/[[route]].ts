@@ -1,10 +1,18 @@
-export const onRequest: PagesFunction<{ ROTTRA_KV: KVNamespace; BACKEND_URL?: string }> = async (context) => {
-  const backendUrl = context.env.BACKEND_URL || (await context.env.ROTTRA_KV.get("TUNNEL_URL"));
+export const onRequest: PagesFunction<{ ROTTRA_KV?: KVNamespace; BACKEND_URL?: string }> = async (context) => {
+  let backendUrl = context.env.BACKEND_URL;
+  if (!backendUrl && context.env.ROTTRA_KV) {
+    try {
+      backendUrl = await context.env.ROTTRA_KV.get("TUNNEL_URL");
+    } catch (e) {
+      console.error("Failed to read from ROTTRA_KV", e);
+    }
+  }
+
   if (!backendUrl) {
     return new Response(
       JSON.stringify({
         success: false,
-        error: "Backend server is offline. Please configure BACKEND_URL or start your local laptop tunnel.",
+        error: "Backend server is offline. Please configure BACKEND_URL in Cloudflare settings or deploy the backend to a server.",
       }),
       {
         status: 503,
