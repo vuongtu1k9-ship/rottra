@@ -421,7 +421,11 @@ export component Assistant(props: any) {
         if (data.success && data.profile) {
           if (data.profile.fullName) setAgentName(data.profile.fullName);
           if (data.profile.avatar && data.profile.avatar.link) {
-            setAgentAvatar(data.profile.avatar.link);
+            let avatarUrl = data.profile.avatar.link;
+            if (avatarUrl.includes("default-avatar.png")) {
+              avatarUrl = "/favicon.ico?v=3";
+            }
+            setAgentAvatar(avatarUrl);
           }
         }
       }
