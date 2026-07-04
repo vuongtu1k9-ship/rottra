@@ -2,14 +2,11 @@
   "name": "rottra",
   "type": "module",
   "scripts": {
-    "dev": "concurrently \"bun run src/infra/network/ws-signaling.ts\" \"bun run src/server/helpers/youtube-watcher.ts\" \"bun --bun run vite\"",
     "build": "bun --bun run vite build",
-    "preview": "bun --bun run vite preview",
     "deploy": "wrangler pages deploy dist --project-name rottra --branch main --commit-dirty=true",
     "format": "prettier --write \"src/**/*.{ts,tsrx}\"",
     "bench": "bun run bench:bun",
-    "sync-ai": "bun scripts/ai-pipeline/sync-agent-weights.ts",
-    "tunnel": "bun scripts/start-tunnel.ts"
+    "sync-ai": "bun scripts/ai-pipeline/sync-agent-weights.ts"
   },
   "dependencies": {
     "@hono/vite-dev-server": "^0.25.3",
