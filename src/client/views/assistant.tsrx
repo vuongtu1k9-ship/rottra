@@ -22,6 +22,7 @@ import { theme } from "~/client/stores/theme-store";
 import { formatMarkdown } from "~/server/helpers/markdown-parser";
 import { currentLang, t } from "~/client/stores/i18n-store";
 import { cartItems, updateCart } from "~/client/stores/cart-store";
+import { getPrimaryImage } from "~/client/components/product-card.tsrx";
 
 let isProductDataChecked = false;
 
@@ -1123,25 +1124,6 @@ export component Assistant(props: any) {
     
     const formatCurrency = (val: number) => {
       return val.toLocaleString("vi-VN") + " ₫";
-    };
-
-    const getPrimaryImage = (p: any) => {
-      let link = "/assets/Rottra-default-agri.png";
-      if (p.media) {
-        if (Array.isArray(p.media) && p.media.length > 0) {
-          const first = p.media[0];
-          link = typeof first === "string" ? first : first.link || first.src || link;
-        } else if (typeof p.media === "string") {
-          try {
-            const parsed = JSON.parse(p.media);
-            if (Array.isArray(parsed) && parsed.length > 0) {
-              const first = parsed[0];
-              link = typeof first === "string" ? first : first.link || first.src || link;
-            }
-          } catch (e) {}
-        }
-      }
-      return link;
     };
 
     const isLoggedIn = () => !!session()?.data?.user;
