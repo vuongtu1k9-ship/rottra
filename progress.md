@@ -487,6 +487,7 @@
 - `src/core/nlp-cognitive/safety-guard.ts` - Tự động cập nhật.
 - `src/server/api/cronjob-ai.ts` - Tự động cập nhật.
 - `src/server/api/rag-debug.ts` - Tự động cập nhật.
+- `src/client/views/dashboard/admin-actions.tsrx` - Tự động cập nhật.
 
 ## Evidence of Completion
 

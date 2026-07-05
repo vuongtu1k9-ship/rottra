@@ -6723,68 +6723,72 @@ app.put("/admin/product", verifyAuth, async (c: any) => {
 });
 
 app.delete("/admin/product/:id", verifyAuth, async (c: any) => {
-  const currentUser = c.get("user");
-  const id = c.req.param("id");
-  let qtyToRemove: number | undefined = undefined;
-  
   try {
-    const body = await c.req.json();
-    qtyToRemove = body?.quantity;
-  } catch (e) {
-    // No body or invalid JSON, default to full deletion
-  }
-
-  const productItem = await db.query.product.findFirst({
-    where: eq(product.id, id),
-  });
-  if (!productItem) return c.json({ error: "Not found" }, 404);
-
-  if (qtyToRemove === undefined || qtyToRemove >= (productItem.quantity ?? 0)) {
+    const currentUser = c.get("user");
+    const id = c.req.param("id");
+    let qtyToRemove: number | undefined = undefined;
+    
     try {
-      await db.delete(product).where(eq(product.id, id));
-    } catch (dbError: any) {
-      console.error("[Product Delete Error]:", dbError);
-      return c.json(
-        { error: "Sản phẩm này đang bị ràng buộc (có đơn hàng/dữ liệu liên quan) nên không thể xóa." },
-        400
-      );
+      const body = await c.req.json();
+      qtyToRemove = body?.quantity;
+    } catch (e) {
+      // No body or invalid JSON, default to full deletion
     }
 
-    // Xóa toàn bộ file media của sản phẩm này sau khi DB delete thành công
-    if (productItem.media) {
-      for (const m of productItem.media as any[]) {
-        const link = getMediaLink(m);
-        if (link) await deleteFileRecord(link);
+    const productItem = await db.query.product.findFirst({
+      where: eq(product.id, id),
+    });
+    if (!productItem) return c.json({ error: "Not found" }, 404);
+
+    if (qtyToRemove === undefined || qtyToRemove >= (productItem.quantity ?? 0)) {
+      try {
+        await db.delete(product).where(eq(product.id, id));
+      } catch (dbError: any) {
+        console.error("[Product Delete Error]:", dbError);
+        return c.json(
+          { error: "Sản phẩm này đang bị ràng buộc (có đơn hàng/dữ liệu liên quan) nên không thể xóa." },
+          400
+        );
       }
+
+      if (productItem.media) {
+        for (const m of productItem.media as any[]) {
+          const link = getMediaLink(m);
+          if (link) await deleteFileRecord(link);
+        }
+      }
+
+      await logActivity(
+        currentUser?.id || null,
+        `Xóa sản phẩm '${productItem.name}'`,
+        `Sản phẩm đã bị xóa hoàn toàn khỏi hệ thống`,
+        "product",
+        c.req.header("user-agent"),
+      );
+
+      await broadcastTradeSync();
+      productCache = null;
+
+      return c.json({ removed: true });
+    } else {
+      const newQty = (productItem.quantity ?? 0) - qtyToRemove;
+      await db.update(product).set({ quantity: newQty }).where(eq(product.id, id));
+
+      await logActivity(
+        currentUser?.id || null,
+        `Cập nhật số lượng sản phẩm '${productItem.name}'`,
+        `Đã giảm ${qtyToRemove} sản phẩm (Số lượng còn lại: ${newQty})`,
+        "product",
+        c.req.header("user-agent"),
+      );
+
+      await broadcastTradeSync();
+
+      return c.json({ removed: false, newQuantity: newQty });
     }
-
-    await logActivity(
-      currentUser?.id || null,
-      `Xóa sản phẩm '${productItem.name}'`,
-      `Sản phẩm đã bị xóa hoàn toàn khỏi hệ thống`,
-      "product",
-      c.req.header("user-agent"),
-    );
-
-    await broadcastTradeSync();
-    productCache = null;
-
-    return c.json({ removed: true });
-  } else {
-    const newQty = (productItem.quantity ?? 0) - qtyToRemove;
-    await db.update(product).set({ quantity: newQty }).where(eq(product.id, id));
-
-    await logActivity(
-      currentUser?.id || null,
-      `Cập nhật số lượng sản phẩm '${productItem.name}'`,
-      `Đã giảm ${qtyToRemove} sản phẩm (Số lượng còn lại: ${newQty})`,
-      "product",
-      c.req.header("user-agent"),
-    );
-
-    await broadcastTradeSync();
-
-    return c.json({ removed: false, newQuantity: newQty });
+  } catch (err: any) {
+    console.error("[Fatal Delete Product Error]:", err);
+    return c.json({ error: "Server Error: " + (err.message || err.toString()), stack: err.stack }, 500);
   }
 });
 
