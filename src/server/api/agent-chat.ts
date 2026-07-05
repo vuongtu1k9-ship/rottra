@@ -2053,14 +2053,14 @@ $$p(x) = 0.6 \\cdot \\mathcal{N}(50k, 10k^2) + 0.3 \\cdot \\mathcal{N}(80k, 5k^2
         try {
           const bannersDir = "/home/l/Documents/rottra/public/images/banners";
           const bannerImages = [
-            { name: "Cam đang vắt", file: "Cam đang vắt.png" },
-            { name: "Cam mới hái", file: "Cam mới hái.png" },
-            { name: "Cam trang trí", file: "Cam trang trí.png" },
-            { name: "Nước cam đóng hộp", file: "Nước cam đóng hộp.png" },
+            { name: "Cam đang vắt", file: "Cam đang vắt.avif" },
+            { name: "Cam mới hái", file: "Cam mới hái.avif" },
+            { name: "Cam trang trí", file: "Cam trang trí.avif" },
+            { name: "Nước cam đóng hộp", file: "Nước cam đóng hộp.avif" },
             { name: "Quả cam màu vàng", file: "Quả cam màu vàng.jpeg" },
             { name: "Quả cam màu xanh", file: "Quả cam màu xanh.jpeg" },
             { name: "Quả cam trên cây", file: "Quả cam trên cây.jpeg" },
-            { name: "Quả cam trên tay", file: "Quả cam trên tay.png" },
+            { name: "Quả cam trên tay", file: "Quả cam trên tay.avif" },
           ];
 
           // Normalize Vietnamese accents for robust search
@@ -2086,7 +2086,7 @@ $$p(x) = 0.6 \\cdot \\mathcal{N}(50k, 10k^2) + 0.3 \\cdot \\mathcal{N}(80k, 5k^2
           }
 
           const inputPath = `${bannersDir}/${selectedBanner.file}`;
-          const outputBase = `${bannersDir}/${selectedBanner.file.split(".")[0]}_split.png`;
+          const outputBase = `${bannersDir}/${selectedBanner.file.split(".")[0]}_split.avif`;
 
           let filenames: string[] = [];
           try {
@@ -2097,7 +2097,7 @@ $$p(x) = 0.6 \\cdot \\mathcal{N}(50k, 10k^2) + 0.3 \\cdot \\mathcal{N}(80k, 5k^2
             const baseNameClean = selectedBanner.file.split(".")[0];
             for (let r = 0; r < gridSize; r++) {
               for (let c = 0; c < gridSize; c++) {
-                filenames.push(`${baseNameClean}_part_${r}_${c}.png`);
+                filenames.push(`${baseNameClean}_part_${r}_${c}.avif`);
               }
             }
           }
@@ -2296,14 +2296,14 @@ ${matchDetails.join("\n")}
           if (isImageQuery) {
             const bannersDir = "/home/l/Documents/rottra/public/images/banners";
             const bannerImages = [
-              { name: "Cam đang vắt", file: "Cam đang vắt.png" },
-              { name: "Cam mới hái", file: "Cam mới hái.png" },
-              { name: "Cam trang trí", file: "Cam trang trí.png" },
-              { name: "Nước cam đóng hộp", file: "Nước cam đóng hộp.png" },
+              { name: "Cam đang vắt", file: "Cam đang vắt.avif" },
+              { name: "Cam mới hái", file: "Cam mới hái.avif" },
+              { name: "Cam trang trí", file: "Cam trang trí.avif" },
+              { name: "Nước cam đóng hộp", file: "Nước cam đóng hộp.avif" },
               { name: "Quả cam màu vàng", file: "Quả cam màu vàng.jpeg" },
               { name: "Quả cam màu xanh", file: "Quả cam màu xanh.jpeg" },
               { name: "Quả cam trên cây", file: "Quả cam trên cây.jpeg" },
-              { name: "Quả cam trên tay", file: "Quả cam trên tay.png" },
+              { name: "Quả cam trên tay", file: "Quả cam trên tay.avif" },
             ];
 
             // Normalize Vietnamese accents for robust search
@@ -2320,7 +2320,7 @@ ${matchDetails.join("\n")}
             const inputPath = `${bannersDir}/${selectedBanner.file}`;
 
             // Output path for restoration
-            const outputRestoredFileName = `${selectedBanner.file.split(".")[0]}_restored.png`;
+            const outputRestoredFileName = `${selectedBanner.file.split(".")[0]}_restored.avif`;
             const outputPathRestored = `${bannersDir}/${outputRestoredFileName}`;
 
             // Style selection for creative synthesis
@@ -2346,10 +2346,10 @@ ${matchDetails.join("\n")}
               styleNameVi = "Phong cách tả thực chân thật (Realism)";
             }
 
-            const outputCorruptedFileName = `${selectedBanner.file.split(".")[0]}_corrupted.png`;
+            const outputCorruptedFileName = `${selectedBanner.file.split(".")[0]}_corrupted.avif`;
             const outputPathCorrupted = `${bannersDir}/${outputCorruptedFileName}`;
 
-            const outputCreativeFileName = `${selectedBanner.file.split(".")[0]}_creative.png`;
+            const outputCreativeFileName = `${selectedBanner.file.split(".")[0]}_creative.avif`;
             const outputPathCreative = `${bannersDir}/${outputCreativeFileName}`;
 
             const isBlind = qClean.includes("khong nhin") || qClean.includes("khong xem") || qClean.includes("blind");

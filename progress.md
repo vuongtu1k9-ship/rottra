@@ -562,6 +562,11 @@
 - `products.json` - Tự động cập nhật.
 - `query-agents.ts` - Tự động cập nhật.
 - `test-audio.ts` - Tự động cập nhật.
+- `public/images/RottraAI_avatar.avif` - Tự động cập nhật.
+- `public/images/default-avatar.avif` - Tự động cập nhật.
+- `public/images/no-image.avif` - Tự động cập nhật.
+- `scratch-check-users.ts` - Tự động cập nhật.
+- `src/client/views/dashboard/scientific-management.tsrx` - Tự động cập nhật.
 
 ## Evidence of Completion
 

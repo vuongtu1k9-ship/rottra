@@ -6,7 +6,7 @@ import { UserAvatar } from "~/client/components/user-avatar.tsrx";
 import { currencySymbol, formatCurrency } from "~/client/stores/i18n-store";
 
 export function getPrimaryImage(item: any) {
-  if (!item) return "/images/Rottra-logo.png";
+  if (!item) return "/images/Rottra-logo.avif";
   const media = item.media;
   const list: any[] = Array.isArray(media) ? [...media] : [];
 
@@ -21,7 +21,7 @@ export function getPrimaryImage(item: any) {
   if (first) {
     return typeof first === "string" ? first : first.link;
   }
-  return "/images/Rottra-logo.png";
+  return "/images/Rottra-logo.avif";
 }
 
 export function getPrimaryMediaType(item: any) {

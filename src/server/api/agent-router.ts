@@ -100,14 +100,14 @@ agentApp.get("/generate-local-image", async (c) => {
 
     const bannersDir = path.join(process.cwd(), "public", "images", "banners");
     const bannerImages = [
-      { name: "Cam đang vắt", file: "Cam đang vắt.png" },
-      { name: "Cam mới hái", file: "Cam mới hái.png" },
-      { name: "Cam trang trí", file: "Cam trang trí.png" },
-      { name: "Nước cam đóng hộp", file: "Nước cam đóng hộp.png" },
+      { name: "Cam đang vắt", file: "Cam đang vắt.avif" },
+      { name: "Cam mới hái", file: "Cam mới hái.avif" },
+      { name: "Cam trang trí", file: "Cam trang trí.avif" },
+      { name: "Nước cam đóng hộp", file: "Nước cam đóng hộp.avif" },
       { name: "Quả cam màu vàng", file: "Quả cam màu vàng.jpeg" },
       { name: "Quả cam màu xanh", file: "Quả cam màu xanh.jpeg" },
       { name: "Quả cam trên cây", file: "Quả cam trên cây.jpeg" },
-      { name: "Quả cam trên tay", file: "Quả cam trên tay.png" },
+      { name: "Quả cam trên tay", file: "Quả cam trên tay.avif" },
     ];
 
     const qClean = prompt
@@ -150,7 +150,7 @@ agentApp.get("/generate-local-image", async (c) => {
 
     const inputPath = path.join(bannersDir, selectedBanner.file);
     const hash = crypto.createHash("md5").update(`${prompt}_${style}`).digest("hex").slice(0, 8);
-    const outputFilename = `${selectedBanner.file.split(".")[0]}_${style}_${hash}.png`;
+    const outputFilename = `${selectedBanner.file.split(".")[0]}_${style}_${hash}.avif`;
     const outputPath = path.join(bannersDir, outputFilename);
 
     if (!fs.existsSync(outputPath)) {

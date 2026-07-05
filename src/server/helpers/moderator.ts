@@ -1,6 +1,6 @@
 import { generateTextLocal } from "~/core/nlp-cognitive/ai-sdk";
 
-export const DEFAULT_SAFE_IMAGE = "/assets/Rottra-default-agri.png";
+export const DEFAULT_SAFE_IMAGE = "/assets/Rottra-default-agri.avif";
 
 // Domains that are strictly allowed for media links
 const ALLOWED_DOMAINS = ["image.pollinations.ai", "rottra.pages.dev", "cdn.jsdelivr.net", "fonts.googleapis.com"];

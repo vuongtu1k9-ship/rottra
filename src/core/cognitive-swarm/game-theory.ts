@@ -1600,41 +1600,41 @@ Tôi đã nạp thành công bộ thư viện Open-Design tại \`/home/l/Docume
           category: "Gạo & Lương thực",
           description:
             "Gạo đặc sản Rottra cao cấp, hạt ngọc trời thơm dẻo, ngọt hậu, canh tác 100% hữu cơ theo tiêu chuẩn VietGAP sạch hoàn toàn.",
-          media: [{ type: "image", link: "/rice.jpg" }],
+          media: [{ type: "image", link: "/rice.avif" }],
         },
         cafe: {
           price: 180000,
           category: "Trà & Cà phê",
           description:
             "Cà phê hạt Robusta & Arabica nguyên chất Rottra, thu hoạch từ những nông trường Tây Nguyên trù phú, rang xay mộc mạc thơm nồng.",
-          media: [{ type: "image", link: "/coffee.jpg" }],
+          media: [{ type: "image", link: "/coffee.avif" }],
         },
         tra: {
           price: 120000,
           category: "Trà & Cà phê",
           description:
             "Trà xanh Thái Nguyên thượng hạng, búp trà một tôm hai lá thu hái sương mai, mang lại hương vị thơm thanh tao và hậu vị ngọt sâu.",
-          media: [{ type: "image", link: "/tea.jpg" }],
+          media: [{ type: "image", link: "/tea.avif" }],
         },
         "sau rieng": {
           price: 95000,
           category: "Trái cây tươi",
           description:
             "Sầu riêng Ri6 hạt lép thơm béo đậm đà, cơm vàng hạt lép siêu dày ngọt lịm, chuẩn nông sản xuất khẩu sạch của Rottra.",
-          media: [{ type: "image", link: "/durian.jpg" }],
+          media: [{ type: "image", link: "/durian.avif" }],
         },
         xoai: {
           price: 45000,
           category: "Trái cây tươi",
           description: "Xoài cát Hòa Lộc chín cây ngọt thanh, cơm dày không xơ, hương thơm lôi cuốn đặc sản Nam Bộ chất lượng cao.",
-          media: [{ type: "image", link: "/mango.jpg" }],
+          media: [{ type: "image", link: "/mango.avif" }],
         },
         rau: {
           price: 15000,
           category: "Rau củ quả sạch",
           description:
             "Rau xanh hữu cơ Đà Lạt tươi mát thu hoạch mỗi ngày, không thuốc trừ sâu hóa học, đảm bảo dưỡng chất trọn vẹn cho gia đình.",
-          media: [{ type: "image", link: "/vegetable.jpg" }],
+          media: [{ type: "image", link: "/vegetable.avif" }],
         },
       };
 
@@ -1643,7 +1643,7 @@ Tôi đã nạp thành công bộ thư viện Open-Design tại \`/home/l/Docume
         category: "Nông sản Rottra",
         description:
           "Nông sản cao cấp Rottra chất lượng hảo hạng, kiểm định nghiêm ngặt từ nguồn, hỗ trợ chuyển đổi số nông nghiệp xanh bền vững.",
-        media: [{ type: "image", link: "/no-image.png" }],
+        media: [{ type: "image", link: "/no-image.avif" }],
       };
 
       for (const p of allProducts) {

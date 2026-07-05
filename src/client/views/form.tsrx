@@ -156,7 +156,7 @@ export const Form = (props: any) => {
 
   const applyEnhancedImage = () => {
     if (!enhancedPreview()) return;
-    const newFile = dataURLtoFile(enhancedPreview(), "enhanced_" + (currentMedia().name || "image.png"));
+    const newFile = dataURLtoFile(enhancedPreview(), "enhanced_" + (currentMedia().name || "image.avif"));
     setCurrentMedia({ link: enhancedPreview(), name: newFile.name, file: newFile });
     setIsEnhancerOpen(false);
   };
@@ -1220,7 +1220,7 @@ export const Form = (props: any) => {
               type="url"
               value={urlModalInput()}
               onInput={(e) => setUrlModalInput((e.target as HTMLInputElement).value)}
-              placeholder="https://example.com/image.png"
+              placeholder="https://example.com/image.avif"
               class={`w-full px-5 py-3.5 border rounded-2xl outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all font-semibold ${
                 theme() === "dark"
                   ? "bg-white/5 border-white/10 text-white placeholder-gray-600"

@@ -3,7 +3,7 @@
 
 <head>
   <script>
-    (function() {
+    (function () {
       window.process = { env: {}, argv: [], cwd: () => "/" };
       class BrowserBuffer extends Uint8Array {
         static isBuffer(b) { return b instanceof BrowserBuffer; }
@@ -52,11 +52,11 @@
         }
       }
       window.Buffer = BrowserBuffer;
-      window.addEventListener('error', function(e) {
+      window.addEventListener('error', function (e) {
         var err = e.error || e;
         localStorage.setItem('last_error', err.message + '\n' + (err.stack || '') + '\n' + e.filename + ':' + e.lineno + ':' + e.colno);
       });
-      window.addEventListener('unhandledrejection', function(e) {
+      window.addEventListener('unhandledrejection', function (e) {
         var err = e.reason || e;
         localStorage.setItem('last_error', 'Unhandled Rejection: ' + err.message + '\n' + (err.stack || ''));
       });
@@ -68,14 +68,12 @@
     content="Rotta Platform - Sàn thương mại điện tử địa phương cao cấp. Mua sắm nông sản sạch và sản phẩm thủ công chất lượng cao." />
   <link rel="manifest" href="/manifest.json" />
   <meta name="theme-color" content="#2563eb" />
-  <link id="favicon" rel="icon" type="image/png" href="/images/RottraAI_avatar.png" />
+  <link id="favicon" rel="icon" type="image/avif" href="/images/RottraAI_avatar.avif" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
     href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap"
-    rel="stylesheet"
-    media="print"
-    onload="this.media='all'">
+    rel="stylesheet" media="print" onload="this.media='all'">
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" media="print"
     onload="this.media='all'">
@@ -155,7 +153,7 @@
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
-        navigator.serviceWorker.register("/sw.js").catch(() => {});
+        navigator.serviceWorker.register("/sw.js").catch(() => { });
       });
     }
   </script>

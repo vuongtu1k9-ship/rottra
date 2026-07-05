@@ -256,14 +256,14 @@ async function runOrphanBannerGC() {
     }
 
     const defaultBanners = new Set([
-      "Cam đang vắt.png",
-      "Cam mới hái.png",
-      "Cam trang trí.png",
-      "Nước cam đóng hộp.png",
+      "Cam đang vắt.avif",
+      "Cam mới hái.avif",
+      "Cam trang trí.avif",
+      "Nước cam đóng hộp.avif",
       "Quả cam màu vàng.jpeg",
       "Quả cam màu xanh.jpeg",
       "Quả cam trên cây.jpeg",
-      "Quả cam trên tay.png",
+      "Quả cam trên tay.avif",
     ]);
 
     // Query all product media fields
@@ -454,11 +454,11 @@ const downloadToLocal = async (url: string): Promise<string> => {
   if (url.startsWith("/") || !url.startsWith("http")) return url;
   try {
     const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
-    if (!res.ok) return "/images/Rottra-logo.png";
+    if (!res.ok) return "/images/Rottra-logo.avif";
     const ab = await res.arrayBuffer();
     const buf = Buffer.from(ab);
     const hash = crypto.createHash("md5").update(buf).digest("hex");
-    const filename = `ai_img_${hash}.jpg`;
+    const filename = `ai_img_${hash}.avif`;
     const fileUrl = `/uploads/${filename}`;
     const dir = "public/uploads";
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
@@ -466,7 +466,7 @@ const downloadToLocal = async (url: string): Promise<string> => {
     return fileUrl;
   } catch (err) {
     console.warn("[IMAGE DOWNLOAD ERROR] Lỗi tải ảnh về server:", err);
-    return "/images/Rottra-logo.png";
+    return "/images/Rottra-logo.avif";
   }
 };
 
@@ -1976,7 +1976,7 @@ app.get("/agent/system-profile", async (c: any) => {
       ...profile,
       fullName: profile.fullName || dbUser?.name || "RottraAI ⭐",
       email: dbUser?.email || "agent@Rottra.com",
-      avatar: profile.avatar || (dbUser?.image ? { link: dbUser.image } : { link: "/default-avatar.png" }),
+      avatar: profile.avatar || (dbUser?.image ? { link: dbUser.image } : { link: "/default-avatar.avif" }),
     },
   });
 });
@@ -2328,7 +2328,7 @@ app.post("/image/generate", verifyAuth, async (c: any) => {
 
     // MD5 hashing to deduplicate
     const hash = crypto.createHash("md5").update(buffer).digest("hex");
-    const filename = `${hash}.png`;
+    const filename = `${hash}.avif`;
     const fileUrl = `/uploads/${filename}`;
 
     const dir = "public/uploads";
@@ -2340,7 +2340,7 @@ app.post("/image/generate", verifyAuth, async (c: any) => {
     await db.insert(file).values({
       id: fileId,
       userId: userObj.id,
-      filename: `ai_generated_${hash.substring(0, 8)}.png`,
+      filename: `ai_generated_${hash.substring(0, 8)}.avif`,
       mimetype: "image/png",
       size: buffer.length,
       path: fileUrl,
@@ -4285,7 +4285,7 @@ app.post("/agent/chat", async (c: any) => {
             fullName: newName || existingProfile.fullName || dbUser?.name,
             avatar: newAvatar
               ? { link: newAvatar, type: "image" }
-              : existingProfile.avatar || { link: dbUser?.image || "/default-avatar.png" },
+              : existingProfile.avatar || { link: dbUser?.image || "/default-avatar.avif" },
             bio: newBio || existingProfile.bio,
           };
 
@@ -6857,7 +6857,7 @@ app.post("/admin/product/:id/image", verifyAuth, async (c: any) => {
       console.warn("Puppeteer load timeout (ignored):", timeoutErr);
     }
 
-    const outputFileName = `banner_${productId}_${Date.now()}.png`;
+    const outputFileName = `banner_${productId}_${Date.now()}.avif`;
     const outputPath = path.join(process.cwd(), "public", "images", "banners", outputFileName);
 
     const dir = path.dirname(outputPath);

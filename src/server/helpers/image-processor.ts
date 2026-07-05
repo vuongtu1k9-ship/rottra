@@ -83,13 +83,13 @@ export async function splitImage(inputPath: string, outputBase: string, gridSize
   const cellWidth = Math.floor(width / gridSize);
   const cellHeight = Math.floor(height / gridSize);
   const filenames: string[] = [];
-  const baseName = outputBase.substring(0, outputBase.lastIndexOf("_split.png"));
+  const baseName = outputBase.substring(0, outputBase.lastIndexOf("_split.avif"));
   const baseNameClean = baseName.substring(baseName.lastIndexOf("/") + 1);
   const dir = baseName.substring(0, baseName.lastIndexOf("/") + 1);
 
   for (let r = 0; r < gridSize; r++) {
     for (let c = 0; c < gridSize; c++) {
-      const partFileName = `${baseNameClean}_part_${r}_${c}.png`;
+      const partFileName = `${baseNameClean}_part_${r}_${c}.avif`;
       const outputPath = `${dir}${partFileName}`;
       await sharp(inputPath)
         .extract({
@@ -210,7 +210,7 @@ export async function embedBlindWatermark(inputPath: string, outputPath: string,
     await sharp(rawBuffer, {
       raw: { width, height, channels },
     })
-      .png()
+      .avif({ lossless: true })
       .toFile(outputPath);
 
     return true;
