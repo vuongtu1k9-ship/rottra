@@ -243,8 +243,10 @@ export async function generateTextLocal(options: {
           }
         } catch (e) {
           console.error("Failed to resolve HyDE query offline:", e);
-        }
       }
+    }
+  }
+}
   // --- PURE ROTTRA AI CORE (NANO BANANA LITE EDITION) ---
   if (!text) {
     text = await runHybridOfflineInference(userPrompt, botId, prodName, price, options.userId);

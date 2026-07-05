@@ -591,6 +591,15 @@
 - `mock-videos.ts` - Tự động cập nhật.
 - `src/server/api/agent-response-validator.ts` - Tự động cập nhật.
 - `src/server/api/local-media-engine.ts` - Tự động cập nhật.
+- `bin/ai_core.exe` - Tự động cập nhật.
+- `build_ai_core.bat` - Tự động cập nhật.
+- `hoanb1_repos.json` - Tự động cập nhật.
+- `public/uploads/nam_lim_xanh.avif` - Tự động cập nhật.
+- `scripts/make-avif.ts` - Tự động cập nhật.
+- `scripts/sd_generator.py` - Tự động cập nhật.
+- `scripts/update-product.ts` - Tự động cập nhật.
+- `src/native/ai-hub/main.cpp` - Tự động cập nhật.
+- `src/native/genetic/genetic_algorithm.cpp` - Tự động cập nhật.
 
 ## Evidence of Completion
 
