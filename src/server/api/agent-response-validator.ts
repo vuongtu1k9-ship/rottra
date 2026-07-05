@@ -10,6 +10,8 @@ const FORBIDDEN_PATTERNS = [
   /sk-[a-zA-Z0-9]{20,}/,
   /ghp_[a-zA-Z0-9]{36}/,
   /AKIA[A-Z0-9]{16}/,
+  // Vũ khí Tiêu diệt Ngoại lai: Chặn mọi đường link http/https do AI tự bịa ra
+  /https?:\/\/[^\s"'<>\)]+/gi,
 ];
 
 const HALLUCINATION_MARKERS = [

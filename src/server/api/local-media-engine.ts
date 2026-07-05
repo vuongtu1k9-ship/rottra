@@ -196,7 +196,10 @@ export function getLocalAgentMedia(agentId: string, productName: string, price: 
           : "neutral";
 
   const svgImage = generateProductSVG(agentId, productName, price);
-  const music = generateMusicSequence(agentId, mood);
+  const musicSeq = generateMusicSequence(agentId, mood);
+  const pcm = generatePCM(musicSeq);
+  const wav = createWavFile(pcm);
+  const music = wav.toString("base64");
 
   return { mood, svgImage, music };
 }

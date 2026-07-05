@@ -338,8 +338,9 @@ Hãy đưa ra các thông số thiết kế video phù hợp nhất với tâm t
 
       await new Promise<void>((resolve, reject) => {
         const renderProcess = spawn(
-          "npx",
+          "bun",
           [
+            "x",
             "--yes",
             "hyperframes@0.6.97",
             "render",
@@ -354,7 +355,7 @@ Hãy đưa ra các thông số thiết kế video phù hợp nhất với tâm t
           ],
           {
             cwd: path.join(process.cwd(), "video_ads"),
-            shell: false,
+            shell: true,
           },
         );
 

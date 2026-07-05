@@ -7324,12 +7324,26 @@ export component Assembly(props: any) {
                               innerHTML={formatMarkdown(msg.text || "")}
                             />
                           } else {
-                            <div
-                              class={`w-full py-1 text-xs select-text text-left leading-relaxed ${
-                                theme() === "dark" ? "text-gray-200" : "text-gray-800"
-                              }`}
-                              innerHTML={formatMarkdown(msg.text || "")}
-                            />
+                            <div class="flex flex-col gap-2">
+                              <div
+                                class={`w-full py-1 text-xs select-text text-left leading-relaxed ${
+                                  theme() === "dark" ? "text-gray-200" : "text-gray-800"
+                                }`}
+                                innerHTML={formatMarkdown(msg.text || "")}
+                              />
+                              <Show when={msg.svgImage}>
+                                <div class="mt-1 flex justify-start">
+                                  <div 
+                                    class="w-32 h-32 rounded-lg overflow-hidden border shadow-sm transition-transform hover:scale-105"
+                                    classList={{ "border-gray-700 bg-[#1a1a1a]": theme() === "dark", "border-gray-200 bg-gray-50": theme() === "light" }}
+                                    innerHTML={msg.svgImage} 
+                                  />
+                                </div>
+                              </Show>
+                              <Show when={msg.music}>
+                                <audio autoplay src={`data:audio/wav;base64,${msg.music}`} class="hidden" />
+                              </Show>
+                            </div>
                           }
                         </div>
                       }
