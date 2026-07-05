@@ -124,8 +124,23 @@ export component AdminActions(props: any) {
               if (!confirm(`Bạn có chắc chắn muốn XÓA VĨNH VIỄN ${items.length} sản phẩm đã chọn?`)) return;
 
               try {
-                await Promise.all(items.map((p) => fetch(`/api/admin/product/${p.id || p._id}`, { method: "DELETE" })));
-                alert(`Đã xóa thành công ${items.length} sản phẩm!`);
+                const responses = await Promise.all(items.map((p) => fetch(`/api/admin/product/${p.id || p._id}`, { method: "DELETE" })));
+                const errors: string[] = [];
+                for (const res of responses) {
+                  if (!res.ok) {
+                    try {
+                      const data = await res.json();
+                      if (data.error) errors.push(data.error);
+                    } catch (e) {
+                      errors.push(`Mã lỗi ${res.status}`);
+                    }
+                  }
+                }
+                if (errors.length > 0) {
+                  alert(`Không thể xóa sản phẩm: ${errors.join(", ")}`);
+                } else {
+                  alert(`Đã xóa thành công ${items.length} sản phẩm!`);
+                }
                 if (props.onActionComplete) props.onActionComplete();
               } catch (err) {
                 alert("Lỗi khi xóa sản phẩm hàng loạt.");
@@ -140,8 +155,23 @@ export component AdminActions(props: any) {
               if (!confirm(`Bạn có chắc chắn muốn XÓA VĨNH VIỄN ${users.length} mục này?`)) return;
 
               try {
-                await Promise.all(users.map((u) => fetch(`/api/admin/users/${u.email}`, { method: "DELETE" })));
-                alert(`Đã xóa thành công ${users.length} mục!`);
+                const responses = await Promise.all(users.map((u) => fetch(`/api/admin/users/${u.email}`, { method: "DELETE" })));
+                const errors: string[] = [];
+                for (const res of responses) {
+                  if (!res.ok) {
+                    try {
+                      const data = await res.json();
+                      if (data.error) errors.push(data.error);
+                    } catch (e) {
+                      errors.push(`Mã lỗi ${res.status}`);
+                    }
+                  }
+                }
+                if (errors.length > 0) {
+                  alert(`Không thể xóa tài khoản: ${errors.join(", ")}`);
+                } else {
+                  alert(`Đã xóa thành công ${users.length} mục!`);
+                }
                 if (props.onActionComplete) props.onActionComplete();
               } catch (err) {
                 alert("Lỗi khi thực hiện xóa hàng loạt.");
