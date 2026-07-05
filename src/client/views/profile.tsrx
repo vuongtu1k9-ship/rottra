@@ -148,6 +148,69 @@ export const Profile = (props: any) => {
       ].includes(uid);
   };
 
+  const [isPlaying, setIsPlaying] = createSignal(false);
+  let audioCtx: AudioContext | null = null;
+  let activeOscillators: any[] = [];
+  
+  const toggleAgentMusic = () => {
+    if (isPlaying()) {
+      if (audioCtx) {
+        audioCtx.close();
+        audioCtx = null;
+      }
+      activeOscillators.forEach(osc => osc.stop());
+      activeOscillators = [];
+      setIsPlaying(false);
+      return;
+    }
+    
+    setIsPlaying(true);
+    audioCtx = new AudioContext();
+    const dest = audioCtx.destination;
+    
+    // Customize mood based on Agent
+    const agentId = targetUserId();
+    let bpm = 80;
+    let baseFreq = 440;
+    
+    if (agentId === "toLuong") { bpm = 60; baseFreq = 300; } // Trầm ấm
+    else if (agentId === "thuongNguyet") { bpm = 110; baseFreq = 500; } // Nhẹ nhàng
+    else if (agentId === "daoTieuCuu") { bpm = 130; baseFreq = 600; } // Sôi động
+    else if (agentId === "uVuongMau") { bpm = 65; baseFreq = 200; } // Huyền bí
+    else { bpm = 90 + (agentId.length * 2); baseFreq = 400 + (agentId.charCodeAt(0) * 2); } // Random
+    
+    const beatInterval = 60 / bpm;
+    // Play a sequence of 16 notes
+    for (let i = 0; i < 16; i++) {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(dest);
+      
+      const waveTypes = ["sine", "square", "triangle", "sawtooth"];
+      osc.type = waveTypes[i % 4] as any;
+      
+      // Melodic sequence based on agent name length
+      const intervalScale = [0, 2, 4, 5, 7, 9, 11, 12];
+      const noteIndex = (i * agentId.length) % intervalScale.length;
+      const freq = baseFreq * Math.pow(2, intervalScale[noteIndex] / 12);
+      
+      osc.frequency.setValueAtTime(freq, audioCtx.currentTime + i * beatInterval);
+      
+      gain.gain.setValueAtTime(0, audioCtx.currentTime + i * beatInterval);
+      gain.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + i * beatInterval + 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + i * beatInterval + beatInterval);
+      
+      osc.start(audioCtx.currentTime + i * beatInterval);
+      osc.stop(audioCtx.currentTime + i * beatInterval + beatInterval);
+      activeOscillators.push(osc);
+    }
+    
+    setTimeout(() => {
+      if (isPlaying()) toggleAgentMusic(); // Auto stop after sequence
+    }, (16 * beatInterval * 1000) + 100);
+  };
+
   const [sharedQR, setSharedQR] = createSignal<any>(null);
   createEffect(() => {
     const fetchSharedQR = async () => {
@@ -498,6 +561,23 @@ export const Profile = (props: any) => {
               <p class="text-sm text-gray-500 mb-4">
                 {props.user?.email || user()?.email}
               </p>
+
+              {isAgent() && (
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    toggleAgentMusic();
+                  }}
+                  class={`mb-4 px-4 py-2 rounded-full text-sm font-semibold flex items-center gap-2 transition-all shadow-md ${
+                    isPlaying()
+                      ? "bg-purple-600 text-white animate-pulse"
+                      : "bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:scale-105"
+                  }`}
+                >
+                  {isPlaying() ? "⏸️ Đang Phát Nhạc..." : "🎵 Nhạc Nền Cá Nhân"}
+                </button>
+              )}
               <div
                 class={`w-full text-left p-4 rounded-2xl text-sm border space-y-2 ${
                   theme() === "dark" ? "bg-white/5 border-white/10" : "bg-gray-50 border-gray-100"
