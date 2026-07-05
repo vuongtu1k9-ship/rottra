@@ -245,10 +245,7 @@ export async function generateTextLocal(options: {
           console.error("Failed to resolve HyDE query offline:", e);
         }
       }
-    }
-  }
-
-  // Hybrid offline inference fallback (Rottra's core AI — 12 personas, rule engine, neural classifier)
+  // --- PURE ROTTRA AI CORE (NANO BANANA LITE EDITION) ---
   if (!text) {
     text = await runHybridOfflineInference(userPrompt, botId, prodName, price, options.userId);
   }

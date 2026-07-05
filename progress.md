@@ -585,6 +585,12 @@
 - `src/core/nlp-cognitive/external-api-docking.ts` - Tự động cập nhật.
 - `src/server/helpers/seo-generator.ts` - Tự động cập nhật.
 - `tests/e2e-chat/test-groq.ts` - Tự động cập nhật.
+- `clean-db-images.ts` - Tự động cập nhật.
+- `fill-svg-images.ts` - Tự động cập nhật.
+- `fill-videos.ts` - Tự động cập nhật.
+- `mock-videos.ts` - Tự động cập nhật.
+- `src/server/api/agent-response-validator.ts` - Tự động cập nhật.
+- `src/server/api/local-media-engine.ts` - Tự động cập nhật.
 
 ## Evidence of Completion
 

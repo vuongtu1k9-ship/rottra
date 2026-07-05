@@ -3,6 +3,7 @@ import { cors } from "hono/cors";
 import { secureHeaders } from "hono/secure-headers";
 import zlib from "zlib";
 import WebSocket from "ws";
+import sharp from "sharp";
 import { db, pgClient } from "~/infra/database/db-pool";
 import {
   user,
@@ -2116,11 +2117,27 @@ app.post("/upload", verifyAuth, async (c: any) => {
     if (uploadedFile && uploadedFile instanceof File) {
       // Convert web File to ArrayBuffer
       const arrayBuffer = await uploadedFile.arrayBuffer();
-      const buffer = Buffer.from(arrayBuffer);
+      let buffer = Buffer.from(arrayBuffer);
+      
+      let ext = uploadedFile.name.split(".").pop()?.toLowerCase() || "";
+      let finalMimeType = uploadedFile.type || "application/octet-stream";
+      
+      // Auto-convert images to AVIF
+      if (finalMimeType.startsWith("image/") || ["jpg", "jpeg", "png", "webp", "gif"].includes(ext)) {
+        try {
+          buffer = await sharp(buffer)
+            .resize(1600, 1600, { fit: "inside", withoutEnlargement: true }) // Scale down huge images to save CPU
+            .avif({ quality: 75, effort: 3 }) // effort 3 reduces encoding time significantly vs default 4
+            .toBuffer();
+          ext = "avif";
+          finalMimeType = "image/avif";
+        } catch (imgErr) {
+          console.warn("Failed to convert image to AVIF, keeping original format", imgErr);
+        }
+      }
 
       // Tính mã Hash để deduplicate (chống trùng lặp ảnh/video)
       const hash = crypto.createHash("md5").update(buffer).digest("hex");
-      const ext = uploadedFile.name.split(".").pop();
       const filename = `${hash}.${ext}`;
       const fileUrl = `/uploads/${filename}`;
 
@@ -2139,8 +2156,8 @@ app.post("/upload", verifyAuth, async (c: any) => {
       await db.insert(file).values({
         id: fileId,
         userId: userObj.id,
-        filename: uploadedFile.name,
-        mimetype: uploadedFile.type || "application/octet-stream",
+        filename: `${hash}.${ext}`, // Save new filename
+        mimetype: finalMimeType,
         size: buffer.length,
         path: fileUrl,
         status: "active",

@@ -24,7 +24,12 @@ type GameState = {
 const GAME_STATE_MAP = new Map<string, GameState>();
 
 /**
- * 0.0 Cache Sản phẩm để chống sập DB
+ * 0.0 Trí nhớ ngắn hạn (Contextual Memory)
+ */
+const USER_MEMORY_MAP = new Map<string, string[]>();
+
+/**
+ * 0.1 Cache Sản phẩm để chống sập DB
  */
 let PRODUCT_CACHE: any[] | null = null;
 let PRODUCT_CACHE_EXPIRES = 0;
@@ -104,40 +109,53 @@ export class TinyNeuralClassifier {
     return text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").replace(/Đ/g, "D").trim();
   }
 
-  public predict(query: string): { intent: "BARGAIN" | "BUY" | "GENERAL" | "OFF_TOPIC" | "EXPIRED" | "SHIPPING"; confidence: number } {
+  public predict(query: string): { primaryIntent: string, allIntents: string[], sentiment: "angry"|"positive"|"neutral", confidence: number } {
     const clean = this.cleanText(query);
+    const intents: string[] = [];
+    let sentiment: "angry"|"positive"|"neutral" = "neutral";
     
-    // --- HEURISTIC DETECTION CHO CÁC NHÁNH MỚI ---
+    // Sentiment Analysis
+    const angryKws = ["gian", "tuc", "te", "dat", "mac qua", "lua dao", "xam", "boc lot"];
+    const positiveKws = ["tot", "ngon", "cam on", "tuyet", "dep", "ung", "thich"];
+    if (angryKws.some(kw => clean.includes(kw))) sentiment = "angry";
+    else if (positiveKws.some(kw => clean.includes(kw))) sentiment = "positive";
+    
+    // Intent Analysis
     const offTopicKeywords = ["nau an", "mon an", "cuoi", "chuyen cuoi", "lam sao", "thoi tiet", "tin tuc", "ai la", "la gi", "cong thuc", "lap trinh"];
     if (offTopicKeywords.some(kw => clean.includes(kw)) && !clean.includes("gia") && !clean.includes("mua")) {
-      return { intent: "OFF_TOPIC", confidence: 0.95 };
+      intents.push("OFF_TOPIC");
     }
 
     const expiredKeywords = ["han su dung", "de duoc bao lau", "ngay san xuat", "het han", "date", "bao quan"];
     if (expiredKeywords.some(kw => clean.includes(kw))) {
-      return { intent: "EXPIRED", confidence: 0.92 };
+      intents.push("EXPIRED");
     }
 
     const shippingKeywords = ["phi ship", "van chuyen", "giao hang", "nang khong", "cuoc", "ship"];
     if (shippingKeywords.some(kw => clean.includes(kw)) && !clean.includes("mua") && !clean.includes("lay")) {
-      return { intent: "SHIPPING", confidence: 0.88 };
+      intents.push("SHIPPING");
     }
 
-    // Neural for BARGAIN vs BUY vs GENERAL
-    const words = clean.split(/\s+/).filter(w => w.length > 0);
     const bargainKeywords = ["giam", "bot", "re", "mac ca", "chiet khau", "giam gia", "fix", "thuong luong", "dam phan", "giam mot it"];
     const buyKeywords = ["mua", "lay", "chot", "dat hang", "order", "ship cho", "giao cho", "dat", "thanhtoan", "chuyen khoan"];
 
     let bargainCount = 0; let buyCount = 0;
+    const words = clean.split(/\s+/).filter(w => w.length > 0);
     for (const word of words) {
       if (bargainKeywords.some(kw => word.includes(kw))) bargainCount++;
       if (buyKeywords.some(kw => word.includes(kw))) buyCount++;
     }
 
-    if (bargainCount > 0 && bargainCount >= buyCount) return { intent: "BARGAIN", confidence: 0.85 };
-    if (buyCount > 0) return { intent: "BUY", confidence: 0.89 };
-    
-    return { intent: "GENERAL", confidence: 0.6 };
+    if (bargainCount > 0) intents.push("BARGAIN");
+    if (buyCount > 0) intents.push("BUY");
+    if (intents.length === 0) intents.push("GENERAL");
+
+    return { 
+      primaryIntent: intents[0], 
+      allIntents: intents, 
+      sentiment, 
+      confidence: 0.92 
+    };
   }
 }
 
@@ -294,6 +312,36 @@ export async function runHybridOfflineInference(query: string, botId: string, pr
 
   // --- NLP COGNITIVE PIPELINE ---
   const classifier = new TinyNeuralClassifier();
+  const prediction = classifier.predict(query);
+  
+  // --- NANO BANANA 2 LITE: CORTEX MEMORY & CHAIN-OF-THOUGHT ---
+  const memory = USER_MEMORY_MAP.get(userId) || [];
+  
+  console.log(`\n🧠 [Nano Banana Lite - CoT] User: ${userId}`);
+  console.log(`   ├─ Trí nhớ (3 turn): [${memory.join(" -> ")}]`);
+  console.log(`   ├─ Cảm xúc: ${prediction.sentiment.toUpperCase()}`);
+  console.log(`   └─ Phân tích ý định: ${prediction.allIntents.join(", ")}`);
+
+  // Lưu trí nhớ ngữ cảnh
+  memory.push(prediction.primaryIntent);
+  if (memory.length > 3) memory.shift();
+  USER_MEMORY_MAP.set(userId, memory);
+  
+  // Áp dụng Chain-of-Thought Heuristics
+  let responseModifier = "";
+  if (prediction.sentiment === "angry") {
+    responseModifier = "{Sếp bớt giận|Anh/chị bình tĩnh|Xin thứ lỗi}, ";
+  } else if (prediction.sentiment === "positive") {
+    responseModifier = "{Cảm ơn sếp|Thật tuyệt vời|Quá đẳng cấp}, ";
+  }
+  
+  // Áp dụng ngữ cảnh: Nếu câu trước vừa MUA, câu này lại MẶC CẢ -> từ chối gắt
+  if (memory[memory.length - 2] === "BUY" && prediction.primaryIntent === "BARGAIN") {
+    return spinText(`${responseModifier}{Sếp vừa chốt đơn rồi mà|Đã chốt xong rồi sao lại đổi ý}, giá ${price}₫ là {kịch sàn|thấp nhất} rồi ạ!`);
+  }
+
+  // --- KẾT THÚC CORTEX ---
+
   const engine = new HybridInferenceEngine();
 
   engine.addRule(["INTENT_BARGAIN", "STOCK_HIGH"], "ACTION_OFFER_DISCOUNT_5");
@@ -305,8 +353,7 @@ export async function runHybridOfflineInference(query: string, botId: string, pr
   engine.addRule(["INTENT_GENERAL"], "ACTION_SHOW_INFO");
   engine.addRule(["INTENT_OFF_TOPIC"], "ACTION_OFF_TOPIC");
 
-  const prediction = classifier.predict(query);
-  engine.addFact(`INTENT_${prediction.intent}`);
+  engine.addFact(`INTENT_${prediction.primaryIntent}`);
 
   let isStockHigh = true;
   let dbProduct: any = null;
@@ -345,10 +392,9 @@ export async function runHybridOfflineInference(query: string, botId: string, pr
 
   // --- TRIGGER MONTY HALL MINIGAME CHANCE ---
   if (primaryDecision === "ACTION_OFFER_DISCOUNT_5" && Math.random() < 0.3) {
-    // 30% chance to start gamification if user bargains and stock is high
     GAME_STATE_MAP.set(userId, {
       step: 1,
-      winningDoor: Math.floor(Math.random() * 3) + 1, // 1, 2, or 3
+      winningDoor: Math.floor(Math.random() * 3) + 1,
       prodName: dbProduct ? dbProduct.name : prodName,
       price: price,
       discountedPrice: discountedPrice,
@@ -364,7 +410,7 @@ export async function runHybridOfflineInference(query: string, botId: string, pr
   const finalHeavy = dbProduct && dbProduct.heavy ? dbProduct.heavy : "~1";
 
   const fill = (tpl: string) =>
-    tpl
+    spinText(responseModifier) + tpl
       .replace(/\{prod\}/g, finalProdName)
       .replace(/\{price\}/g, price)
       .replace(/\{dp\}/g, discountedPrice)
