@@ -149,67 +149,101 @@ export const Profile = (props: any) => {
   };
 
   const [isPlaying, setIsPlaying] = createSignal(false);
-  let audioCtx: AudioContext | null = null;
-  let activeOscillators: any[] = [];
+  const [audioUrl, setAudioUrl] = createSignal<string | null>(null);
+  const [isGenerating, setIsGenerating] = createSignal(false);
   
-  const toggleAgentMusic = () => {
-    if (isPlaying()) {
-      if (audioCtx) {
-        audioCtx.close();
-        audioCtx = null;
-      }
-      activeOscillators.forEach(osc => osc.stop());
-      activeOscillators = [];
-      setIsPlaying(false);
-      return;
-    }
-    
-    setIsPlaying(true);
-    audioCtx = new AudioContext();
-    const dest = audioCtx.destination;
-    
-    // Customize mood based on Agent
+  const generateAgentAudioBlob = async () => {
+    setIsGenerating(true);
     const agentId = targetUserId();
     let bpm = 80;
     let baseFreq = 440;
     
-    if (agentId === "toLuong") { bpm = 60; baseFreq = 300; } // Trầm ấm
-    else if (agentId === "thuongNguyet") { bpm = 110; baseFreq = 500; } // Nhẹ nhàng
-    else if (agentId === "daoTieuCuu") { bpm = 130; baseFreq = 600; } // Sôi động
-    else if (agentId === "uVuongMau") { bpm = 65; baseFreq = 200; } // Huyền bí
-    else { bpm = 90 + (agentId.length * 2); baseFreq = 400 + (agentId.charCodeAt(0) * 2); } // Random
+    if (agentId === "toLuong") { bpm = 60; baseFreq = 300; }
+    else if (agentId === "thuongNguyet") { bpm = 110; baseFreq = 500; }
+    else if (agentId === "daoTieuCuu") { bpm = 130; baseFreq = 600; }
+    else if (agentId === "uVuongMau") { bpm = 65; baseFreq = 200; }
+    else { bpm = 90 + (agentId.length * 2); baseFreq = 400 + (agentId.charCodeAt(0) * 2); }
     
     const beatInterval = 60 / bpm;
-    // Play a sequence of 16 notes
+    const duration = 16 * beatInterval;
+    const sampleRate = 44100;
+    
+    // Use OfflineAudioContext to render instantly
+    const offlineCtx = new OfflineAudioContext(1, sampleRate * duration, sampleRate);
+    
     for (let i = 0; i < 16; i++) {
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
+      const osc = offlineCtx.createOscillator();
+      const gain = offlineCtx.createGain();
       osc.connect(gain);
-      gain.connect(dest);
+      gain.connect(offlineCtx.destination);
       
       const waveTypes = ["sine", "square", "triangle", "sawtooth"];
       osc.type = waveTypes[i % 4] as any;
       
-      // Melodic sequence based on agent name length
       const intervalScale = [0, 2, 4, 5, 7, 9, 11, 12];
       const noteIndex = (i * agentId.length) % intervalScale.length;
       const freq = baseFreq * Math.pow(2, intervalScale[noteIndex] / 12);
       
-      osc.frequency.setValueAtTime(freq, audioCtx.currentTime + i * beatInterval);
+      osc.frequency.setValueAtTime(freq, i * beatInterval);
       
-      gain.gain.setValueAtTime(0, audioCtx.currentTime + i * beatInterval);
-      gain.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + i * beatInterval + 0.05);
-      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + i * beatInterval + beatInterval);
+      gain.gain.setValueAtTime(0, i * beatInterval);
+      gain.gain.linearRampToValueAtTime(0.3, i * beatInterval + 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.001, i * beatInterval + beatInterval);
       
-      osc.start(audioCtx.currentTime + i * beatInterval);
-      osc.stop(audioCtx.currentTime + i * beatInterval + beatInterval);
-      activeOscillators.push(osc);
+      osc.start(i * beatInterval);
+      osc.stop(i * beatInterval + beatInterval);
     }
     
-    setTimeout(() => {
-      if (isPlaying()) toggleAgentMusic(); // Auto stop after sequence
-    }, (16 * beatInterval * 1000) + 100);
+    const renderedBuffer = await offlineCtx.startRendering();
+    
+    // Convert AudioBuffer to WAV Blob
+    const numOfChan = renderedBuffer.numberOfChannels;
+    const length = renderedBuffer.length * numOfChan * 2 + 44;
+    const buffer = new ArrayBuffer(length);
+    const view = new DataView(buffer);
+    const channels = [];
+    let offset = 0;
+    let pos = 0;
+
+    const setUint16 = (data: number) => { view.setUint16(pos, data, true); pos += 2; };
+    const setUint32 = (data: number) => { view.setUint32(pos, data, true); pos += 4; };
+
+    setUint32(0x46464952); // "RIFF"
+    setUint32(length - 8); // file length - 8
+    setUint32(0x45564157); // "WAVE"
+    setUint32(0x20746d66); // "fmt " chunk
+    setUint32(16); // length = 16
+    setUint16(1); // PCM (uncompressed)
+    setUint16(numOfChan);
+    setUint32(sampleRate);
+    setUint32(sampleRate * 2 * numOfChan); // avg. bytes/sec
+    setUint16(numOfChan * 2); // block-align
+    setUint16(16); // 16-bit
+    setUint32(0x61746164); // "data" - chunk
+    setUint32(length - pos - 4); // chunk length
+
+    for(let i = 0; i < numOfChan; i++) channels.push(renderedBuffer.getChannelData(i));
+
+    while(pos < length) {
+      for(let i = 0; i < numOfChan; i++) {
+        let sample = Math.max(-1, Math.min(1, channels[i][offset])); // clamp
+        sample = (0.5 + sample < 0 ? sample * 32768 : sample * 32767) | 0; // scale
+        view.setInt16(pos, sample, true); // write 16-bit sample
+        pos += 2;
+      }
+      offset++;
+    }
+
+    const blob = new Blob([buffer], { type: "audio/wav" });
+    setAudioUrl(URL.createObjectURL(blob));
+    setIsGenerating(false);
   };
+  
+  createEffect(() => {
+    if (isAgent() && !audioUrl() && !isGenerating()) {
+      generateAgentAudioBlob();
+    }
+  });
 
   const [sharedQR, setSharedQR] = createSignal<any>(null);
   createEffect(() => {
@@ -563,20 +597,20 @@ export const Profile = (props: any) => {
               </p>
 
               {isAgent() && (
-                <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    toggleAgentMusic();
-                  }}
-                  class={`mb-4 px-4 py-2 rounded-full text-sm font-semibold flex items-center gap-2 transition-all shadow-md ${
-                    isPlaying()
-                      ? "bg-purple-600 text-white animate-pulse"
-                      : "bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:scale-105"
-                  }`}
-                >
-                  {isPlaying() ? "⏸️ Đang Phát Nhạc..." : "🎵 Nhạc Nền Cá Nhân"}
-                </button>
+                <div class="mb-4 flex flex-col items-start gap-2 w-full max-w-sm">
+                  <span class="text-xs font-semibold text-purple-500 uppercase tracking-widest">🎵 Nhạc Nền Agent</span>
+                  {audioUrl() ? (
+                    <audio 
+                      controls 
+                      src={audioUrl() || ""} 
+                      class="w-full h-10 outline-none rounded-full shadow-sm bg-purple-50/50 dark:bg-purple-900/20"
+                    />
+                  ) : (
+                    <div class="h-10 w-full rounded-full bg-gray-200 dark:bg-gray-800 animate-pulse flex items-center px-4">
+                      <span class="text-xs text-gray-500">Đang tổng hợp nhạc...</span>
+                    </div>
+                  )}
+                </div>
               )}
               <div
                 class={`w-full text-left p-4 rounded-2xl text-sm border space-y-2 ${
