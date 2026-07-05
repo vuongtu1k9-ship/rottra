@@ -1219,13 +1219,36 @@ export component Assistant(props: any) {
     let thoughtProcess = "";
     let finalAnswer = msgText;
 
-    if (msgText.includes("<think>")) {
-      const parts = msgText.split("</think>");
+    // --- FIX: Xử lý chuỗi JSON array bị leak từ AI model (VD: '["[Suy luận logic...]", "Chào bạn..."]') ---
+    if (typeof finalAnswer === "string" && finalAnswer.trim().startsWith('["') && finalAnswer.trim().endsWith('"]')) {
+      try {
+        const parsedArray = JSON.parse(finalAnswer.trim());
+        if (Array.isArray(parsedArray)) {
+          // Lấy phần tử cuối cùng làm câu trả lời chính
+          finalAnswer = parsedArray[parsedArray.length - 1] || finalAnswer;
+          if (parsedArray.length > 1) {
+             thoughtProcess = parsedArray.slice(0, -1).join("\\n");
+          }
+        }
+      } catch (e) {
+        // Fallback
+      }
+    }
+    
+    // --- FIX: Xóa thẻ [Suy luận logic: ...] bị lọt ra text thường ---
+    const suyLuanMatch = finalAnswer.match(/\\[Suy luận logic:.*?\\]/i);
+    if (suyLuanMatch) {
+       thoughtProcess = (thoughtProcess ? thoughtProcess + "\\n" : "") + suyLuanMatch[0];
+       finalAnswer = finalAnswer.replace(/\\[Suy luận logic:.*?\\]/i, "").trim();
+    }
+
+    if (finalAnswer.includes("<think>")) {
+      const parts = finalAnswer.split("</think>");
       if (parts.length > 1) {
-        thoughtProcess = parts[0].replace("<think>", "").trim();
+        thoughtProcess = (thoughtProcess ? thoughtProcess + "\\n" : "") + parts[0].replace("<think>", "").trim();
         finalAnswer = parts.slice(1).join("</think>").trim();
       } else {
-        thoughtProcess = msgText.replace("<think>", "").trim();
+        thoughtProcess = (thoughtProcess ? thoughtProcess + "\\n" : "") + finalAnswer.replace("<think>", "").trim();
         finalAnswer = "";
       }
     }

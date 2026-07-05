@@ -4599,7 +4599,18 @@ app.post("/agent/chat", async (c: any) => {
               const youtubeResponse = await youtubeLearnerReasoning(query);
               let naturalText = "";
               if (youtubeResponse && youtubeResponse.trim().length > 0) {
-                naturalText = youtubeResponse;
+                // Do youtubeResponse giờ đã là dạng System Prompt Tiềm thức, ta cần bóc tách phần ĐẠO LÝ cốt lõi ra để hiển thị trực tiếp (vì route này không gọi LLM)
+                const startMarker = "--- [BẮT ĐẦU ĐẠO LÝ] ---";
+                const endMarker = "--- [KẾT THÚC ĐẠO LÝ] ---";
+                const startIndex = youtubeResponse.indexOf(startMarker);
+                const endIndex = youtubeResponse.indexOf(endMarker);
+                
+                if (startIndex !== -1 && endIndex !== -1) {
+                  const coreWisdom = youtubeResponse.substring(startIndex + startMarker.length, endIndex).trim();
+                  naturalText = `📺 **[GÓC MINH TRIẾT - Trí tuệ Nhân sinh]**\n\n${coreWisdom}`;
+                } else {
+                  naturalText = youtubeResponse;
+                }
               } else {
                 let cleanDefinition = item.definition || "";
                 cleanDefinition = cleanDefinition.replace(/Nội dung từ bài giảng YouTube "[^"]+":\s*/gi, "");

@@ -1519,15 +1519,16 @@ Mọi tính toán, phân tích của tôi được thực hiện trực tiếp t
               let answer = "";
 
               // ƯU TIÊN 1: YouTube Learner response (đã được gọi song song trước đó)
+              let youtubeDirective = "";
               if (youtubeResponse && youtubeResponse.trim().length > 0) {
-                answer = youtubeResponse;
-                console.log(`[YOUTUBE LEARNER] ✅ Using video transcript response for query: "${queryStr.substring(0, 50)}..."`);
+                youtubeDirective = youtubeResponse;
+                console.log(`[YOUTUBE LEARNER] ✅ Injected video transcript as persona directive for query: "${queryStr.substring(0, 50)}..."`);
               }
 
               // Nếu GGUF offline, "cầu cứu" Cloud LLM để phân tích ngữ cảnh RAG nếu có câu hỏi cụ thể
               try {
                 const { generateTextLocal } = await import("~/core/nlp-cognitive/ai-sdk");
-                const ragContextText = `Chuyên đề/Ký ức: ${item.title}\nNội dung: ${item.definition}\n${graphRagResult.contextText}\n${fusedOutput ? "\nThông tin bổ trợ liên đới:\n" + fusedOutput : ""}`;
+                const ragContextText = `Chuyên đề/Ký ức: ${item.title}\nNội dung: ${item.definition}\n${graphRagResult.contextText}\n${fusedOutput ? "\nThông tin bổ trợ liên đới:\n" + fusedOutput : ""}\n\n${youtubeDirective}`;
 
                 const userPref = userId !== "guest" ? await Hippocampus.getUserPreference(userId) : null;
                 const prefContext = userPref
@@ -1536,7 +1537,7 @@ Mọi tính toán, phân tích của tôi được thực hiện trực tiếp t
 
                 const systemPrompt = `Bạn là Trợ lý AI tận tụy của Hệ sinh thái Nông Sản Rottra. Nhiệm vụ của bạn là dựa trên dữ liệu RAG (Tri thức / Ký ức) được cung cấp dưới đây để trực tiếp giải đáp câu hỏi của người dùng.${prefContext}
                 Tôn trọng nguyên tắc:
-                1. LUÔN XƯNG HÔ LÀ "Em" VÀ GỌI NGƯỜI DÙNG LÀ "Sếp". Tuyệt đối không xưng "tôi" hay "mình".
+                1. LUÔN XƯNG HÔ LÀ "Em" VÀ GỌI NGƯỜI DÙNG LÀ "Sếp". Tuyệt đối không xưng "tôi" hay "mình" (Trừ khi có Tiềm thức cốt lõi ép buộc nhập vai Cổ nhân thì phải nghe theo Tiềm thức cốt lõi 100%).
                 2. TUYỆT ĐỐI KHÔNG BỊA ĐẶT. Nếu dữ liệu RAG không chứa thông tin hoặc câu hỏi nằm ngoài chuyên môn, PHẢI TỪ CHỐI bằng câu: "Dạ thưa Sếp, việc này nằm ngoài phạm vi chuyên môn của em. Em đang phụ trách vai trò Trợ lý Hệ sinh thái Nông sản Rottra nên em xin phép không tư vấn nội dung này để tránh thông tin chưa chính xác. Nếu cần, anh có thể tham khảo Google, ChatGPT hoặc người có chuyên môn giúp mình nhanh hơn ạ."
                 3. TÙY THEO NGỮ CẢNH, hãy bắt đầu các câu hỗ trợ bằng "Để em..." hoặc giải thích giới hạn bằng "Em chỉ làm mảng này...".
                 4. Trả lời rõ ràng, mạch lạc, không nhắc đến "RAG".
@@ -1552,12 +1553,9 @@ Mọi tính toán, phân tích của tôi được thực hiện trực tiếp t
                 });
 
                 if (llmResult && llmResult.text && llmResult.text.trim().length > 0) {
-                  // Chỉ dùng LLM response nếu chưa có YouTube response
-                  if (!answer || answer.trim().length === 0) {
-                    answer = llmResult.text.trim();
-                    if (graphRagResult.mermaidCode) {
-                      answer += `\n\n### 🌐 SƠ ĐỒ MẠNG LƯỚI TRI THỨC (Graph RAG)\n\`\`\`mermaid\n${graphRagResult.mermaidCode}\n\`\`\``;
-                    }
+                  answer = llmResult.text.trim();
+                  if (graphRagResult.mermaidCode) {
+                    answer += `\n\n### 🌐 SƠ ĐỒ MẠNG LƯỚI TRI THỨC (Graph RAG)\n\`\`\`mermaid\n${graphRagResult.mermaidCode}\n\`\`\``;
                   }
                 }
               } catch (llmErr) {

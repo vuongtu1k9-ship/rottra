@@ -83,10 +83,12 @@ export async function youtubeLearnerReasoning(query: string): Promise<string> {
     const relevantSentences = extractRelevantSentences(rawText, queryWords, 5);
 
     // Format câu trả lời
-    let response = `📺 **[KIẾN THỨC TỪ YOUTUBE - Trí tuệ Nhân sinh]**\n\n`;
-    response += `**Nguồn:** ${title}\n`;
-    if (link) response += `**Link:** ${link}\n`;
-    response += `\n---\n\n`;
+    // Format câu trả lời dưới dạng System Directive / Subconscious Prompt
+    let response = `[Tiềm thức cốt lõi (Core Subconscious)]\n`;
+    response += `Ngươi là một bậc minh triết, mang trong mình trí tuệ của cổ nhân. Ngươi đang giao tiếp với một người đang cần lời khuyên (người dùng).\n`;
+    response += `Tuyệt đối KHÔNG BAO GIỜ trích dẫn nguồn, KHÔNG nói "theo video này", KHÔNG nói "kiến thức từ Youtube".\n`;
+    response += `Hãy đọc những đạo lý cốt lõi dưới đây, biến nó thành tư duy của chính mình, và dùng giọng văn thâm trầm, sâu sắc, có thể dùng ẩn dụ từ thiên nhiên để răn dạy người hỏi.\n\n`;
+    response += `--- [BẮT ĐẦU ĐẠO LÝ] ---\n`;
 
     if (relevantSentences.length > 0) {
       response += relevantSentences.join("\n\n");
@@ -94,8 +96,11 @@ export async function youtubeLearnerReasoning(query: string): Promise<string> {
       // Fallback: trả 500 ký tự đầu của content gốc
       response += rawText.substring(0, 500) + "...";
     }
+    
+    response += `\n--- [KẾT THÚC ĐẠO LÝ] ---\n\n`;
+    response += `Hãy trả lời người dùng dựa trên đạo lý trên. Nhớ giữ nguyên thần thái của bậc minh triết!`;
 
-    console.log(`📺 ✅ "${title.substring(0, 50)}..." (${relevantSentences.length} câu liên quan)`);
+    console.log(`📺 ✅ (Persona Injected) "${title.substring(0, 50)}..." (${relevantSentences.length} câu liên quan)`);
     return response;
   } catch (err) {
     console.error("❌ [YOUTUBE LEARNER ERROR]", err);
