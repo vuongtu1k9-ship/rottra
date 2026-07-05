@@ -299,104 +299,167 @@ export class GenerateImageAction extends BotActionExecutor {
       <head>
         <meta charset="UTF-8">
         <style>
-          body {
-            margin: 0;
-            padding: 0;
-            width: 1080px;
-            height: 1080px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-family: 'Helvetica Neue', Arial, sans-serif;
-            background: linear-gradient(135deg, #1e293b, #0f172a);
-            color: white;
-            overflow: hidden;
-          }
-          .container {
-            position: relative;
-            width: 1000px;
-            height: 1000px;
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 40px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: space-between;
-            padding: 60px;
-            box-sizing: border-box;
-            box-shadow: 0 40px 100px rgba(0,0,0,0.5);
-            backdrop-filter: blur(20px);
-          }
-          .image-wrapper {
-            width: 600px;
-            height: 600px;
-            border-radius: 30px;
-            overflow: hidden;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
-            border: 4px solid rgba(255,255,255,0.1);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-          }
-          .image-wrapper img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-          }
-          .info {
-            text-align: center;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-          }
-          .title {
-            font-size: 54px;
-            font-weight: 800;
-            letter-spacing: -1px;
-            background: linear-gradient(to right, #60a5fa, #34d399);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-          }
-          .price {
-            font-size: 44px;
-            font-weight: 700;
-            color: #f59e0b;
-          }
-          .badge {
-            position: absolute;
-            top: -20px;
-            right: -20px;
-            background: #ef4444;
-            color: white;
-            font-size: 28px;
-            font-weight: 800;
-            padding: 15px 30px;
-            border-radius: 30px;
-            box-shadow: 0 10px 20px rgba(239, 68, 68, 0.4);
-            transform: rotate(5deg);
-            z-index: 10;
-          }
-          .logo {
-            position: absolute;
-            bottom: 30px;
-            font-size: 24px;
-            font-weight: 700;
-            color: rgba(255,255,255,0.6);
-            letter-spacing: 4px;
-          }
+          body { margin: 0; padding: 0; background: #0f172a; overflow: hidden; }
+          canvas { width: 1080px; height: 1080px; }
         </style>
       </head>
       <body>
-        <div class="container">
-          <div class="badge">🔥 GIÁ TỐT NHẤT</div>
-          ${imageHtml}
-          <div class="info">
-            <div class="title">${prod.name}</div>
-            <div class="price">${formatVN(prod.price)}₫</div>
-          </div>
-          <div class="logo">Rottra SMART FARM</div>
-        </div>
+        <canvas id="canvas" width="1080" height="1080"></canvas>
+        <script>
+          window.generateMedia = async (productName, priceStr, base64ImgStr, mood) => {
+            return new Promise(async (resolve, reject) => {
+              try {
+                const canvas = document.getElementById("canvas");
+                const ctx = canvas.getContext("2d");
+
+                // Draw background
+                const bgGradient = ctx.createLinearGradient(0, 0, 1080, 1080);
+                bgGradient.addColorStop(0, "#1e293b");
+                bgGradient.addColorStop(1, "#0f172a");
+                ctx.fillStyle = bgGradient;
+                ctx.fillRect(0, 0, 1080, 1080);
+
+                // Draw Card
+                ctx.fillStyle = "rgba(255, 255, 255, 0.03)";
+                ctx.strokeStyle = "rgba(255, 255, 255, 0.1)";
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.roundRect(40, 40, 1000, 1000, 40);
+                ctx.fill();
+                ctx.stroke();
+
+                // Draw Image
+                if (base64ImgStr) {
+                  const img = new Image();
+                  await new Promise((res) => {
+                    img.onload = res;
+                    img.src = base64ImgStr;
+                  });
+                  // Draw image centered in 600x600 box
+                  ctx.save();
+                  ctx.beginPath();
+                  ctx.roundRect(240, 100, 600, 600, 30);
+                  ctx.clip();
+                  ctx.drawImage(img, 240, 100, 600, 600);
+                  ctx.restore();
+                } else {
+                  ctx.fillStyle = "rgba(255,255,255,0.1)";
+                  ctx.beginPath();
+                  ctx.roundRect(240, 100, 600, 600, 30);
+                  ctx.fill();
+                  ctx.fillStyle = "rgba(255,255,255,0.8)";
+                  ctx.font = "bold 32px Arial";
+                  ctx.textAlign = "center";
+                  ctx.fillText("CHƯA CÓ ẢNH SẢN PHẨM", 540, 400);
+                }
+
+                // Draw Title and Price
+                ctx.fillStyle = "#60a5fa";
+                ctx.font = "bold 54px Arial";
+                ctx.textAlign = "center";
+                ctx.fillText(productName, 540, 800);
+
+                ctx.fillStyle = "#f59e0b";
+                ctx.font = "bold 44px Arial";
+                ctx.fillText(priceStr + "₫", 540, 880);
+
+                ctx.fillStyle = "rgba(255,255,255,0.6)";
+                ctx.font = "bold 24px Arial";
+                ctx.letterSpacing = "4px";
+                ctx.fillText("Rottra SMART FARM", 540, 980);
+
+                // 1. Capture AVIF
+                let avifBase64 = "";
+                try {
+                  avifBase64 = canvas.toDataURL("image/avif", 0.8);
+                } catch(e) {
+                  // Fallback if avif not supported in this Chromium version
+                  avifBase64 = canvas.toDataURL("image/webp", 0.9);
+                }
+
+                // 2. Capture WebM (AV1 + Opus)
+                const audioCtx = new AudioContext();
+                const dest = audioCtx.createMediaStreamDestination();
+                
+                // Simple algorithmic beat (Opus generation)
+                let bpm = 80;
+                if (mood === "positive") bpm = 110;
+                else if (mood === "urgent") bpm = 130;
+                else if (mood === "calm") bpm = 65;
+                
+                const beatInterval = 60 / bpm;
+                for (let i = 0; i < 8; i++) {
+                  const osc = audioCtx.createOscillator();
+                  const gain = audioCtx.createGain();
+                  osc.connect(gain);
+                  gain.connect(dest);
+                  
+                  osc.type = "sine";
+                  osc.frequency.setValueAtTime(440 * Math.pow(2, (Math.floor(Math.random() * 12)) / 12), audioCtx.currentTime + i * beatInterval);
+                  
+                  gain.gain.setValueAtTime(0, audioCtx.currentTime + i * beatInterval);
+                  gain.gain.linearRampToValueAtTime(0.5, audioCtx.currentTime + i * beatInterval + 0.1);
+                  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + i * beatInterval + beatInterval);
+                  
+                  osc.start(audioCtx.currentTime + i * beatInterval);
+                  osc.stop(audioCtx.currentTime + i * beatInterval + beatInterval);
+                }
+
+                const canvasStream = canvas.captureStream(30);
+                const combinedStream = new MediaStream([
+                  ...canvasStream.getTracks(),
+                  ...dest.stream.getTracks()
+                ]);
+
+                let mimeType = 'video/webm; codecs=av1,opus';
+                if (!MediaRecorder.isTypeSupported(mimeType)) {
+                  mimeType = 'video/webm; codecs=vp9,opus'; // fallback
+                }
+
+                const recorder = new MediaRecorder(combinedStream, { mimeType, videoBitsPerSecond: 2500000 });
+                const chunks = [];
+                recorder.ondataavailable = e => { 
+                  if(e.data && e.data.size > 0) chunks.push(e.data); 
+                };
+                recorder.onstop = () => {
+                  setTimeout(() => {
+                    const blob = new Blob(chunks, { type: mimeType });
+                    const reader = new FileReader();
+                    reader.onload = () => {
+                      resolve({
+                        avifBase64,
+                        webmBase64: reader.result,
+                        mimeType
+                      });
+                    };
+                    reader.readAsDataURL(blob);
+                  }, 500); // Wait a bit for chunks to settle
+                };
+
+                // Request data every 100ms
+                recorder.start(100);
+
+                // Small animation loop for video using rAF to ensure frames are generated
+                let animationId;
+                function animate() {
+                  ctx.fillStyle = "rgba(255,255,255,0.01)";
+                  ctx.fillRect(40, 40, 1000, 1000);
+                  animationId = requestAnimationFrame(animate);
+                }
+                animate();
+
+                // Record for exactly 4 seconds
+                setTimeout(() => {
+                  cancelAnimationFrame(animationId);
+                  recorder.stop();
+                }, 4000);
+
+              } catch (err) {
+                resolve({ error: err.message });
+              }
+            });
+          };
+        </script>
       </body>
       </html>
     `;
@@ -409,34 +472,53 @@ export class GenerateImageAction extends BotActionExecutor {
         "--disable-setuid-sandbox",
         "--allow-file-access-from-files",
         "--disable-dev-shm-usage",
-        "--disable-accelerated-2d-canvas",
-        "--disable-gpu",
+        // Do NOT disable GPU to allow HW encoding for AV1 if available
+        "--enable-unsafe-webgpu",
+        "--autoplay-policy=no-user-gesture-required" // Crucial for AudioContext
       ],
     });
 
     try {
       const page = await browser.newPage();
       await page.setViewport({ width: 1080, height: 1080 });
-      try {
-        await page.setContent(htmlContent, { waitUntil: "networkidle2" as any, timeout: 5000 });
-      } catch (timeoutErr) {
-        console.warn("Puppeteer load timeout (ignored):", timeoutErr);
+      await page.setContent(htmlContent);
+
+      // Execute generation inside the browser
+      const result: any = await page.evaluate(
+        (name, price, img, mood) => (window as any).generateMedia(name, price, img, mood),
+        prod.name, formatVN(prod.price), base64Image, "positive"
+      );
+
+      if (result.error) {
+        console.error("Lỗi khi render Media bằng Rottra AI:", result.error);
+        return { success: false, action: "image", message: "Render failed: " + result.error };
       }
 
-      const outputFileName = `banner_${prod.id}_${Date.now()}.png`;
-      const outputPath = path.join(process.cwd(), "public", "images", "banners", outputFileName);
+      const idStamp = Date.now();
+      
+      // Save AVIF Image
+      const avifData = result.avifBase64.replace(/^data:image\/\w+;base64,/, "");
+      const avifFileName = `banner_${prod.id}_${idStamp}.avif`;
+      const avifPath = path.join(process.cwd(), "public", "images", "banners", avifFileName);
+      fs.mkdirSync(path.dirname(avifPath), { recursive: true });
+      fs.writeFileSync(avifPath, Buffer.from(avifData, "base64"));
 
-      const dir = path.dirname(outputPath);
-      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+      // Save WebM Video (AV1 + Opus)
+      const webmData = result.webmBase64.replace(/^data:video\/\w+;base64,/, "");
+      const webmFileName = `banner_${prod.id}_${idStamp}.webm`;
+      const webmPath = path.join(process.cwd(), "public", "images", "banners", webmFileName);
+      fs.writeFileSync(webmPath, Buffer.from(webmData, "base64"));
 
-      await page.screenshot({ path: outputPath, type: "png" });
+      console.log(`✅ Đã xuất thành công AVIF và WebM (${result.mimeType}) bằng chính lõi Rottra AI!`);
 
-      const newImageUrl = `/images/banners/${outputFileName}`;
+      const newImageUrl = `/images/banners/${avifFileName}`;
+      const newVideoUrl = `/images/banners/${webmFileName}`;
+
       const currentMedia = Array.isArray(prod.media) ? prod.media : [];
       const filteredMedia = currentMedia.filter(
         (m: any) => !(m.link && typeof m.link === "string" && m.link.startsWith("/images/banners/")),
       );
-      const newMedia = [...filteredMedia, { link: newImageUrl, type: "image" }];
+      const newMedia = [...filteredMedia, { link: newImageUrl, type: "image" }, { link: newVideoUrl, type: "video" }];
 
       await db.update(product).set({ media: newMedia }).where(eq(product.id, prod.id));
       await helpers.logActivity(userId, `Bot tạo ảnh sản phẩm '${prod.name}'`, `Hệ thống tự động kết xuất banner quảng cáo AI`, "product");

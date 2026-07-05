@@ -302,11 +302,7 @@ Bạn có thể cung cấp cho tôi 10/10 UI/UX chuẩn production cho một ứ
 Tất cả icon lấy từ solid-heroicons
 Phần chat phải là 100% như tiktok
 
-🟣 vLLM	⭐⭐⭐⭐⭐	⭐⭐⭐⭐⭐	⭐⭐⭐☆	🔥 nhanh nhất cho server LLM
-🔵 TensorRT-LLM (NVIDIA)	⭐⭐⭐⭐⭐⭐	⭐⭐⭐⭐⭐	⭐⭐☆	mạnh nhất nhưng khó setup
-🟢 ONNX Runtime	⭐⭐⭐⭐☆	⭐⭐⭐⭐☆	⭐⭐⭐⭐⭐	dễ dùng, ổn định
-🟡 GGUF (llama.cpp)	⭐⭐⭐☆	⭐⭐⭐☆	⭐⭐⭐⭐⭐	nhẹ, CPU tốt
-🔴 Transformers (PyTorch)**	⭐⭐⭐	⭐⭐⭐	⭐⭐⭐⭐	chậm nhất khi scale
+WebM (AV1) AVIF Opus
 
 ## Gold Price & Currency API References
 

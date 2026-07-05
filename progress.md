@@ -500,6 +500,7 @@
 - `storage/vision-weights.json` - Tự động cập nhật.
 - `test-delete-500.ts` - Tự động cập nhật.
 - `test-delete.ts` - Tự động cập nhật.
+- `clean-external-images.ts` - Tự động cập nhật.
 
 ## Evidence of Completion
 
