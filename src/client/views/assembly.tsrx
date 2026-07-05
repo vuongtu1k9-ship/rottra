@@ -6765,23 +6765,7 @@ export component Assembly(props: any) {
                     <VideoFeed stream={user.stream} muted={user.isLocal} class="absolute inset-0 h-full w-full object-cover" />
                   }
 
-                  {/* Show Live2D character model when camera is open for bots */}
-                  if (!user.isVideoOff && user.isBot) {
-                    <iframe
-                      src={`/live2d-avatar.html?modelUrl=${encodeURIComponent(
-                        user.id.includes("toLuong") || user.id.includes("bachDiHanh") || user.id.includes("thuongNguyet") ||
-                        user.id.includes("hoaHuynh")
-                          ? "https://cdn.jsdelivr.net/gh/Live2D/CubismWebSamples@master/Samples/Resources/Natori/Natori.model3.json"
-                          : user.id.includes("tramTinh") || user.id.includes("nhuNguyet") || user.id.includes("phiNguyet")
-                            ? "https://cdn.jsdelivr.net/gh/Live2D/CubismWebSamples@master/Samples/Resources/Hiyori/Hiyori.model3.json"
-                            : user.id.includes("daoTieuCuu") || user.id.includes("suGia") || user.id.includes("phiAnh")
-                              ? "https://cdn.jsdelivr.net/gh/Live2D/CubismWebSamples@master/Samples/Resources/Haru/Haru.model3.json"
-                              : "https://cdn.jsdelivr.net/gh/Live2D/CubismWebSamples@master/Samples/Resources/Rice/Rice.model3.json",
-                      )}`}
-                      class="absolute inset-0 w-full h-full border-none bg-transparent"
-                      scrolling="no"
-                    />
-                  }
+                  {/* Live2D models from external CDN have been removed to enforce 100% Offline Mode. */}
 
                   <div
                     class="absolute bottom-2 sm:bottom-4 left-2 sm:left-4 max-w-[85%] flex items-center gap-1.5 sm:gap-2 rounded-lg bg-black/50 px-2 sm:px-3 py-1 sm:py-1.5 backdrop-blur-md z-20">
@@ -6811,8 +6795,8 @@ export component Assembly(props: any) {
                     }
                   </div>
 
-                  {/* Avatar fallback if video is off or stream is missing for humans */}
-                  if (user.isVideoOff || !user.stream && !user.isBot) {
+                  {/* Avatar fallback if video is off, stream is missing, or user is a bot (offline mode) */}
+                  if (user.isVideoOff || !user.stream || user.isBot) {
                     const resolvedName =
                       user.name === "Bạn" || user.name === t("Bạn") ? userName() : t(user.name);
                     const hasAvatar = !!(user.avatar && user.avatar !== "" && user.avatar !== "/default-avatar.avif" &&

@@ -167,26 +167,9 @@ export async function generateAgentImage(
   productPrompt: string,
   options: { width?: number; height?: number; seed?: number } = {},
 ): Promise<{ success: boolean; url?: string; error?: string }> {
-  const profile = AGENT_CREATIVE_PROFILES[agentId] || AGENT_CREATIVE_PROFILES.toLuong;
-  const { width = 800, height = 450, seed } = options;
-
-  const fullPrompt = `(safe for work, family friendly, no nsfw, no violence), ${profile.imageStyle}, ${productPrompt}, product photography, high quality, detailed`;
-  const seedVal = seed ?? Math.floor(Math.random() * 100000);
-  const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(fullPrompt)}?width=${width}&height=${height}&nologo=true&nofeed=true&safe=true&seed=${seedVal}`;
-
-  try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 30000);
-    const res = await fetch(url, { signal: controller.signal, redirect: "follow" });
-    clearTimeout(timer);
-
-    if (res.ok) {
-      return { success: true, url };
-    }
-    return { success: false, error: `Pollinations returned ${res.status}` };
-  } catch (err: any) {
-    return { success: false, error: err.message };
-  }
+  // Offline Mode: Không sử dụng API tạo ảnh ngoại lai (pollinations.ai).
+  // Hệ thống trả về ảnh mặc định cục bộ thay vì gọi ra ngoài.
+  return { success: true, url: "/default-avatar.avif" };
 }
 
 // ═══════════════════════════════════════════════
