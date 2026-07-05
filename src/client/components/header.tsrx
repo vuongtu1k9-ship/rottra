@@ -32,7 +32,7 @@ import { getPrimaryImage } from "~/client/components/product-card.tsrx";
 import { currentLang, setLanguage, t, formatCurrency, currencySymbol } from "~/client/stores/i18n-store";
 import { isTranslating, translateProgress, translatedLang, translatePage, restorePage } from "~/client/utils/page-translator";
 import { preCacheTranslations } from "~/client/utils/pre-cache-translations";
-import { UserAvatar, getInitials, getGradientForName } from "~/client/components/user-avatar";
+import { UserAvatar, getInitials, getGradientForName } from "~/client/components/user-avatar.tsrx";
 
 export component Header(props: any) {
   const session = authClient.useSession();
