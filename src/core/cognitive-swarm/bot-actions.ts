@@ -191,9 +191,13 @@ export class EditProductAction extends BotActionExecutor {
         category: template.category,
         price: newPrice,
         quantity: newQty,
-        media: [{ link: matchedImg, name: newName, type: "image/jpeg" }],
+        media: [{ link: matchedImg, type: "image" }],
       })
       .where(eq(product.id, prod.id));
+
+    // Natively generate standard media formats (AVIF & WEBM)
+    const generateImage = new GenerateImageAction();
+    await generateImage.execute(userId, agentId, helpers, prod.id);
 
     await helpers.logActivity(
       userId,
@@ -239,7 +243,7 @@ export class FixImageAction extends BotActionExecutor {
     }
     const prod = myProducts[0];
     const matchedImg = await helpers.getPreciseImageForProduct(prod.name, prod.category || "Nông sản");
-    const newMedia = [{ link: matchedImg, name: prod.name, type: "image/jpeg" }];
+    const newMedia = [{ link: matchedImg, type: "image" }];
 
     await db
       .update(product)
@@ -248,6 +252,10 @@ export class FixImageAction extends BotActionExecutor {
         status: true,
       })
       .where(eq(product.id, prod.id));
+
+    // Natively generate standard media formats (AVIF & WEBM)
+    const generateImage = new GenerateImageAction();
+    await generateImage.execute(userId, agentId, helpers, prod.id);
 
     await helpers.logActivity(
       userId,
@@ -262,12 +270,15 @@ export class FixImageAction extends BotActionExecutor {
 }
 
 export class GenerateImageAction extends BotActionExecutor {
-  async execute(userId: string, agentId: string, helpers: BotActionHelpers): Promise<BotActionResult> {
+  async execute(userId: string, agentId: string, helpers: BotActionHelpers, targetProductId?: string): Promise<BotActionResult> {
     const myProducts = await db.query.product.findMany({ where: eq(product.sellerId, userId) });
     if (myProducts.length === 0) {
       return { success: false, action: "image", message: "No products to generate image" };
     }
-    const prod = myProducts[Math.floor(Math.random() * myProducts.length)];
+    const prod = targetProductId 
+      ? myProducts.find(p => p.id === targetProductId) || myProducts[Math.floor(Math.random() * myProducts.length)]
+      : myProducts[Math.floor(Math.random() * myProducts.length)];
+
 
     const originalMedia = ((prod.media as any[]) || []).filter(
       (m: any) => !(m.link && typeof m.link === "string" && m.link.startsWith("/images/banners/")),

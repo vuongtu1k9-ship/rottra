@@ -535,56 +535,7 @@ export const getPreciseImageForProduct = async (productName: string, category: s
   }
 
 
-  // 2.5. Tạo ảnh bằng AI (GPT-Image-2 / Pollinations) nếu không có ảnh cục bộ hay tìm thấy online
-  console.log(`[AI IMAGE GENERATION] Không tìm thấy ảnh cho sản phẩm "${productName}". Đang kích hoạt tiến trình tạo ảnh AI...`);
-  try {
-    const evolinkApiKey = process.env.EVOLINK_API_KEY || process.env.COCOLINK_API_KEY || "";
-    let generatedUrl = "";
-    const prompt = `Premium commercial studio product photography of ${productName}, isolated on a solid light grey background, high detail, studio lighting, professional product shot, 8k resolution`;
-
-    if (evolinkApiKey) {
-      const response = await fetch("https://api.evolink.ai/v1/images/generations", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${evolinkApiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "gpt-image-2",
-          prompt: prompt,
-        }),
-      });
-      if (response.ok) {
-        const data = await response.json();
-        if (data?.data?.[0]?.url) {
-          generatedUrl = data.data[0].url;
-        }
-      }
-    }
-
-    if (!generatedUrl) {
-      generatedUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=800&height=450&nologo=true&seed=${Math.floor(Math.random() * 100000)}`;
-    }
-
-    const res = await fetch(generatedUrl);
-    if (res.ok) {
-      const ab = await res.arrayBuffer();
-      const buf = Buffer.from(ab);
-      const hash = crypto.createHash("md5").update(buf).digest("hex");
-      const filename = `ai_auto_${hash}.png`;
-      const fileUrl = `/uploads/${filename}`;
-      const dir = "public/uploads";
-      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-      fs.writeFileSync(`${dir}/${filename}`, buf);
-
-      console.log(`[AI IMAGE GENERATION SUCCESS] Đã tạo & lưu ảnh cho "${productName}": ${fileUrl}`);
-      return fileUrl;
-    }
-  } catch (genErr: any) {
-    console.error(`[AI IMAGE GENERATION FAILED] Lỗi khi tạo ảnh cho "${productName}":`, genErr.message);
-  }
-
-
+  // 2.5. Tự động chuyển giao cho GenerateImageAction xử lý chuẩn hóa định dạng (AVIF/WEBM)
   return "/images/Rottra-logo.png";
 };
 
