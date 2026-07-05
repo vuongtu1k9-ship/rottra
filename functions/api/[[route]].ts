@@ -25,8 +25,17 @@ export const onRequest: PagesFunction<{ ROTTRA_KV?: KVNamespace; BACKEND_URL?: s
   }
 
   const url = new URL(context.request.url);
+  
+  // Rewrite POST /api/admin/product/delete/:id -> DELETE /api/admin/product/:id
+  let proxyMethod = context.request.method;
+  let proxyPathname = url.pathname;
+  if (proxyMethod === "POST" && proxyPathname.startsWith("/api/admin/product/delete/")) {
+    proxyMethod = "DELETE";
+    proxyPathname = proxyPathname.replace("/api/admin/product/delete/", "/api/admin/product/");
+  }
+
   // Construct the target URL pointing to the backend
-  const targetUrl = new URL(url.pathname + url.search, backendUrl);
+  const targetUrl = new URL(proxyPathname + url.search, backendUrl);
 
   // Clone headers and set standard forwarding fields
   const newHeaders = new Headers(context.request.headers);
@@ -35,9 +44,9 @@ export const onRequest: PagesFunction<{ ROTTRA_KV?: KVNamespace; BACKEND_URL?: s
 
   try {
     const response = await fetch(targetUrl.toString(), {
-      method: context.request.method,
+      method: proxyMethod,
       headers: newHeaders,
-      body: context.request.method === "GET" || context.request.method === "HEAD" ? null : context.request.body,
+      body: proxyMethod === "GET" || proxyMethod === "HEAD" || proxyMethod === "DELETE" ? null : context.request.body,
       redirect: "manual",
     });
 
