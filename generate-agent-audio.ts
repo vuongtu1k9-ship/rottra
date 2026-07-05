@@ -113,7 +113,7 @@ async function generateAgentAudio() {
       continue;
     }
 
-    const webmData = result.replace(/^data:audio\/\w+;base64,/, "").replace(/^data:video\/\w+;base64,/, "");
+    const webmData = result.replace(/^data:.*?;base64,/, "");
     const filePath = path.join(audioDir, `agent_${agentId}.opus`);
     fs.writeFileSync(filePath, Buffer.from(webmData, "base64"));
     console.log(`   ✅ Đã lưu thành công: /audio/agent_${agentId}.opus`);

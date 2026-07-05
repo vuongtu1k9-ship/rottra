@@ -30,7 +30,7 @@ async function convertToAvif() {
       });
     }, dataUri);
 
-    const avifData = avifBase64.replace(/^data:image\/avif;base64,/, "");
+    const avifData = avifBase64.replace(/^data:.*?;base64,/, "");
     const avifPath = path.join(process.cwd(), "public", file.replace(".png", ".avif"));
     fs.writeFileSync(avifPath, Buffer.from(avifData, "base64"));
     console.log(`Converted ${file} to AVIF using Chrome Canvas`);
