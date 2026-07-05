@@ -9,7 +9,7 @@ import { generateTextLocal } from "~/core/nlp-cognitive/ai-sdk";
 import { z } from "zod";
 
 export const getProductImageUrlLocal = (media: any[], prefixType: "http" | "file" = "http") => {
-  let url = prefixType === "http" ? "https://placehold.co/800x450?text=No+Image" : "";
+  let url = prefixType === "http" ? "/images/no-image.avif" : "/images/no-image.avif";
   if (Array.isArray(media)) {
     const firstImg = media.find((m: any) => m && (m.type === "image" || !m.type));
     if (firstImg) {

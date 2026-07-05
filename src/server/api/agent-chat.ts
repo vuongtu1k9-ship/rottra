@@ -311,7 +311,7 @@ export async function handleChatExpert(c: any) {
 
     // Helper functions for matching and image resolution
     const getProductImageUrlLocal = (media: any[], prefixType: "http" | "file" = "http") => {
-      let url = prefixType === "http" ? "https://placehold.co/800x450?text=No+Image" : "";
+      let url = prefixType === "http" ? "/images/no-image.avif" : "/images/no-image.avif";
       if (Array.isArray(media)) {
         const firstImg = media.find((m: any) => m && (m.type === "image" || !m.type));
         if (firstImg) {

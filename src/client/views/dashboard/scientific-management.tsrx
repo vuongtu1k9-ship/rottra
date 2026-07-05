@@ -950,11 +950,11 @@ export component ScientificManagement() {
                           <div class="flex -space-x-3">
                             <img
                               class="w-8 h-8 rounded-full border-2 border-[#d4ed9e] object-cover"
-                              src="https://i.pravatar.cc/100?img=6"
+                              src="/images/default-avatar.avif"
                             />
                             <img
                               class="w-8 h-8 rounded-full border-2 border-[#d4ed9e] object-cover"
-                              src="https://i.pravatar.cc/100?img=7"
+                              src="/images/default-avatar.avif"
                             />
                             <div
                               class="w-8 h-8 rounded-full border-2 border-[#d4ed9e] bg-black/20 flex items-center justify-center text-[10px] font-bold text-[#1a2133]">+</div>
