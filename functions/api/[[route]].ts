@@ -42,11 +42,17 @@ export const onRequest: PagesFunction<{ ROTTRA_KV?: KVNamespace; BACKEND_URL?: s
   newHeaders.set("X-Forwarded-Host", url.host);
   newHeaders.set("X-Forwarded-Proto", url.protocol.replace(":", ""));
 
+  let proxyBody = proxyMethod === "GET" || proxyMethod === "HEAD" ? null : context.request.body;
+  // If rewriting POST to DELETE, the old backend crashes on empty body in c.req.json(), so inject "{}"
+  if (proxyMethod === "DELETE" && !proxyBody) {
+    proxyBody = "{}";
+  }
+
   try {
     const response = await fetch(targetUrl.toString(), {
       method: proxyMethod,
       headers: newHeaders,
-      body: proxyMethod === "GET" || proxyMethod === "HEAD" || proxyMethod === "DELETE" ? null : context.request.body,
+      body: proxyBody,
       redirect: "manual",
     });
 
