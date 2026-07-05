@@ -489,6 +489,17 @@
 - `src/server/api/rag-debug.ts` - Tự động cập nhật.
 - `src/client/views/dashboard/admin-actions.tsrx` - Tự động cập nhật.
 - `src/server/api/rl-brain.ts` - Tự động cập nhật.
+- `create-aimodels.ts` - Tự động cập nhật.
+- `delete-sensitive.ts` - Tự động cập nhật.
+- `list-products.ts` - Tự động cập nhật.
+- `products.txt` - Tự động cập nhật.
+- `reset-avatars.ts` - Tự động cập nhật.
+- `scripts/ai-pipeline/train-vision.ts` - Tự động cập nhật.
+- `src/client/helpers/vision-extractor.ts` - Tự động cập nhật.
+- `src/core/nlp-cognitive/vision-brain.ts` - Tự động cập nhật.
+- `storage/vision-weights.json` - Tự động cập nhật.
+- `test-delete-500.ts` - Tự động cập nhật.
+- `test-delete.ts` - Tự động cập nhật.
 
 ## Evidence of Completion
 
