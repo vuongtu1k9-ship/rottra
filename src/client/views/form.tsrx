@@ -13,6 +13,8 @@ import {
   chevronLeft,
   chevronRight,
 } from "solid-heroicons/outline";
+import { isServer } from "solid-js/web";
+import { extractImageFeatures } from "~/client/helpers/vision-extractor";
 import { theme } from "~/client/stores/theme-store";
 import { enhanceImage } from "~/client/utils/image-enhancer";
 
@@ -416,6 +418,18 @@ export const Form = (props: any) => {
 
       if (props.showMedia) {
         const key = props.mediaKey || "avatar";
+        const mediaVal = () => props.showMedia && (key === "media" ? allMedia()[0] : (key === "avatar" ? avatarMedia() : allMedia()[0]));
+        
+        if (mediaVal()?.link && props.collection === "products") {
+          try {
+            console.log("Extracting OKLCH Vision Features...");
+            const features = await extractImageFeatures(mediaVal()?.file || mediaVal()?.link);
+            submitData.visionFeatures = features;
+          } catch (e) {
+            console.warn("Could not extract vision features:", e);
+          }
+        }
+
         if (key === "media") {
           submitData.media = finalMedia;
         } else {

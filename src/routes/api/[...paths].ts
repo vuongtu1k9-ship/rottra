@@ -67,6 +67,7 @@ import { RottraAI } from "~/core/cognitive-swarm/swarm-dispatcher";
 import { VietlexClient } from "~/core/cognitive-swarm/vietlex-client";
 import { currentGoldPrice } from "~/server/api/agent-router";
 import { systemLoadRegulator } from "~/server/helpers/system-load-regulator";
+import { visionBrain } from "~/core/nlp-cognitive/vision-brain";
 
 class LogRingBuffer {
   private buffer: any[] = [];
@@ -2712,6 +2713,9 @@ app.post("/admin/ai/train-nlp", verifyAuth, async (c: any) => {
 });
 
 // --- Admin AI Global Corpus API ---
+
+
+
 app.get("/admin/ai/global-corpus", verifyAuth, async (c: any) => {
   const currentUser = c.get("user");
   if (currentUser?.role !== "admin") return c.json({ success: false, message: "Forbidden" }, 403);
@@ -6666,6 +6670,14 @@ app.put("/admin/product", verifyAuth, async (c: any) => {
   if (currentUser?.role !== "admin" && currentUser?.role !== "user") return c.json({ success: false, message: "Forbidden" }, 403);
   const body = await c.req.json();
   const { id, ...updateData } = body;
+
+  // Rottra Vision AI Validation
+  if (body.visionFeatures && body.category) {
+    const preds = visionBrain.predict(body.visionFeatures);
+    if (preds.length > 0 && preds[0].category !== body.category && preds[0].confidence > 0.5) {
+      return c.json({ error: `Rottra Vision AI từ chối ảnh này! Phát hiện ảnh thuộc phổ màu/đặc trưng của '${preds[0].category}' thay vì '${body.category}'. Vui lòng tải đúng ảnh sản phẩm!` }, 400);
+    }
+  }
 
   // Cleanup removed media files
   const p = await db.query.product.findFirst({ where: eq(product.id, id) });
