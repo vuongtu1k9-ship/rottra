@@ -541,6 +541,18 @@
 - `public/audio/agent_thuongNguyet.webm` - Tự động cập nhật.
 - `public/audio/agent_toLuong.webm` - Tự động cập nhật.
 - `public/audio/agent_tramTinh.webm` - Tự động cập nhật.
+- `public/audio/agent_bachDiHanh.opus` - Tự động cập nhật.
+- `public/audio/agent_bachLoc.opus` - Tự động cập nhật.
+- `public/audio/agent_daoTieuCuu.opus` - Tự động cập nhật.
+- `public/audio/agent_hoaHuynh.opus` - Tự động cập nhật.
+- `public/audio/agent_nhuNguyet.opus` - Tự động cập nhật.
+- `public/audio/agent_phiAnh.opus` - Tự động cập nhật.
+- `public/audio/agent_phiNguyet.opus` - Tự động cập nhật.
+- `public/audio/agent_suGia.opus` - Tự động cập nhật.
+- `public/audio/agent_thuongNguyet.opus` - Tự động cập nhật.
+- `public/audio/agent_toLuong.opus` - Tự động cập nhật.
+- `public/audio/agent_tramTinh.opus` - Tự động cập nhật.
+- `public/audio/agent_uVuongMau.opus` - Tự động cập nhật.
 
 ## Evidence of Completion
 

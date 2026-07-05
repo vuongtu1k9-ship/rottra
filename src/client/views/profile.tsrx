@@ -130,7 +130,7 @@ export const Profile = (props: any) => {
   const [editQty, setEditQty] = createSignal<number>(0);
 
   const isAgent = () => {
-    const uid = activeUserId();
+    const uid = targetUserId() || activeUserId();
     return uid &&
       [
         "toLuong",
@@ -145,7 +145,7 @@ export const Profile = (props: any) => {
         "bachDiHanh",
         "uVuongMau",
         "bachLoc",
-      ].includes(uid);
+      ].includes(uid as string);
   };
 
   const [isPlaying, setIsPlaying] = createSignal(false);
