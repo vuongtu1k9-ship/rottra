@@ -475,7 +475,7 @@ export const getPreciseImageForProduct = async (productName: string, category: s
   const catLower = (category || "").toLowerCase();
 
   if (!productName || nameLower.includes("đang cập nhật") || nameLower.includes("đang tải") || nameLower.includes("undefined")) {
-    return "/images/Rottra-logo.png";
+    return "/images/no-image.avif";
   }
 
   // 1. Quét thư mục public/uploads trước
@@ -536,7 +536,7 @@ export const getPreciseImageForProduct = async (productName: string, category: s
 
 
   // 2.5. Tự động chuyển giao cho GenerateImageAction xử lý chuẩn hóa định dạng (AVIF/WEBM)
-  return "/images/Rottra-logo.png";
+  return "/images/no-image.avif";
 };
 
 const globalObj = (typeof process !== "undefined" ? process : globalThis) as any;

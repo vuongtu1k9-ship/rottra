@@ -798,11 +798,11 @@ export component ScientificManagement() {
                           <div class="flex -space-x-3">
                             <img
                               class="w-8 h-8 rounded-full border-2 border-[#e0ccdf] object-cover"
-                              src="https://i.pravatar.cc/100?img=1"
+                              src="/images/default-avatar.avif"
                             />
                             <img
                               class="w-8 h-8 rounded-full border-2 border-[#e0ccdf] object-cover"
-                              src="https://i.pravatar.cc/100?img=2"
+                              src="/images/default-avatar.avif"
                             />
                             <div
                               class="w-8 h-8 rounded-full border-2 border-[#e0ccdf] bg-black/20 flex items-center justify-center text-[10px] font-bold text-[#1a2133]">+</div>
@@ -874,11 +874,11 @@ export component ScientificManagement() {
                           <div class="flex -space-x-3">
                             <img
                               class="w-8 h-8 rounded-full border-2 border-[#30d5c8] object-cover"
-                              src="https://i.pravatar.cc/100?img=4"
+                              src="/images/default-avatar.avif"
                             />
                             <img
                               class="w-8 h-8 rounded-full border-2 border-[#30d5c8] object-cover"
-                              src="https://i.pravatar.cc/100?img=5"
+                              src="/images/default-avatar.avif"
                             />
                             <div
                               class="w-8 h-8 rounded-full border-2 border-[#30d5c8] bg-black/20 flex items-center justify-center text-[10px] font-bold text-[#1a2133]">+</div>

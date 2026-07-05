@@ -559,6 +559,9 @@
 - `public/default-avatar.avif` - Tự động cập nhật.
 - `public/no-image.avif` - Tự động cập nhật.
 - `src/core/nlp-cognitive/hybrid-ai.ts` - Tự động cập nhật.
+- `products.json` - Tự động cập nhật.
+- `query-agents.ts` - Tự động cập nhật.
+- `test-audio.ts` - Tự động cập nhật.
 
 ## Evidence of Completion
 
