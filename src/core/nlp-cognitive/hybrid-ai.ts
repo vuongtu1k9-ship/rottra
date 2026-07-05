@@ -451,6 +451,30 @@ const CHARACTERS: Record<string, CharacterResponse> = {
       "Chào ngươi! {prod} giá {price}₫, hôm nay ngày hoàng đạo, mua hàng sẽ gặp nhiều may mắn. Cần tư vấn gì thêm?",
     ],
   },
+  default: {
+    name: "Trợ lý Rottra",
+    style: "tôi",
+    discount: [
+      "Xin chào! Với tư cách là Trợ lý Rottra, tôi đồng ý ưu đãi giảm 5% cho lô {prod} này nhằm hỗ trợ bạn. Giá mới chỉ còn {dp}₫.",
+      "Rất vui được hỗ trợ bạn. Rottra xin giảm 5% cho lô {prod}, mức giá chốt là {dp}₫. Hãy tiến hành giao dịch nhé!"
+    ],
+    reject: [
+      "Chào bạn, rất tiếc hiện tại mức giá {price}₫ cho lô {prod} là mức giá tiêu chuẩn của hệ thống, không thể điều chỉnh thêm.",
+      "Xin lỗi bạn, lô {prod} hiện tại có số lượng hạn chế. Hệ thống chỉ có thể giao dịch ở mức giá gốc {price}₫."
+    ],
+    confirm: [
+      "Giao dịch đã được hệ thống Rottra ghi nhận thành công! Lô {prod} với giá {price}₫ sẽ sớm được xử lý và vận chuyển.",
+      "Xác nhận đơn hàng! {prod} giá {price}₫ đã được Trợ lý Rottra lên lịch giao. Cảm ơn bạn đã sử dụng dịch vụ!"
+    ],
+    confirmWarn: [
+      "Đã nhận đơn đặt hàng! Tuy nhiên kho hệ thống báo cáo {prod} còn rất ít. Bạn vui lòng hoàn tất thủ tục sớm nhé.",
+      "Hệ thống Rottra đã ghi nhận đơn {prod}. Lưu ý số lượng sắp cạn, đề nghị bạn thanh toán sớm để đảm bảo giữ hàng!"
+    ],
+    general: [
+      "Xin chào, tôi là Trợ lý Rottra. Lô {prod} hiện có giá {price}₫. Tôi có thể hỗ trợ gì thêm cho bạn trong quá trình giao dịch không?",
+      "Trợ lý AI Rottra xin chào! Thông tin bạn cần: {prod} giá {price}₫. Bạn cần thêm tài liệu hay chính sách gì không?"
+    ]
+  }
 };
 
 /**

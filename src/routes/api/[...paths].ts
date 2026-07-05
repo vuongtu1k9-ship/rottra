@@ -450,6 +450,26 @@ const getProductImageUrl = (media: any[], prefixType: "http" | "file" = "http") 
   return url;
 };
 
+const downloadToLocal = async (url: string): Promise<string> => {
+  if (url.startsWith("/") || !url.startsWith("http")) return url;
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
+    if (!res.ok) return "/images/Rottra-logo.png";
+    const ab = await res.arrayBuffer();
+    const buf = Buffer.from(ab);
+    const hash = crypto.createHash("md5").update(buf).digest("hex");
+    const filename = `ai_img_${hash}.jpg`;
+    const fileUrl = `/uploads/${filename}`;
+    const dir = "public/uploads";
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(`${dir}/${filename}`, buf);
+    return fileUrl;
+  } catch (err) {
+    console.warn("[IMAGE DOWNLOAD ERROR] Lỗi tải ảnh về server:", err);
+    return "/images/Rottra-logo.png";
+  }
+};
+
 export const getPreciseImageForProduct = async (productName: string, category: string) => {
   const nameLower = productName.toLowerCase();
   const catLower = (category || "").toLowerCase();
@@ -514,69 +534,6 @@ export const getPreciseImageForProduct = async (productName: string, category: s
     console.error("Lỗi khi đọc thư mục public/uploads:", e);
   }
 
-  // 2. Tìm kiếm ảnh trực tuyến (Google Images / Bing Images) theo đúng tên sản phẩm
-  const qSearch = productName.trim();
-  if (qSearch) {
-    // A. Tìm kiếm trên Google Images
-    try {
-      const googleUrl = `https://www.google.com/search?q=${encodeURIComponent(qSearch)}&tbm=isch&safe=active`;
-      const res = await fetch(googleUrl, {
-        headers: {
-          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36",
-          "Accept-Language": "vi,en-US;q=0.7,en;q=0.3",
-        },
-        signal: AbortSignal.timeout(3000),
-      });
-      if (res.ok) {
-        const html = await res.text();
-        const tbnRegex = /https:\/\/encrypted-tbn0\.gstatic\.com\/images\?q=tbn:[^"'\s&]+/g;
-        const tbnMatches = html.match(tbnRegex);
-        if (tbnMatches && tbnMatches.length > 0) {
-          console.log(`[IMAGE SEARCH] Khớp ảnh Google: "${qSearch}" -> ${tbnMatches[0]}`);
-          return tbnMatches[0];
-        }
-
-        const imgurlRegex = /imgurl=([^&]+)/g;
-        let match;
-        const imgUrls: string[] = [];
-        while ((match = imgurlRegex.exec(html)) !== null) {
-          imgUrls.push(decodeURIComponent(match[1]));
-        }
-        if (imgUrls.length > 0) {
-          console.log(`[IMAGE SEARCH] Khớp ảnh gốc Google: "${qSearch}" -> ${imgUrls[0]}`);
-          return imgUrls[0];
-        }
-      }
-    } catch (err: any) {
-      console.warn(`[IMAGE SEARCH] Không thể lấy ảnh từ Google cho "${qSearch}": ${err.message || err}`);
-    }
-
-    // B. Tìm kiếm trên Bing Images làm dự phòng (Cực kỳ ổn định cho môi trường server)
-    try {
-      const bingUrl = `https://www.bing.com/images/search?q=${encodeURIComponent(qSearch)}`;
-      const res = await fetch(bingUrl, {
-        headers: {
-          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36",
-        },
-        signal: AbortSignal.timeout(3000),
-      });
-      if (res.ok) {
-        const html = await res.text();
-        const murlRegex = /&quot;murl&quot;:&quot;(https:[^&]+)&quot;/g;
-        let match;
-        const matches: string[] = [];
-        while ((match = murlRegex.exec(html)) !== null) {
-          matches.push(decodeURIComponent(match[1]));
-        }
-        if (matches.length > 0) {
-          console.log(`[IMAGE SEARCH] Khớp ảnh Bing: "${qSearch}" -> ${matches[0]}`);
-          return matches[0];
-        }
-      }
-    } catch (err: any) {
-      console.warn(`[IMAGE SEARCH] Không thể lấy ảnh từ Bing cho "${qSearch}": ${err.message || err}`);
-    }
-  }
 
   // 2.5. Tạo ảnh bằng AI (GPT-Image-2 / Pollinations) nếu không có ảnh cục bộ hay tìm thấy online
   console.log(`[AI IMAGE GENERATION] Không tìm thấy ảnh cho sản phẩm "${productName}". Đang kích hoạt tiến trình tạo ảnh AI...`);
@@ -627,69 +584,6 @@ export const getPreciseImageForProduct = async (productName: string, category: s
     console.error(`[AI IMAGE GENERATION FAILED] Lỗi khi tạo ảnh cho "${productName}":`, genErr.message);
   }
 
-  // 3. Fallback sang Unsplash nếu cả uploads và tìm kiếm online đều không có kết quả
-
-  if (nameLower.includes("mật") || nameLower.includes("ong") || nameLower.includes("honey")) {
-    return "https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=800&auto=format&fit=crop";
-  }
-  if (nameLower.includes("lúa") || nameLower.includes("gạo") || nameLower.includes("st25") || nameLower.includes("rice")) {
-    return "https://images.unsplash.com/photo-1536630596251-b12658807d79?w=800&auto=format&fit=crop";
-  }
-  if (nameLower.includes("ngô") || nameLower.includes("bắp") || nameLower.includes("corn")) {
-    return "https://images.unsplash.com/photo-1551754626-787be77e3877?w=800&auto=format&fit=crop";
-  }
-  if (nameLower.includes("heo") || nameLower.includes("lợn") || nameLower.includes("pig") || nameLower.includes("pork")) {
-    return "https://images.unsplash.com/photo-1570042225831-d9b065738686?w=800&auto=format&fit=crop";
-  }
-  if (nameLower.includes("bò") || nameLower.includes("thịt bò") || nameLower.includes("beef") || nameLower.includes("cow")) {
-    return "https://images.unsplash.com/photo-1546445317-29f4545e6d52?w=800&auto=format&fit=crop";
-  }
-  if (nameLower.includes("kéo") || nameLower.includes("cắt cành") || nameLower.includes("pruning") || nameLower.includes("shears")) {
-    return "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=800&auto=format&fit=crop";
-  }
-  if (nameLower.includes("màng phủ") || nameLower.includes("nhà kính") || nameLower.includes("greenhouse")) {
-    return "https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?w=800&auto=format&fit=crop";
-  }
-  if (nameLower.includes("mát") || nameLower.includes("lạnh") || nameLower.includes("cooling") || nameLower.includes("chiller")) {
-    return "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=800&auto=format&fit=crop";
-  }
-  if (nameLower.includes("sấy") || nameLower.includes("máy sấy")) {
-    return "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=800&auto=format&fit=crop";
-  }
-  if (nameLower.includes("mít") || nameLower.includes("jackfruit")) {
-    return "https://images.unsplash.com/photo-1595855759920-86582396756a?w=800&auto=format&fit=crop";
-  }
-  if (nameLower.includes("cà phê") || nameLower.includes("coffee") || nameLower.includes("robusta")) {
-    return "https://images.unsplash.com/photo-1447933601403-0c6688de566e?w=800&auto=format&fit=crop";
-  }
-  if (nameLower.includes("báo cáo") || nameLower.includes("chỉ số") || nameLower.includes("report") || nameLower.includes("analytics")) {
-    return "https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=800&auto=format&fit=crop";
-  }
-  if (nameLower.includes("cảm biến") || nameLower.includes("sensor") || nameLower.includes("iot")) {
-    return "https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&auto=format&fit=crop";
-  }
-  if (nameLower.includes("bộ điều khiển") || nameLower.includes("tưới") || nameLower.includes("irrigation")) {
-    return "https://images.unsplash.com/photo-1563514223709-69149e327173?w=800&auto=format&fit=crop";
-  }
-  if (nameLower.includes("phân bón") || nameLower.includes("trùn quế") || nameLower.includes("fertilizer")) {
-    return "https://images.unsplash.com/photo-1599599810769-bcde5a160d32?w=800&auto=format&fit=crop";
-  }
-  if (nameLower.includes("biochar") || nameLower.includes("than") || nameLower.includes("charcoal")) {
-    return "https://images.unsplash.com/photo-1600706432502-75a0e286b92a?w=800&auto=format&fit=crop";
-  }
-
-  if (catLower.includes("cây") || catLower.includes("trồng") || catLower.includes("crop")) {
-    return "https://images.unsplash.com/photo-1530595467537-0b5996c41f2d?w=800&auto=format&fit=crop";
-  }
-  if (catLower.includes("chăn") || catLower.includes("nuôi") || catLower.includes("animal") || catLower.includes("husbandry")) {
-    return "https://images.unsplash.com/photo-1516467508483-a7212febe31a?w=800&auto=format&fit=crop";
-  }
-  if (catLower.includes("kỹ thuật") || catLower.includes("thiết bị") || catLower.includes("tech")) {
-    return "https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=800&auto=format&fit=crop";
-  }
-  if (catLower.includes("môi trường") || catLower.includes("bền vững") || catLower.includes("eco")) {
-    return "https://images.unsplash.com/photo-1502082553048-f009c37129b9?w=800&auto=format&fit=crop";
-  }
 
   return "/images/Rottra-logo.png";
 };
@@ -5079,7 +4973,32 @@ app.post("/agent/chat", async (c: any) => {
             "Bạn mang đặc trưng của Claude Fable 5, một AI cực kỳ đề cao sự an toàn, thân thiện, bảo vệ cộng đồng và ngăn chặn mọi nguy cơ độc hại. 🤖";
         }
 
-        const systemPrompt = `You are the primary intelligence engine of Rottra simulation (an advanced AI Assistant).
+        let botNameInject = "";
+        if (path && path.includes("/profile/")) {
+          const slugMatch = path.match(/\/profile\/([^\/?#]+)/);
+          if (slugMatch && slugMatch[1]) {
+            const slug = slugMatch[1];
+            const nameMap: Record<string, string> = {
+              "to-luong": "Tô Lương",
+              "thuong-nguyet": "Thương Nguyệt",
+              "tram-tinh": "Trầm Tinh",
+              "dao-tieu-cuu": "Tiểu Cửu",
+              "hoa-huynh": "Huỳnh",
+              "phi-nguyet": "Phi Nguyệt",
+              "nhu-nguyet": "Như Nguyệt",
+              "su-gia": "Sử Giả",
+              "phi-anh": "Phi Anh",
+              "bach-di-hanh": "Bạch Dĩ Hành",
+              "u-vuong-mau": "U Vương Mẫu",
+              "bach-loc": "Bạch Lộc"
+            };
+            if (nameMap[slug]) {
+              botNameInject = `Tên Thương Nhân: ${nameMap[slug]}\n`;
+            }
+          }
+        }
+
+        const systemPrompt = `${botNameInject}You are the primary intelligence engine of Rottra simulation (an advanced AI Assistant).
 Your task is to synthesize a helpful, natural, and context-aware response in Vietnamese for the user.
 [ĐẶC TRƯNG NHÂN CÁCH MÔ HÌNH HIỆN TẠI BẠN PHẢI THỂ HIỆN]: ${personaExtra}
 Use the following context as the absolute source of truth (RAG / Tool Result):
@@ -6602,7 +6521,7 @@ app.get("/admin/product", verifyAuth, async (c: any) => {
 
 app.post("/admin/product", verifyAuth, async (c: any) => {
   const currentUser = c.get("user");
-  if (currentUser?.role !== "admin" && currentUser?.role !== "user") {
+  if (currentUser?.role !== "admin") {
     return c.json({ success: false, message: "Forbidden" }, 403);
   }
 
@@ -6613,8 +6532,15 @@ app.post("/admin/product", verifyAuth, async (c: any) => {
   // Enforce official image URLs only
   if (body.media && Array.isArray(body.media)) {
     for (const m of body.media) {
-      if (m.link && m.link.startsWith("http") && !m.link.includes("rottra.pages.dev")) {
-        return c.json({ error: "Chỉ cho phép sử dụng hình ảnh chính chủ được tải lên từ hệ thống (rottra.pages.dev). Không chấp nhận link ảnh ngoài!" }, 400);
+      if (m.link && m.link.startsWith("http")) {
+        try {
+          const parsedUrl = new URL(m.link);
+          if (parsedUrl.hostname !== "rottra.pages.dev" && !parsedUrl.hostname.endsWith(".rottra.pages.dev")) {
+            return c.json({ error: "Chỉ cho phép sử dụng hình ảnh chính chủ được tải lên từ hệ thống (rottra.pages.dev). Không chấp nhận link ảnh ngoài!" }, 400);
+          }
+        } catch (e) {
+          return c.json({ error: "Link ảnh không hợp lệ!" }, 400);
+        }
       }
     }
   }
@@ -6675,7 +6601,7 @@ app.post("/admin/product", verifyAuth, async (c: any) => {
 
 app.put("/admin/product", verifyAuth, async (c: any) => {
   const currentUser = c.get("user");
-  if (currentUser?.role !== "admin" && currentUser?.role !== "user") return c.json({ success: false, message: "Forbidden" }, 403);
+  if (currentUser?.role !== "admin") return c.json({ success: false, message: "Forbidden" }, 403);
   const body = await c.req.json();
   const { id, ...updateData } = body;
 
@@ -6690,8 +6616,15 @@ app.put("/admin/product", verifyAuth, async (c: any) => {
   // Enforce official image URLs only
   if (body.media && Array.isArray(body.media)) {
     for (const m of body.media) {
-      if (m.link && m.link.startsWith("http") && !m.link.includes("rottra.pages.dev")) {
-        return c.json({ error: "Chỉ cho phép sử dụng hình ảnh chính chủ được tải lên từ hệ thống (rottra.pages.dev). Không chấp nhận link ảnh ngoài!" }, 400);
+      if (m.link && m.link.startsWith("http")) {
+        try {
+          const parsedUrl = new URL(m.link);
+          if (parsedUrl.hostname !== "rottra.pages.dev" && !parsedUrl.hostname.endsWith(".rottra.pages.dev")) {
+            return c.json({ error: "Chỉ cho phép sử dụng hình ảnh chính chủ được tải lên từ hệ thống (rottra.pages.dev). Không chấp nhận link ảnh ngoài!" }, 400);
+          }
+        } catch (e) {
+          return c.json({ error: "Link ảnh không hợp lệ!" }, 400);
+        }
       }
     }
   }
@@ -6763,6 +6696,9 @@ app.delete("/admin/product/:id", verifyAuth, deleteProductHandler);
 async function deleteProductHandler(c: any) {
   try {
     const currentUser = c.get("user");
+    if (currentUser?.role !== "admin") {
+      return c.json({ error: "Forbidden" }, 403);
+    }
     const id = c.req.param("id");
     let qtyToRemove: number | undefined = undefined;
     
@@ -6828,14 +6764,14 @@ async function deleteProductHandler(c: any) {
     console.error("[Fatal Delete Product Error]:", err);
     return c.json({ error: "Server Error: " + (err.message || err.toString()), stack: err.stack }, 500);
   }
-});
+}
 
 // --- Image Generation POST (Puppeteer) ---
 app.post("/admin/product/:id/image", verifyAuth, async (c: any) => {
   const productId = c.req.param("id");
   const currentUser = c.get("user");
 
-  if (currentUser?.role !== "admin" && currentUser?.role !== "user") {
+  if (currentUser?.role !== "admin") {
     return c.json({ success: false, message: "Forbidden" }, 403);
   }
 
@@ -7001,7 +6937,7 @@ app.get("/admin/product/:id/video/logs", verifyAuth, async (c: any) => {
   const productId = c.req.param("id");
   const currentUser = c.get("user");
 
-  if (currentUser?.role !== "admin" && currentUser?.role !== "user") {
+  if (currentUser?.role !== "admin") {
     return c.json({ success: false, message: "Forbidden" }, 403);
   }
 
@@ -7023,7 +6959,7 @@ app.post("/admin/product/:id/video", verifyAuth, async (c: any) => {
   const productId = c.req.param("id");
   const currentUser = c.get("user");
 
-  if (currentUser?.role !== "admin" && currentUser?.role !== "user") {
+  if (currentUser?.role !== "admin") {
     return c.json({ success: false, message: "Forbidden" }, 403);
   }
 
