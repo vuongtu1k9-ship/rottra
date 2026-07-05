@@ -555,6 +555,9 @@
 - `public/audio/agent_uVuongMau.opus` - Tự động cập nhật.
 - `src/client/components/product-card.tsrx` - Tự động cập nhật.
 - `src/client/views/product.tsrx` - Tự động cập nhật.
+- `png-to-avif.ts` - Tự động cập nhật.
+- `public/default-avatar.avif` - Tự động cập nhật.
+- `public/no-image.avif` - Tự động cập nhật.
 
 ## Evidence of Completion
 
