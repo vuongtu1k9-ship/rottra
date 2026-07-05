@@ -18,7 +18,8 @@ async function generateAgentAudio() {
     args: [
       "--no-sandbox",
       "--disable-setuid-sandbox",
-      "--autoplay-policy=no-user-gesture-required"
+      "--autoplay-policy=no-user-gesture-required",
+      "--disable-features=AudioServiceOutOfProcess"
     ],
   });
 
@@ -113,9 +114,9 @@ async function generateAgentAudio() {
     }
 
     const webmData = result.replace(/^data:audio\/\w+;base64,/, "").replace(/^data:video\/\w+;base64,/, "");
-    const filePath = path.join(audioDir, `agent_${agentId}.webm`);
+    const filePath = path.join(audioDir, `agent_${agentId}.opus`);
     fs.writeFileSync(filePath, Buffer.from(webmData, "base64"));
-    console.log(`   ✅ Đã lưu thành công: /audio/agent_${agentId}.webm`);
+    console.log(`   ✅ Đã lưu thành công: /audio/agent_${agentId}.opus`);
   }
 
   await browser.close();

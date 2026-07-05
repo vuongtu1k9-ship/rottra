@@ -536,6 +536,11 @@
 - `public/images/banners/banner_prod_bachLoc_1783184670417_5349_1783228579235.webm` - Tự động cập nhật.
 - `public/images/banners/banner_prod_daoTieuCuu_1783177677645_4155_1783228530214.avif` - Tự động cập nhật.
 - `public/images/banners/banner_prod_daoTieuCuu_1783177677645_4155_1783228530214.webm` - Tự động cập nhật.
+- `generate-agent-audio.ts` - Tự động cập nhật.
+- `public/audio/agent_daoTieuCuu.webm` - Tự động cập nhật.
+- `public/audio/agent_thuongNguyet.webm` - Tự động cập nhật.
+- `public/audio/agent_toLuong.webm` - Tự động cập nhật.
+- `public/audio/agent_tramTinh.webm` - Tự động cập nhật.
 
 ## Evidence of Completion
 

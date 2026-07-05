@@ -154,7 +154,7 @@ export const Profile = (props: any) => {
   createEffect(() => {
     if (isAgent()) {
       const agentId = targetUserId();
-      setAudioUrl(`/audio/agent_${agentId}.webm`);
+      setAudioUrl(`/audio/agent_${agentId}.opus`);
     }
   });
 
