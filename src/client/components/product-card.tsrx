@@ -68,7 +68,7 @@ export component ProductCard(props: any) {
 
   const currentMediaUrl = () => {
     const m = currentMedia();
-    return m ? (typeof m === "string" ? m : m.link) : "/no-image.png";
+    return m ? (typeof m === "string" ? m : m.link) : "/no-image.avif";
   };
 
   const currentMediaType = () => {
@@ -99,8 +99,8 @@ export component ProductCard(props: any) {
           alt={name}
           class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           onError={(e) => {
-            if (!e.currentTarget.src.includes("no-image.png") && !e.currentTarget.src.includes("placehold.co")) {
-              e.currentTarget.src = "/no-image.png";
+            if (!e.currentTarget.src.includes("no-image.avif") && !e.currentTarget.src.includes("placehold.co")) {
+              e.currentTarget.src = "/no-image.avif";
             }
           }}
         />

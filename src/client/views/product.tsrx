@@ -61,7 +61,7 @@ component MediaCell(props: { p: any }) {
     if (list.length === 0) {
       list.push({
         type: "image",
-        src: props.p?.imageUrl || props.p?.img?.link || "/no-image.png",
+        src: props.p?.imageUrl || props.p?.img?.link || "/no-image.avif",
       });
     }
 
@@ -96,11 +96,11 @@ component MediaCell(props: { p: any }) {
         </>
       } else {
         <img
-          src={items()[idx()]?.src || "/no-image.png"}
+          src={items()[idx()]?.src || "/no-image.avif"}
           class="w-full h-full object-cover"
           onError={(e) => {
-            if (!e.currentTarget.src.includes("no-image.png")) {
-              e.currentTarget.src = "/no-image.png";
+            if (!e.currentTarget.src.includes("no-image.avif")) {
+              e.currentTarget.src = "/no-image.avif";
             }
           }}
         />

@@ -48,7 +48,7 @@ export component UserAvatar(props: {
   const gradient = () => getGradientForName(props.name || "User");
   const hasValidImage = () => {
     const img = props.image;
-    if (!img || img === "" || img === "/default-avatar.png" || img.includes("default-avatar.png") || imageError()) {
+    if (!img || img === "" || img === "/default-avatar.avif" || img.includes("default-avatar.avif") || imageError()) {
       return false;
     }
     // Block Gravatar default avatar hash, but allow if it's a locally uploaded custom file

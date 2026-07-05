@@ -553,6 +553,8 @@
 - `public/audio/agent_toLuong.opus` - Tự động cập nhật.
 - `public/audio/agent_tramTinh.opus` - Tự động cập nhật.
 - `public/audio/agent_uVuongMau.opus` - Tự động cập nhật.
+- `src/client/components/product-card.tsrx` - Tự động cập nhật.
+- `src/client/views/product.tsrx` - Tự động cập nhật.
 
 ## Evidence of Completion
 

@@ -475,10 +475,10 @@ export const Profile = (props: any) => {
               <UserAvatar
                 name={props.user?.name || profile()?.fullName || user()?.name || t("Người dùng")}
                 image={(() => {
-                  let defaultAvatar = "/default-avatar.png";
+                  let defaultAvatar = "/default-avatar.avif";
                   const targetId = props.user?.id || activeUserId();
                   if (isAgent() && targetId) {
-                    defaultAvatar = `/media/${targetId}.png`;
+                    defaultAvatar = `/media/${targetId}.avif`;
                   }
                   return profile()?.avatar?.link || profile()?.imgId?.link || props.user?.image || defaultAvatar;
                 })()}

@@ -258,7 +258,7 @@ export component Header(props: any) {
             }
             if (data.profile.avatar && data.profile.avatar.link) {
               let avatarUrl = data.profile.avatar.link;
-              if (avatarUrl.includes("default-avatar.png") || avatarUrl === "/favicon.ico?v=3") {
+              if (avatarUrl.includes("default-avatar.avif") || avatarUrl === "/favicon.ico?v=3") {
                 avatarUrl = "";
               }
               setAgentAvatar(avatarUrl);

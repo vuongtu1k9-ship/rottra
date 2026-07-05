@@ -700,15 +700,15 @@ export component Assembly(props: any) {
           const res = await fetch("/api/profile");
           const data = await res.json();
           if (data.success && data.profile) {
-            setMyAvatar(data.profile.avatar?.link || data.profile.imgId?.link || userObj.image || "/default-avatar.png");
+            setMyAvatar(data.profile.avatar?.link || data.profile.imgId?.link || userObj.image || "/default-avatar.avif");
             if (data.profile.employees !== undefined) {
               setMyEmployees(Number(data.profile.employees));
             }
           } else {
-            setMyAvatar(userObj.image || "/default-avatar.png");
+            setMyAvatar(userObj.image || "/default-avatar.avif");
           }
         } catch (err) {
-          setMyAvatar(userObj.image || "/default-avatar.png");
+          setMyAvatar(userObj.image || "/default-avatar.avif");
         }
       })();
     }
@@ -5541,7 +5541,7 @@ export component Assembly(props: any) {
               name: newProd.name,
               price: newProd.defaultPrice,
               quantity: qtyToBuy,
-              media: ["/assets/Rottra-default-agri.png"],
+              media: ["/assets/Rottra-default-agri.avif"],
             });
 
             assets[key] = { ...agent };
@@ -6815,8 +6815,8 @@ export component Assembly(props: any) {
                   if (user.isVideoOff || !user.stream && !user.isBot) {
                     const resolvedName =
                       user.name === "Bạn" || user.name === t("Bạn") ? userName() : t(user.name);
-                    const hasAvatar = !!(user.avatar && user.avatar !== "" && user.avatar !== "/default-avatar.png" &&
-                      !user.avatar.includes("default-avatar.png") &&
+                    const hasAvatar = !!(user.avatar && user.avatar !== "" && user.avatar !== "/default-avatar.avif" &&
+                      !user.avatar.includes("default-avatar.avif") &&
                       !(user.avatar.includes("c14419f70af6aa5bf55e0163e939afac") && !user.avatar.startsWith("/uploads/")));
                     <div
                       class="absolute inset-0 flex items-center justify-center overflow-hidden"
