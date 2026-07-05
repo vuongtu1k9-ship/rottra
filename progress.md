@@ -476,6 +476,17 @@
 - `scripts/db-ops/fix-agent-avatars-local.ts` - Tự động cập nhật.
 - `scripts/db-ops/fix-product-images-ai.ts` - Tự động cập nhật.
 - `public/images/RottraAI_avatar.png` - Tự động cập nhật.
+- `mcp-config.json` - Tự động cập nhật.
+- `scripts/check-legacy-images.ts` - Tự động cập nhật.
+- `scripts/check-products-sensitive.ts` - Tự động cập nhật.
+- `scripts/check-remaining.ts` - Tự động cập nhật.
+- `scripts/check-users-sensitive.ts` - Tự động cập nhật.
+- `scripts/delete-seed-products.ts` - Tự động cập nhật.
+- `scripts/fix-sensitive-images.ts` - Tự động cập nhật.
+- `scripts/install-mcp.sh` - Tự động cập nhật.
+- `src/core/nlp-cognitive/safety-guard.ts` - Tự động cập nhật.
+- `src/server/api/cronjob-ai.ts` - Tự động cập nhật.
+- `src/server/api/rag-debug.ts` - Tự động cập nhật.
 
 ## Evidence of Completion
 
