@@ -568,6 +568,8 @@
 - `scratch-check-users.ts` - Tự động cập nhật.
 - `src/client/views/dashboard/scientific-management.tsrx` - Tự động cập nhật.
 - `src/server/helpers/image-processor.ts` - Tự động cập nhật.
+- `src/client/views/dashboard/local.tsrx` - Tự động cập nhật.
+- `src/server/helpers/video-ad-generator.ts` - Tự động cập nhật.
 
 ## Evidence of Completion
 
