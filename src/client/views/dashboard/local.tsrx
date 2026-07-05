@@ -246,18 +246,7 @@ export component Local() {
 
   createEffect(() => {
     if (!isMapReady() || !L_lib || !map) return;
-    const isDark = theme() === "dark";
-    const url = isDark
-      ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-      : "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
-
-    if (tileLayer) {
-      map.removeLayer(tileLayer);
-    }
-
-    tileLayer = L_lib.tileLayer(url, {
-      attribution: "&copy; OpenStreetMap &copy; CARTO",
-    }).addTo(map);
+    // Map tiles have been disabled per security/offline policy
   });
 
   onMount(() => {

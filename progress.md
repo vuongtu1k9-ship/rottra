@@ -567,6 +567,7 @@
 - `public/images/no-image.avif` - Tự động cập nhật.
 - `scratch-check-users.ts` - Tự động cập nhật.
 - `src/client/views/dashboard/scientific-management.tsrx` - Tự động cập nhật.
+- `src/server/helpers/image-processor.ts` - Tự động cập nhật.
 
 ## Evidence of Completion
 
