@@ -6728,7 +6728,10 @@ app.put("/admin/product", verifyAuth, async (c: any) => {
   return c.json(updated[0]);
 });
 
-app.post("/admin/product/delete/:id", verifyAuth, async (c: any) => {
+app.post("/admin/product/delete/:id", verifyAuth, deleteProductHandler);
+app.delete("/admin/product/:id", verifyAuth, deleteProductHandler);
+
+async function deleteProductHandler(c: any) {
   try {
     const currentUser = c.get("user");
     const id = c.req.param("id");
