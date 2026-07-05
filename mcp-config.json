@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "cve-server": {
+      "command": "uvx",
+      "args": ["cve-mcp-server"],
+      "env": {}
+    },
+    "hyper-extract": {
+      "command": "uvx",
+      "args": ["he-mcp", "start"],
+      "env": {}
+    }
+  }
+}

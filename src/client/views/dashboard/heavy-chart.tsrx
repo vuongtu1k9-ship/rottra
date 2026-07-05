@@ -309,8 +309,9 @@ export component HeavyChart() {
           setAllGroups(newGroups);
 
           // Select Rottra AI as default if exists, fallback to Antigravity
-          const defaultId = Object.keys(fetchedPresets).find((k) => fetchedPresets[k].name.includes("Rottra AI")) ||
-                            Object.keys(fetchedPresets).find((k) => fetchedPresets[k].name.includes("Antigravity"));
+          const defaultId =
+            Object.keys(fetchedPresets).find((k) => fetchedPresets[k].name.includes("Rottra AI")) ||
+              Object.keys(fetchedPresets).find((k) => fetchedPresets[k].name.includes("Antigravity"));
           if (defaultId) {
             setSelectedPreset(defaultId);
             if (fetchedPresets[defaultId].dimensions) {
@@ -326,8 +327,9 @@ export component HeavyChart() {
             setScores([...fetchedPresets[firstId].values]);
           }
 
-          const compId = Object.keys(fetchedPresets).find((k) => fetchedPresets[k].name.includes("Claude")) ||
-                         Object.keys(fetchedPresets).find((k) => fetchedPresets[k].name.includes("Antigravity") && k !== defaultId);
+          const compId =
+            Object.keys(fetchedPresets).find((k) => fetchedPresets[k].name.includes("Claude")) ||
+              Object.keys(fetchedPresets).find((k) => fetchedPresets[k].name.includes("Antigravity") && k !== defaultId);
           if (compId) {
             setComparePreset(compId);
           }

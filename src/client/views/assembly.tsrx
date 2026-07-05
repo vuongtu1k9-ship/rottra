@@ -5656,7 +5656,8 @@ export component Assembly(props: any) {
 
     const connectWS = () => {
       if (!isMeetingActive()) return;
-      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+      const protocol =
+        window.location.protocol === "https:" ? "wss:" : "ws:";
       const host = window.location.host;
       const wsUrl = `${protocol}//${host}/api/ws-signaling?room=${encodeURIComponent(meetingName())}`;
       console.log(`🔌 [WS] Connecting to signaling server ${wsUrl}...`);
@@ -7638,8 +7639,6 @@ export component Assembly(props: any) {
                           </span>
                         </div>
                       </div>
-
-
 
                       <div class="space-y-1">
                         if (agent.products && agent.products.length > 0) {

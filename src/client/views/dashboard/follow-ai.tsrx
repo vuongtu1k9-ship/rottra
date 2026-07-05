@@ -536,7 +536,8 @@ export component EducateAi() {
 
     const connectWs = () => {
       try {
-        const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+        const protocol =
+          window.location.protocol === "https:" ? "wss:" : "ws:";
         const host = window.location.host;
         ws = new WebSocket(`${protocol}//${host}/api/ws-signaling`);
 

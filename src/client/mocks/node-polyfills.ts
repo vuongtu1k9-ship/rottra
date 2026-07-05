@@ -13,7 +13,7 @@ export const search = () => ({});
 export enum SafeSearchType {
   STRICT = "STRICT",
   MODERATE = "MODERATE",
-  OFF = "OFF"
+  OFF = "OFF",
 }
 export const mkdirSync = () => {};
 export const randomUUID = () => Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
@@ -22,15 +22,21 @@ export const env = {};
 export const argv = [];
 export const cwd = () => "/";
 export const Buffer = class extends Uint8Array {
-  static isBuffer(b: any) { return b instanceof Buffer; }
+  static isBuffer(b: any) {
+    return b instanceof Buffer;
+  }
   static from(data: any) {
-    if (typeof data === 'string') {
+    if (typeof data === "string") {
       return new Buffer(new TextEncoder().encode(data));
     }
     return new Buffer(data);
   }
-  static alloc(size: number) { return new Buffer(size); }
-  static allocUnsafe(size: number) { return new Buffer(size); }
+  static alloc(size: number) {
+    return new Buffer(size);
+  }
+  static allocUnsafe(size: number) {
+    return new Buffer(size);
+  }
   static byteLength(string: string) {
     return new TextEncoder().encode(string).length;
   }
@@ -47,7 +53,9 @@ export const Buffer = class extends Uint8Array {
     }
     return result;
   }
-  toString() { return new TextDecoder().decode(this); }
+  toString() {
+    return new TextDecoder().decode(this);
+  }
   write(string: string, offset = 0) {
     const bytes = new TextEncoder().encode(string);
     const len = Math.min(bytes.length, this.length - offset);
@@ -87,5 +95,5 @@ export default {
   env,
   argv,
   cwd,
-  Buffer
+  Buffer,
 };

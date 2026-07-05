@@ -284,7 +284,8 @@ export const Profile = (props: any) => {
     let destroyed = false;
     const connect = () => {
       if (destroyed) return;
-      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+      const protocol =
+        window.location.protocol === "https:" ? "wss:" : "ws:";
       const host = window.location.host;
       const newWs = new WebSocket(`${protocol}//${host}/api/ws-signaling`);
 

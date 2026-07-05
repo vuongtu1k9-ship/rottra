@@ -170,9 +170,9 @@ export async function generateAgentImage(
   const profile = AGENT_CREATIVE_PROFILES[agentId] || AGENT_CREATIVE_PROFILES.toLuong;
   const { width = 800, height = 450, seed } = options;
 
-  const fullPrompt = `${profile.imageStyle}, ${productPrompt}, product photography, high quality, detailed`;
+  const fullPrompt = `(safe for work, family friendly, no nsfw, no violence), ${profile.imageStyle}, ${productPrompt}, product photography, high quality, detailed`;
   const seedVal = seed ?? Math.floor(Math.random() * 100000);
-  const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(fullPrompt)}?width=${width}&height=${height}&nologo=true&seed=${seedVal}`;
+  const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(fullPrompt)}?width=${width}&height=${height}&nologo=true&nofeed=true&safe=true&seed=${seedVal}`;
 
   try {
     const controller = new AbortController();

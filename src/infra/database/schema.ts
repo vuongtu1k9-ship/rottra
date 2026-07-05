@@ -872,7 +872,7 @@ export const rlQTable = pgTable(
     visitCount: integer().notNull().default(0), // Số lần state-action này được thực hiện
     lastUpdated: timestamp({ withTimezone: true, mode: "string" }).defaultNow(),
   },
-  (table: any) => [index("idx_rl_qtable_state").on(table.stateHash)]
+  (table: any) => [index("idx_rl_qtable_state").on(table.stateHash)],
 );
 
 // Re-export federated learning tables

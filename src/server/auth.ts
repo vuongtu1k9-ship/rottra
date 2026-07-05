@@ -13,7 +13,7 @@ export const auth = betterAuth({
     "http://127.0.0.1:5173",
     "http://192.168.1.63:5173",
     "http://192.168.1.145:5173",
-    "https://rottra.pages.dev"
+    "https://rottra.pages.dev",
   ],
   database: drizzleAdapter(db, {
     provider: "pg",

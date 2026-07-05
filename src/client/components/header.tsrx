@@ -32,6 +32,7 @@ import { getPrimaryImage } from "~/client/components/product-card.tsrx";
 import { currentLang, setLanguage, t, formatCurrency, currencySymbol } from "~/client/stores/i18n-store";
 import { isTranslating, translateProgress, translatedLang, translatePage, restorePage } from "~/client/utils/page-translator";
 import { preCacheTranslations } from "~/client/utils/pre-cache-translations";
+import { UserAvatar, getInitials, getGradientForName } from "~/client/components/user-avatar";
 
 export component Header(props: any) {
   const session = authClient.useSession();
@@ -250,13 +251,45 @@ export component Header(props: any) {
         const res = await fetch("/api/agent/system-profile");
         if (res.ok && res.headers.get("content-type")?.includes("application/json")) {
           const data = await res.json();
-          if (data.success && data.profile && data.profile.avatar && data.profile.avatar.link) {
-            let avatarUrl = data.profile.avatar.link;
-            if (avatarUrl.includes("default-avatar.png")) {
-              avatarUrl = "/favicon.ico?v=3";
+          if (data.success && data.profile) {
+            if (data.profile.name) {
+              setAgentName(data.profile.name);
             }
-            setAgentAvatar(avatarUrl);
-            localStorage.setItem("rottra_agent_avatar", avatarUrl);
+            if (data.profile.avatar && data.profile.avatar.link) {
+              let avatarUrl = data.profile.avatar.link;
+              if (avatarUrl.includes("default-avatar.png") || avatarUrl === "/favicon.ico?v=3") {
+                avatarUrl = "";
+              }
+              setAgentAvatar(avatarUrl);
+              localStorage.setItem("rottra_agent_avatar", avatarUrl);
+            }
+            
+            // Dynamically update favicon based on avatar or initials
+            if (typeof window !== "undefined") {
+              const favicon = document.getElementById("favicon") as HTMLLinkElement;
+              if (favicon) {
+                if (agentAvatar()) {
+                  favicon.href = agentAvatar();
+                } else {
+                  const canvas = document.createElement("canvas");
+                  canvas.width = 64;
+                  canvas.height = 64;
+                  const ctx = canvas.getContext("2d");
+                  if (ctx) {
+                    ctx.beginPath();
+                    ctx.arc(32, 32, 32, 0, 2 * Math.PI);
+                    ctx.fillStyle = "#0d9488"; // Teal match
+                    ctx.fill();
+                    ctx.fillStyle = "#ffffff";
+                    ctx.font = "bold 32px sans-serif";
+                    ctx.textAlign = "center";
+                    ctx.textBaseline = "middle";
+                    ctx.fillText(getInitials(agentName() || "Trợ Lý Cao Cấp Rottra"), 32, 34);
+                    favicon.href = canvas.toDataURL("image/png");
+                  }
+                }
+              }
+            }
           }
         }
       } catch (e) {
@@ -400,16 +433,16 @@ export component Header(props: any) {
     />
     <div class="w-full px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
       <A
-        href="/assistant"
+        href="/"
         aria-label={t("Trang chủ")}
         class={`text-xl font-extrabold tracking-tighter hover:text-blue-600 transition-colors flex items-center gap-2 shrink-0 ${
           theme() === "dark" ? "text-white" : "text-gray-900"
         }`}>
-        if (agentAvatar()) {
-          <img src={agentAvatar()} class="w-8 h-8 rounded-full object-cover shadow-sm shrink-0" alt="Rottra Avatar" />
-        } else {
-          <Icon path={buildingStorefront} class={`${getIconSize()} text-blue-600`} />
-        }
+        <UserAvatar 
+          name={agentName() || "Trợ Lý Cao Cấp Rottra"} 
+          image={agentAvatar() || null} 
+          class="w-8 h-8 text-sm shadow-sm shrink-0" 
+        />
         <span class="hidden sm:inline">{t("Rottra")}</span>
       </A>
       <div class="flex items-center gap-2 md:gap-6 overflow-visible flex-1 justify-end">

@@ -23,7 +23,6 @@ export component SettingSystem(props: any) {
     text: "#1f2937",
   });
 
-
   const [autoBoost, setAutoBoost] = createSignal(false);
   const [wifiPerf, setWifiPerf] = createSignal(false);
   const [autoPilot, setAutoPilot] = createSignal(
@@ -127,7 +126,9 @@ export component SettingSystem(props: any) {
 
       // Lấy Client Env
       const resolution =
-        typeof window !== "undefined" ? `${Math.round(window.screen.width * window.devicePixelRatio)}x${Math.round(window.screen.height * window.devicePixelRatio)}` : "Không xác định";
+        typeof window !== "undefined"
+          ? `${Math.round(window.screen.width * window.devicePixelRatio)}x${Math.round(window.screen.height * window.devicePixelRatio)}`
+          : "Không xác định";
       const language = navigator?.language ?? "Không xác định";
       const timezone = Intl?.DateTimeFormat()?.resolvedOptions()?.timeZone ?? "Không xác định";
 
@@ -338,7 +339,6 @@ export component SettingSystem(props: any) {
               />
             </div>
           </div>
-
           <div class={`pt-6 border-t flex items-center justify-between ${theme() === "dark" ? "border-white/10" : "border-gray-100"}`}>
             <div class="flex items-center gap-3">
               <div class={`p-2 rounded-xl ${theme() === "dark" ? "bg-orange-900/40 text-orange-500" : "bg-orange-50 text-orange-600"}`}>

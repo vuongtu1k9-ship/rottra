@@ -100,13 +100,17 @@ async function processTranslationQueue(lang: string) {
       if (res.status === 405 || res.status === 404 || !res.headers.get("content-type")?.includes("application/json")) {
         console.warn("[AITranslator] Translation service is not available (static host). Disabling dynamic requests.");
         isTranslationServiceAvailable = false;
-        try { sessionStorage.setItem("rottra_translation_disabled", "true"); } catch {}
+        try {
+          sessionStorage.setItem("rottra_translation_disabled", "true");
+        } catch {}
       }
     }
   } catch (error) {
     console.error("Dynamic translation failed:", error);
     isTranslationServiceAvailable = false;
-    try { sessionStorage.setItem("rottra_translation_disabled", "true"); } catch {}
+    try {
+      sessionStorage.setItem("rottra_translation_disabled", "true");
+    } catch {}
   }
 }
 
@@ -187,7 +191,7 @@ const [exchangeRates, setExchangeRates] = createSignal<Record<string, number>>({
 const DEFAULT_EXCHANGE_RATES: Record<string, number> = {
   VND: 1,
   USD: 0.000041,
-  CNY: 0.00030,
+  CNY: 0.0003,
   JPY: 0.0064,
   EUR: 0.000038,
   ILS: 0.00015,

@@ -19,17 +19,17 @@ function zeroMatrix(rows: number, cols: number): number[][] {
 const sigmoid = (x: number) => 1 / (1 + Math.exp(-x));
 const sigmoidDerivative = (x: number) => x * (1 - x); // Do x ở đây đã là output của sigmoid
 
-const transpose = (m: number[][]) => m[0].map((_, i) => m.map(row => row[i]));
+const transpose = (m: number[][]) => m[0].map((_, i) => m.map((row) => row[i]));
 const vecDot = (a: number[], b: number[]) => a.reduce((sum, v, i) => sum + v * b[i], 0);
 
 const zipWith = (a: number[], b: number[], f: (x: number, y: number) => number) => a.map((v, i) => f(v, b[i]));
 const zipMat = (a: number[][], b: number[][], f: (x: number, y: number) => number) => a.map((row, i) => zipWith(row, b[i], f));
-const mapMat = (m: number[][], f: (x: number) => number) => m.map(row => row.map(f));
+const mapMat = (m: number[][], f: (x: number) => number) => m.map((row) => row.map(f));
 
 // Nhân ma trận (BQN-Style)
 function dotProduct(m1: number[][], m2: number[][]): number[][] {
   const m2T = transpose(m2);
-  return m1.map(row => m2T.map(col => vecDot(row, col)));
+  return m1.map((row) => m2T.map((col) => vecDot(row, col)));
 }
 
 export class TinyNeuralNet {
@@ -69,15 +69,19 @@ export class TinyNeuralNet {
 
     // Helper: BQN-style ADAM Update apply
     const applyAdam = (w: number[][], m: number[][], v: number[][], grad: number[][], t: number) => {
-      const gNeg = mapMat(grad, g => -g); // Cực tiểu hóa Loss
+      const gNeg = mapMat(grad, (g) => -g); // Cực tiểu hóa Loss
       const mNew = zipMat(m, gNeg, (oldM, g) => beta1 * oldM + (1 - beta1) * g);
       const vNew = zipMat(v, gNeg, (oldV, g) => beta2 * oldV + (1 - beta2) * g * g);
-      
-      const wNew = zipMat(w, zipMat(mNew, vNew, (newM, newV) => {
-        const m_hat = newM / (1 - Math.pow(beta1, t));
-        const v_hat = newV / (1 - Math.pow(beta2, t));
-        return (lr * m_hat) / (Math.sqrt(v_hat) + epsilon);
-      }), (oldW, step) => oldW - step);
+
+      const wNew = zipMat(
+        w,
+        zipMat(mNew, vNew, (newM, newV) => {
+          const m_hat = newM / (1 - Math.pow(beta1, t));
+          const v_hat = newV / (1 - Math.pow(beta2, t));
+          return (lr * m_hat) / (Math.sqrt(v_hat) + epsilon);
+        }),
+        (oldW, step) => oldW - step,
+      );
 
       return { wNew, mNew, vNew };
     };

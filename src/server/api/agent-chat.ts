@@ -4875,19 +4875,40 @@ Tạo 3 câu hỏi tiếp theo liên quan trực tiếp đến nội dung trên.
 
       if (isShoppingQuery) {
         const allProds = await getCachedProducts();
-        const keywords = ["gao", "cafe", "tra", "sau rieng", "xoai", "rau", "heo", "bo", "mang phu", "keo cat", "may say", "mit say", "cam bien", "bo dieu khien", "phan bon", "than sinh", "laptop", "macbook", "dell", "xps"];
+        const keywords = [
+          "gao",
+          "cafe",
+          "tra",
+          "sau rieng",
+          "xoai",
+          "rau",
+          "heo",
+          "bo",
+          "mang phu",
+          "keo cat",
+          "may say",
+          "mit say",
+          "cam bien",
+          "bo dieu khien",
+          "phan bon",
+          "than sinh",
+          "laptop",
+          "macbook",
+          "dell",
+          "xps",
+        ];
         const queryNorm = normalizeQuery(query);
-        const matchedKeywords = keywords.filter(kw => lowerQuery.includes(kw) || queryNorm.includes(kw));
-        
+        const matchedKeywords = keywords.filter((kw) => lowerQuery.includes(kw) || queryNorm.includes(kw));
+
         let candidateProds = allProds;
         if (matchedKeywords.length > 0) {
           candidateProds = allProds.filter((p: any) => {
             const nameNorm = normalizeQuery(p.name);
             const catNorm = normalizeQuery(p.category || "");
-            return matchedKeywords.some(kw => nameNorm.includes(kw) || catNorm.includes(kw));
+            return matchedKeywords.some((kw) => nameNorm.includes(kw) || catNorm.includes(kw));
           });
         }
-        
+
         if (candidateProds.length === 0) {
           candidateProds = allProds.slice(0, 10);
         }
@@ -4898,7 +4919,7 @@ Tạo 3 câu hỏi tiếp theo liên quan trực tiếp đến nội dung trên.
           // Context để RL học (ví dụ: query của khách)
           const stateHashContext = { userId, query: queryNorm };
           const bestProduct = await recommendProduct(stateHashContext, candidateProds);
-          
+
           if (bestProduct) {
             // Đưa sản phẩm được RL chọn lên ĐẦU TIÊN
             productsList = [bestProduct, ...candidateProds.filter((p: any) => p.id !== bestProduct.id)].slice(0, 6);

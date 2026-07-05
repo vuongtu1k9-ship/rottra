@@ -171,7 +171,7 @@ export const initRAGEngine = async (forceRefresh = false) => {
 
   // Xây dựng kho từ vựng từ toàn bộ tài liệu trong database
   const finalFreqs: Record<string, number> = {};
-  
+
   if (!soaPool) {
     const dim = 1024; // BGE-M3 Dense Dim
     soaPool = new SoAVectorPool(dim, dbDocs.length + 500);
@@ -543,7 +543,7 @@ export const hybridRetrieve = async (
 
     // B. DENSE SCORE (Cosine similarity của L2 Embedding)
     // Trích xuất trực tiếp từ bộ đệm mảng phẳng đã tính toán sẵn nhờ SoAVectorPool
-    const denseScore = (doc.vectorId !== undefined && soaPool) ? allDenseScores[doc.vectorId] : 0;
+    const denseScore = doc.vectorId !== undefined && soaPool ? allDenseScores[doc.vectorId] : 0;
 
     // C. HYBRID FUSION (Trọng số 0.4 Sparse + 0.6 Dense)
     const maxPossibleSparse = queryWords.length * 10 + queryBigrams.length * 8;

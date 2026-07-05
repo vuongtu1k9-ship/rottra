@@ -41,9 +41,13 @@ export function validateBaseAnswer(answer: string): { isSafe: boolean; reason?: 
   }
 
   // 4. Các từ ngữ cấm (Tùy chỉnh thêm theo ngành hàng)
-  const profanityList = ["đéo", "vcl", "dm", "đm", "vl", "đm", "ngu", "lừa đảo"];
+  const profanityList = ["đéo", "vcl", "dm", "đm", "vl", "ngu", "lừa đảo"];
   for (const word of profanityList) {
-    if (lowerAnswer.includes(word)) {
+    // Escape the word just in case, though these are simple strings
+    // Use a regex that matches the word bounded by non-word characters or start/end of string
+    // \s|^|$ is safer for Vietnamese than \b which might fail on characters like 'đ'
+    const regex = new RegExp(`(?:^|\\s|[.,!?;:"'\\[\\]()\\\\/_-])${word}(?:$|\\s|[.,!?;:"'\\[\\]()\\\\/_-])`, "i");
+    if (regex.test(lowerAnswer)) {
       return {
         isSafe: false,
         reason: `TỪ_NGỮ_CẤM: Câu trả lời chứa từ ngữ không phù hợp (${word}).`,

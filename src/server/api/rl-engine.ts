@@ -22,10 +22,7 @@ export function hashState(context: any): string {
  */
 export async function getQValue(stateHash: string, actionId: string): Promise<number> {
   const record = await db.query.rlQTable.findFirst({
-    where: and(
-      eq(rlQTable.stateHash, stateHash),
-      eq(rlQTable.actionId, actionId)
-    ),
+    where: and(eq(rlQTable.stateHash, stateHash), eq(rlQTable.actionId, actionId)),
   });
   return record?.qValue || 0;
 }
@@ -35,10 +32,7 @@ export async function getQValue(stateHash: string, actionId: string): Promise<nu
  */
 export async function updateQValue(stateHash: string, actionId: string, reward: number): Promise<void> {
   const record = await db.query.rlQTable.findFirst({
-    where: and(
-      eq(rlQTable.stateHash, stateHash),
-      eq(rlQTable.actionId, actionId)
-    ),
+    where: and(eq(rlQTable.stateHash, stateHash), eq(rlQTable.actionId, actionId)),
   });
 
   if (record) {
@@ -49,12 +43,13 @@ export async function updateQValue(stateHash: string, actionId: string, reward: 
 
     // Q(s,a) = Q(s,a) + alpha * (effectiveReward - Q(s,a))
     const newQValue = record.qValue + ALPHA * (effectiveReward - record.qValue);
-    
-    await db.update(rlQTable)
-      .set({ 
-        qValue: newQValue, 
+
+    await db
+      .update(rlQTable)
+      .set({
+        qValue: newQValue,
         visitCount: record.visitCount + 1,
-        lastUpdated: new Date().toISOString()
+        lastUpdated: new Date().toISOString(),
       })
       .where(eq(rlQTable.id, record.id));
   } else {
@@ -66,7 +61,7 @@ export async function updateQValue(stateHash: string, actionId: string, reward: 
       actionId,
       qValue: initialQValue,
       visitCount: 1,
-      lastUpdated: new Date().toISOString()
+      lastUpdated: new Date().toISOString(),
     });
   }
 }
@@ -76,7 +71,7 @@ export async function updateQValue(stateHash: string, actionId: string, reward: 
  */
 export async function recommendProduct(context: any, availableProducts: any[]): Promise<any> {
   if (!availableProducts || availableProducts.length === 0) return null;
-  
+
   const stateHash = hashState(context);
   const isExplore = Math.random() < EPSILON;
 

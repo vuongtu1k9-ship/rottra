@@ -448,6 +448,34 @@
 - `public/default-avatar.png` - Tự động cập nhật.
 - `public/favicon.ico` - Tự động cập nhật.
 - `public/favicon.svg` - Tự động cập nhật.
+- `public/assets/Rottra-default-agri.png` - Tự động cập nhật.
+- `scripts/check-agents.ts` - Tự động cập nhật.
+- `scripts/check-base64.ts` - Tự động cập nhật.
+- `scripts/check-products.ts` - Tự động cập nhật.
+- `scripts/create-chatmessage.ts` - Tự động cập nhật.
+- `scripts/dummy-mcp-server.ts` - Tự động cập nhật.
+- `scripts/list-tables.ts` - Tự động cập nhật.
+- `scripts/test-mcp.ts` - Tự động cập nhật.
+- `src/core/nlp-cognitive/mcp-client.ts` - Tự động cập nhật.
+- `src/client/mocks/node-polyfills.ts` - Tự động cập nhật.
+- `src/client/stores/ai-translator.ts` - Tự động cập nhật.
+- `src/client/utils/page-translator.ts` - Tự động cập nhật.
+- `src/client/views/dashboard/follow-ai.tsrx` - Tự động cập nhật.
+- `src/client/views/dashboard/heavy-chart.tsrx` - Tự động cập nhật.
+- `src/core/neural-memory/vector-rag.ts` - Tự động cập nhật.
+- `src/core/nlp-cognitive/recognizer.ts` - Tự động cập nhật.
+- `src/core/nlp-cognitive/tiny-neural-net.ts` - Tự động cập nhật.
+- `src/core/quant-engine/soa-vector-pool.ts` - Tự động cập nhật.
+- `src/server/api/creative-engine.ts` - Tự động cập nhật.
+- `src/server/auth.ts` - Tự động cập nhật.
+- `scripts/db-ops/fix-product-images.ts` - Tự động cập nhật.
+- `scripts/db-ops/fix-seed-economy.ts` - Tự động cập nhật.
+- `src/server/helpers/moderator.ts` - Tự động cập nhật.
+- `scripts/db-ops/assign-local-ai-images.ts` - Tự động cập nhật.
+- `scripts/db-ops/fix-agent-avatars-ai.ts` - Tự động cập nhật.
+- `scripts/db-ops/fix-agent-avatars-local.ts` - Tự động cập nhật.
+- `scripts/db-ops/fix-product-images-ai.ts` - Tự động cập nhật.
+- `public/images/RottraAI_avatar.png` - Tự động cập nhật.
 
 ## Evidence of Completion
 

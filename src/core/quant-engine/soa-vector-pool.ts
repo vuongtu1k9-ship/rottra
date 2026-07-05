@@ -1,6 +1,6 @@
 /**
  * Structure of Arrays (SoA) Vector Pool
- * 
+ *
  * Quản lý hàng triệu vector nhúng (embeddings) trong một khối Float32Array phẳng duy nhất.
  * Xóa bỏ độ trễ Garbage Collection, tối ưu L1/L2 Cache của CPU.
  */
@@ -39,10 +39,10 @@ export class SoAVectorPool {
 
     const index = this.size;
     const offset = index * this.dimension;
-    
+
     // Sao chép khối cực nhanh
     this.buffer.set(vector, offset);
-    
+
     this.size++;
     return index; // Pointer định danh
   }
@@ -63,14 +63,15 @@ export class SoAVectorPool {
     const offsetB = idB * dim;
     const buf = this.buffer;
     let dot = 0;
-    
+
     // Loop unroll x4
     let j = 0;
     for (; j <= dim - 4; j += 4) {
-      dot += buf[offsetA + j] * buf[offsetB + j] +
-             buf[offsetA + j + 1] * buf[offsetB + j + 1] +
-             buf[offsetA + j + 2] * buf[offsetB + j + 2] +
-             buf[offsetA + j + 3] * buf[offsetB + j + 3];
+      dot +=
+        buf[offsetA + j] * buf[offsetB + j] +
+        buf[offsetA + j + 1] * buf[offsetB + j + 1] +
+        buf[offsetA + j + 2] * buf[offsetB + j + 2] +
+        buf[offsetA + j + 3] * buf[offsetB + j + 3];
     }
     for (; j < dim; j++) {
       dot += buf[offsetA + j] * buf[offsetB + j];
@@ -84,14 +85,14 @@ export class SoAVectorPool {
     const offsetT = idTarget * dim;
     const offsetS = idSource * dim;
     const buf = this.buffer;
-    
+
     let normSq = 0;
     for (let j = 0; j < dim; j++) {
       const avg = (buf[offsetT + j] + buf[offsetS + j]) / 2.0;
       buf[offsetT + j] = avg;
       normSq += avg * avg;
     }
-    
+
     // Normalize L2 lại cho Target
     const norm = Math.sqrt(normSq) || 1e-12;
     for (let j = 0; j < dim; j++) {
@@ -104,7 +105,7 @@ export class SoAVectorPool {
     const dim = this.dimension;
     const count = this.size;
     const buf = this.buffer;
-    
+
     // Lưu ý: Các vector từ RAG Embedder đều ĐÃ ĐƯỢC CHUẨN HÓA L2 (L2 Normalized).
     // Nên độ dài (Norm) của chúng luôn = 1. Cosine Similarity = Dot Product.
     const scores = new Float32Array(count);
@@ -113,25 +114,26 @@ export class SoAVectorPool {
     for (let i = 0; i < count; i++) {
       let dot = 0;
       const offset = i * dim;
-      
+
       // Loop unrolling for extreme performance (8-10x speedup)
       let j = 0;
       for (; j <= dim - 8; j += 8) {
-        dot += buf[offset + j] * queryVector[j] +
-               buf[offset + j + 1] * queryVector[j + 1] +
-               buf[offset + j + 2] * queryVector[j + 2] +
-               buf[offset + j + 3] * queryVector[j + 3] +
-               buf[offset + j + 4] * queryVector[j + 4] +
-               buf[offset + j + 5] * queryVector[j + 5] +
-               buf[offset + j + 6] * queryVector[j + 6] +
-               buf[offset + j + 7] * queryVector[j + 7];
+        dot +=
+          buf[offset + j] * queryVector[j] +
+          buf[offset + j + 1] * queryVector[j + 1] +
+          buf[offset + j + 2] * queryVector[j + 2] +
+          buf[offset + j + 3] * queryVector[j + 3] +
+          buf[offset + j + 4] * queryVector[j + 4] +
+          buf[offset + j + 5] * queryVector[j + 5] +
+          buf[offset + j + 6] * queryVector[j + 6] +
+          buf[offset + j + 7] * queryVector[j + 7];
       }
-      
+
       // Xử lý phần dư
       for (; j < dim; j++) {
         dot += buf[offset + j] * queryVector[j];
       }
-      
+
       scores[i] = dot;
     }
     return scores;
@@ -147,12 +149,12 @@ export class SoAVectorPool {
     for (let i = 0; i < count; i++) {
       results.push({ index: i, score: scores[i] });
     }
-    
+
     // Sort descending theo score
     results.sort((a, b) => b.score - a.score);
     return results.slice(0, k);
   }
-  
+
   public getSize(): number {
     return this.size;
   }

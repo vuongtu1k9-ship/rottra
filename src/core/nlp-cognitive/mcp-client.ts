@@ -1,5 +1,7 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+import fs from "fs";
+import path from "path";
 
 export class McpClientManager {
   private static instance: McpClientManager;
@@ -15,9 +17,31 @@ export class McpClientManager {
   }
 
   /**
+   * Load mcp-config.json and connect all servers automatically
+   */
+  public async loadConfigAndConnectAll(): Promise<void> {
+    try {
+      const configPath = path.join(process.cwd(), "mcp-config.json");
+      if (!fs.existsSync(configPath)) {
+        console.log("[MCP] No mcp-config.json found, skipping auto-connect.");
+        return;
+      }
+      const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
+      if (config && config.mcpServers) {
+        for (const [serverId, serverConfig] of Object.entries<any>(config.mcpServers)) {
+          console.log(`[MCP] Auto-connecting to configured server: ${serverId}...`);
+          await this.connectStdio(serverId, serverConfig.command, serverConfig.args || [], serverConfig.env);
+        }
+      }
+    } catch (e) {
+      console.error("[MCP] Error loading mcp-config.json:", e);
+    }
+  }
+
+  /**
    * Connects to a local MCP server using Stdio transport.
    */
-  public async connectStdio(serverId: string, command: string, args: string[]): Promise<void> {
+  public async connectStdio(serverId: string, command: string, args: string[], env?: Record<string, string>): Promise<void> {
     if (this.clients.has(serverId)) {
       return;
     }
@@ -25,13 +49,11 @@ export class McpClientManager {
     try {
       const transport = new StdioClientTransport({
         command,
-        args
+        args,
+        env: env ? { ...process.env, ...env } : process.env,
       });
 
-      const client = new Client(
-        { name: `rottra-mcp-${serverId}`, version: "1.0.0" },
-        { capabilities: {} }
-      );
+      const client = new Client({ name: `rottra-mcp-${serverId}`, version: "1.0.0" }, { capabilities: {} });
 
       await client.connect(transport);
       this.clients.set(serverId, client);
@@ -73,7 +95,7 @@ export class McpClientManager {
               serverId,
               name: tool.name,
               description: tool.description || "",
-              inputSchema: tool.inputSchema
+              inputSchema: tool.inputSchema,
             });
           }
         }
@@ -97,7 +119,7 @@ export class McpClientManager {
     console.log(`[MCP] Calling tool ${toolName} on server ${serverId} with args:`, args);
     const result = await client.callTool({
       name: toolName,
-      arguments: args
+      arguments: args,
     });
 
     return result;

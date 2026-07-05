@@ -6725,23 +6725,38 @@ app.put("/admin/product", verifyAuth, async (c: any) => {
 app.delete("/admin/product/:id", verifyAuth, async (c: any) => {
   const currentUser = c.get("user");
   const id = c.req.param("id");
-  const body = await c.req.json();
-  const qtyToRemove = body.quantity;
+  let qtyToRemove: number | undefined = undefined;
+  
+  try {
+    const body = await c.req.json();
+    qtyToRemove = body?.quantity;
+  } catch (e) {
+    // No body or invalid JSON, default to full deletion
+  }
 
   const productItem = await db.query.product.findFirst({
     where: eq(product.id, id),
   });
   if (!productItem) return c.json({ error: "Not found" }, 404);
 
-  if (qtyToRemove >= (productItem.quantity ?? 0)) {
-    // Xóa toàn bộ file media của sản phẩm này
+  if (qtyToRemove === undefined || qtyToRemove >= (productItem.quantity ?? 0)) {
+    try {
+      await db.delete(product).where(eq(product.id, id));
+    } catch (dbError: any) {
+      console.error("[Product Delete Error]:", dbError);
+      return c.json(
+        { error: "Sản phẩm này đang bị ràng buộc (có đơn hàng/dữ liệu liên quan) nên không thể xóa." },
+        400
+      );
+    }
+
+    // Xóa toàn bộ file media của sản phẩm này sau khi DB delete thành công
     if (productItem.media) {
       for (const m of productItem.media as any[]) {
         const link = getMediaLink(m);
         if (link) await deleteFileRecord(link);
       }
     }
-    await db.delete(product).where(eq(product.id, id));
 
     await logActivity(
       currentUser?.id || null,

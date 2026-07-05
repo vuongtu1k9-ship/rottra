@@ -54,8 +54,8 @@ const DEFAULT_CURRENCY_RATES = {
   MYR: 0.00019,
   PHP: 0.0023,
   JPY: 0.0064,
-  CNY: 0.00030,
-  VND: 1
+  CNY: 0.0003,
+  VND: 1,
 };
 
 async function fetchCurrencyRates() {
@@ -186,13 +186,17 @@ async function translateBatch(texts: string[], targetLang: string): Promise<Reco
       if (res.status === 405 || res.status === 404 || !res.headers.get("content-type")?.includes("application/json")) {
         console.warn("[PageTranslator] Translation service is not available (static host). Disabling batch requests.");
         isTranslationServiceAvailable = false;
-        try { sessionStorage.setItem("rottra_translation_disabled", "true"); } catch {}
+        try {
+          sessionStorage.setItem("rottra_translation_disabled", "true");
+        } catch {}
       }
     }
   } catch (err) {
     console.error("[PageTranslator] Batch translate error:", err);
     isTranslationServiceAvailable = false;
-    try { sessionStorage.setItem("rottra_translation_disabled", "true"); } catch {}
+    try {
+      sessionStorage.setItem("rottra_translation_disabled", "true");
+    } catch {}
   }
   return {};
 }

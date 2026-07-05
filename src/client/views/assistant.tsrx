@@ -1125,7 +1125,7 @@ export component Assistant(props: any) {
 
   const renderProductCarousel = (msg: any) => {
     if (!msg.products || msg.products.length === 0) return null;
-    
+
     const formatCurrency = (val: number) => {
       return val.toLocaleString("vi-VN") + " ₫";
     };
@@ -1144,65 +1144,55 @@ export component Assistant(props: any) {
       }
       updateCart(cart, isLoggedIn());
       alert(`Đã thêm ${p.name} vào giỏ hàng! 🛒`);
-      
+
       // GỬI PHẦN THƯỞNG CHO RL ENGINE (Q-Learning)
       fetch("/api/rpc/rl/reward", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          stateHash: msg.stateHash || "global_user_context", 
-          actionId: pid, 
-          reward: 10 // Thưởng lớn cho chốt đơn
-        })
+        body: JSON.stringify({
+          stateHash: msg.stateHash || "global_user_context",
+          actionId: pid,
+          reward: 10, // Thưởng lớn cho chốt đơn
+        }),
       }).catch(() => {});
     };
 
     return <tsx>
       <div class="flex flex-col gap-2 mt-4 w-full select-none">
         <div class="relative w-full flex items-center">
-          <div 
+          <div
             class="w-full flex gap-4 overflow-x-auto scrollbar-hide py-2 px-1 scroll-smooth"
-            style="scroll-snap-type: x mandatory; -ms-overflow-style: none; scrollbar-width: none;"
-          >
+            style="scroll-snap-type: x mandatory; -ms-overflow-style: none; scrollbar-width: none;">
             {msg.products.map((p: any) => {
               const imgUrl = getPrimaryImage(p);
-              return (
-                <div 
-                  class="flex-shrink-0 w-[220px] bg-white dark:bg-zinc-900 rounded-2xl border border-gray-150 dark:border-white/10 overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col justify-between"
-                  style="scroll-snap-align: start;"
-                >
-                  <div class="aspect-[4/3] w-full bg-gray-50 dark:bg-zinc-800 relative">
-                    <img 
-                      src={imgUrl} 
-                      alt={p.name} 
-                      class="w-full h-full object-cover"
-                      loading="lazy"
-                    />
+              return <div
+                class="flex-shrink-0 w-[220px] bg-white dark:bg-zinc-900 rounded-2xl border border-gray-150 dark:border-white/10 overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col justify-between"
+                style="scroll-snap-align: start;">
+                <div class="aspect-[4/3] w-full bg-gray-50 dark:bg-zinc-800 relative">
+                  <img src={imgUrl} alt={p.name} class="w-full h-full object-cover" loading="lazy" />
+                </div>
+                <div class="p-3 flex flex-col gap-1 text-left flex-grow justify-between">
+                  <div>
+                    <h4 class="font-bold text-[12px] text-gray-800 dark:text-zinc-100 line-clamp-1">
+                      {p.name}
+                    </h4>
+                    <div class="text-[10px] text-gray-500 dark:text-zinc-400 font-medium mt-0.5 line-clamp-2">
+                      {p.description || "Nông sản chất lượng cao từ hệ sinh thái Rottra."}
+                    </div>
                   </div>
-                  <div class="p-3 flex flex-col gap-1 text-left flex-grow justify-between">
-                    <div>
-                      <h4 class="font-bold text-[12px] text-gray-800 dark:text-zinc-100 line-clamp-1">
-                        {p.name}
-                      </h4>
-                      <div class="text-[10px] text-gray-500 dark:text-zinc-400 font-medium mt-0.5 line-clamp-2">
-                        {p.description || "Nông sản chất lượng cao từ hệ sinh thái Rottra."}
-                      </div>
+                  <div class="mt-2.5">
+                    <div class="text-blue-600 dark:text-blue-400 font-bold text-xs">
+                      {formatCurrency(Number(p.price))}
                     </div>
-                    <div class="mt-2.5">
-                      <div class="text-blue-600 dark:text-blue-400 font-bold text-xs">
-                        {formatCurrency(Number(p.price))}
-                      </div>
-                      <button
-                        onClick={() => handleAddToCart(p)}
-                        class="mt-2 w-full py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-[10px] shadow-sm transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-1 cursor-pointer"
-                      >
-                        <Icon path={shoppingCart} class="w-3 h-3 animate-pulse" />
-                        <span>Mua ngay</span>
-                      </button>
-                    </div>
+                    <button
+                      onClick={() => handleAddToCart(p)}
+                      class="mt-2 w-full py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-[10px] shadow-sm transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-1 cursor-pointer">
+                      <Icon path={shoppingCart} class="w-3 h-3 animate-pulse" />
+                      <span>Mua ngay</span>
+                    </button>
                   </div>
                 </div>
-              );
+              </div>;
             })}
           </div>
         </div>
@@ -1228,7 +1218,7 @@ export component Assistant(props: any) {
     // Parse Chain of Thought <think> blocks
     let thoughtProcess = "";
     let finalAnswer = msgText;
-    
+
     if (msgText.includes("<think>")) {
       const parts = msgText.split("</think>");
       if (parts.length > 1) {
@@ -1242,19 +1232,20 @@ export component Assistant(props: any) {
 
     return <tsx>
       <div class="flex flex-col gap-3">
-        {thoughtProcess ? (
-          <details class="group bg-black/5 dark:bg-white/5 rounded-xl border border-gray-200 dark:border-white/10 overflow-hidden text-sm mb-2">
-            <summary class="px-4 py-2 cursor-pointer font-semibold text-gray-600 dark:text-gray-400 select-none hover:bg-black/10 dark:hover:bg-white/10 transition-colors flex items-center outline-none">
-              <span class="mr-2 opacity-70">🧠</span> Quá trình suy luận (Chain of Thought)
-            </summary>
-            <div class="p-4 pt-3 text-gray-500 dark:text-gray-400 italic text-[13px] leading-relaxed border-t border-gray-200 dark:border-white/10 bg-black/5 dark:bg-black/20" innerHTML={formatMarkdown(thoughtProcess)}></div>
-          </details>
-        ) : null}
-        
-        {finalAnswer ? (
-          <div class="leading-relaxed text-left break-words" innerHTML={formatMarkdown(finalAnswer)}></div>
-        ) : null}
-        
+        {thoughtProcess
+          ? <details
+              class="group bg-black/5 dark:bg-white/5 rounded-xl border border-gray-200 dark:border-white/10 overflow-hidden text-sm mb-2">
+              <summary
+                class="px-4 py-2 cursor-pointer font-semibold text-gray-600 dark:text-gray-400 select-none hover:bg-black/10 dark:hover:bg-white/10 transition-colors flex items-center outline-none">
+                <span class="mr-2 opacity-70">🧠</span>
+                Quá trình suy luận (Chain of Thought)
+              </summary>
+              <div
+                class="p-4 pt-3 text-gray-500 dark:text-gray-400 italic text-[13px] leading-relaxed border-t border-gray-200 dark:border-white/10 bg-black/5 dark:bg-black/20"
+                innerHTML={formatMarkdown(thoughtProcess)}></div>
+            </details>
+          : null}
+        {finalAnswer ? <div class="leading-relaxed text-left break-words" innerHTML={formatMarkdown(finalAnswer)}></div> : null}
         {renderProductCarousel(msg)}
       </div>
     </tsx>;
