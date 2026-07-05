@@ -434,8 +434,8 @@ export component Header(props: any) {
     />
     <div class="w-full px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
       <A
-        href="/"
-        aria-label={t("Trang chủ")}
+        href="/assistant"
+        aria-label={t("Trợ lý AI")}
         class={`text-xl font-extrabold tracking-tighter hover:text-blue-600 transition-colors flex items-center gap-2 shrink-0 ${
           theme() === "dark" ? "text-white" : "text-gray-900"
         }`}>
