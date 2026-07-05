@@ -138,59 +138,7 @@ export async function getOrGenerateMarketPage(productSlug: string, locationSlug:
   avgPrice = Math.round(avgPrice * (1 + devPercent / 100));
   volume = Math.round(volume * (1 + (hash % 10) / 10));
 
-  // 3. AI semantic content generation using Gemini API
-  const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-  let title = `Tình hình Thị trường ${productName} tại ${locationName} mới nhất`;
-  let metaDescription = `Cập nhật nhanh giá ${productName} tại khu vực ${locationName}. Phân tích biến động cung cầu, hoạt động giao thương của các đại lý nông nghiệp địa phương.`;
-  let aiContent = "";
-
-  const systemPrompt = `You are a professional agricultural market analyst in Vietnam.
-Generate a structured, SEO-optimized Vietnamese market report for the local page.
-Return the output with strict markdown format. Include headings, lists, and advice.
-Avoid generic placeholder texts. Do not mention that you are an AI.`;
-
-  const userPrompt = `Hãy viết một bài viết phân tích thị trường chi tiết về nông sản "${productName}" tại tỉnh/thành "${locationName}".
-Các số liệu thống kê thời gian thực hiện tại:
-- Giá giao dịch trung bình trên sàn Rottra: ${avgPrice.toLocaleString()} VNĐ/kg.
-- Tổng sản lượng giao dịch ghi nhận: ${volume} tấn.
-
-Yêu cầu bài viết:
-1. Tiêu đề H2 hấp dẫn, chứa từ khóa chính "${productName} tại ${locationName}".
-2. Đoạn 1: Phân tích về tình hình thời tiết, mùa vụ tại địa phương ảnh hưởng đến chất lượng sản phẩm.
-3. Đoạn 2: Đánh giá về mức giá ${avgPrice.toLocaleString()} VNĐ/kg hiện tại là đắt hay rẻ so với bình quân khu vực, xu hướng tăng hay giảm.
-4. Đoạn 3: Lời khuyên cụ thể cho bà con nông dân và các thương lái địa phương về thời điểm bán ra hoặc lưu kho.
-5. Ngôn từ tự nhiên, mạch lạc, chuẩn SEO chuyên sâu.`;
-
-  if (GEMINI_API_KEY) {
-    try {
-      const res = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${GEMINI_API_KEY}`,
-        },
-        body: JSON.stringify({
-          model: "gemini-2.5-flash",
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userPrompt },
-          ],
-          max_tokens: 800,
-          temperature: 0.7,
-        }),
-      });
-
-      if (res.ok) {
-        const data: any = await res.json();
-        const text = data.choices?.[0]?.message?.content;
-        if (text) {
-          aiContent = text;
-        }
-      }
-    } catch (e) {
-      console.error("[SEO Engine] Gemini connection failed, using local template engine:", e);
-    }
-  }
+  // AI semantic content generation disabled, using local template engine only
 
   // Fallback to local template generator if AI fails or key is missing (Rule-based rewriting & Sentence Bank)
   if (!aiContent) {
@@ -233,9 +181,9 @@ ${pickRandom(farmerAdvice)}
       key,
       productSlug,
       locationSlug,
-      title,
+      title: `Tình hình Thị trường ${productName} tại ${locationName} mới nhất`,
       content: aiContent,
-      metaDescription,
+      metaDescription: `Cập nhật nhanh giá ${productName} tại khu vực ${locationName}. Phân tích biến động cung cầu, hoạt động giao thương của các đại lý nông nghiệp địa phương.`,
       averagePrice: avgPrice,
       tradeVolume: volume,
     });
@@ -249,9 +197,9 @@ ${pickRandom(farmerAdvice)}
     locationSlug,
     productName,
     locationName,
-    title,
+    title: `Tình hình Thị trường ${productName} tại ${locationName} mới nhất`,
     content: aiContent,
-    metaDescription,
+    metaDescription: `Cập nhật nhanh giá ${productName} tại khu vực ${locationName}. Phân tích biến động cung cầu, hoạt động giao thương của các đại lý nông nghiệp địa phương.`,
     averagePrice: avgPrice,
     tradeVolume: volume,
     relatedLinks,

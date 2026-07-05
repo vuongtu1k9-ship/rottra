@@ -250,7 +250,7 @@ export async function generateTextLocal(options: {
 
   // Hybrid offline inference fallback (Rottra's core AI — 12 personas, rule engine, neural classifier)
   if (!text) {
-    text = runHybridOfflineInference(userPrompt, botId, prodName, price);
+    text = await runHybridOfflineInference(userPrompt, botId, prodName, price, options.userId);
   }
 
   // --- WRITE TO SEMANTIC CACHE ---

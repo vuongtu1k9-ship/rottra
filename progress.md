@@ -570,6 +570,9 @@
 - `src/server/helpers/image-processor.ts` - Tự động cập nhật.
 - `src/client/views/dashboard/local.tsrx` - Tự động cập nhật.
 - `src/server/helpers/video-ad-generator.ts` - Tự động cập nhật.
+- `scratch-fix-db.ts` - Tự động cập nhật.
+- `scratch-fix-users.ts` - Tự động cập nhật.
+- `public/images/caramos-logo.avif` - Tự động cập nhật.
 
 ## Evidence of Completion
 
