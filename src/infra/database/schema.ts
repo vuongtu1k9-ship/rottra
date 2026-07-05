@@ -875,5 +875,15 @@ export const rlQTable = pgTable(
   (table: any) => [index("idx_rl_qtable_state").on(table.stateHash)],
 );
 
+// Bảng lưu trữ cấu hình mạng nơ-ron (Weights) cho AI
+export const aiModels = pgTable(
+  "AiModels",
+  {
+    id: text().primaryKey().notNull(), // UUID hoặc Tên model (vd: 'rl_product_recommender')
+    weightsJson: text().notNull(), // Chuỗi JSON chứa toàn bộ weights và cấu trúc của mạng
+    lastUpdated: timestamp({ withTimezone: true, mode: "string" }).defaultNow(),
+  }
+);
+
 // Re-export federated learning tables
 export { flRound, flGradientUpdate, flModelVersion, flNode, flPrivacyBudget } from "./fl-schema-additions";

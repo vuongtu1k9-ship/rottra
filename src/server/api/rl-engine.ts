@@ -1,98 +1,115 @@
 import { db } from "~/infra/database/db-pool";
-import { rlQTable, Product } from "~/infra/database/schema";
-import { eq, and } from "drizzle-orm";
-import crypto from "crypto";
+import { aiModels } from "~/infra/database/schema";
+import { eq } from "drizzle-orm";
+import { NeuralNetwork } from "./rl-brain";
 
-// Hyperparameters for Q-Learning
-const ALPHA = 0.1; // Learning rate
-const GAMMA = 0.9; // Discount factor (used if we have sequential states, but typically 0 for contextual bandit)
-const EPSILON = 0.2; // Exploration rate (20% of the time, explore random/new products)
+const EPSILON = 0.2; // Exploration rate
+const MODEL_ID = "rl_product_recommender";
 
-/**
- * Creates a unique state hash based on user preferences or current context.
- * For example: user location, search keyword, or recent activity.
- */
-export function hashState(context: any): string {
-  const str = JSON.stringify(context || {});
-  return crypto.createHash("md5").update(str).digest("hex");
+// --- Feature Encoding ---
+// Convert arbitrary string to a fixed-size normalized float array [-1, 1]
+function encodeString(str: string, size: number): number[] {
+  const arr = new Array(size).fill(0);
+  for (let i = 0; i < str.length; i++) {
+    const code = str.charCodeAt(i);
+    arr[i % size] += code;
+  }
+  // Normalize
+  for (let i = 0; i < size; i++) {
+    arr[i] = (arr[i] % 100) / 50 - 1; 
+  }
+  return arr;
 }
 
-/**
- * Retrieves the Q-value for a specific state and action.
- */
-export async function getQValue(stateHash: string, actionId: string): Promise<number> {
-  const record = await db.query.rlQTable.findFirst({
-    where: and(eq(rlQTable.stateHash, stateHash), eq(rlQTable.actionId, actionId)),
+function encodeStateAction(context: any, actionId: string): number[] {
+  const stateStr = JSON.stringify(context || {});
+  const stateFeatures = encodeString(stateStr, 10);
+  const actionFeatures = encodeString(actionId, 5);
+  return [...stateFeatures, ...actionFeatures];
+}
+
+// --- Model Management ---
+let cachedModel: NeuralNetwork | null = null;
+
+async function loadModel(): Promise<NeuralNetwork> {
+  if (cachedModel) return cachedModel;
+
+  const record = await db.query.aiModels.findFirst({
+    where: eq(aiModels.id, MODEL_ID),
   });
-  return record?.qValue || 0;
+
+  const nn = new NeuralNetwork(15, 16, 1, 0.1);
+  if (record && record.weightsJson) {
+    try {
+      nn.fromJSON(record.weightsJson);
+    } catch (e) {
+      console.error("[RL-Engine] Lỗi parse model weights, khởi tạo lại từ đầu.");
+    }
+  }
+  cachedModel = nn;
+  return nn;
 }
 
-/**
- * Updates the Q-value using the Bellman Equation with Anti-Reward Hacking.
- */
-export async function updateQValue(stateHash: string, actionId: string, reward: number): Promise<void> {
-  const record = await db.query.rlQTable.findFirst({
-    where: and(eq(rlQTable.stateHash, stateHash), eq(rlQTable.actionId, actionId)),
+async function saveModel(nn: NeuralNetwork) {
+  const jsonStr = nn.toJSON();
+  const record = await db.query.aiModels.findFirst({
+    where: eq(aiModels.id, MODEL_ID),
   });
 
   if (record) {
-    // 🛡️ ANTI-REWARD HACKING: Diminishing returns for repetitive actions
-    // Nếu AI spam 1 sản phẩm quá nhiều lần, phần thưởng sẽ bị giảm giá trị thực tế
-    // Công thức: effective_reward = reward / log2(visitCount + 1)
-    const effectiveReward = reward > 0 ? reward / Math.max(1, Math.log2(record.visitCount + 1)) : reward;
-
-    // Q(s,a) = Q(s,a) + alpha * (effectiveReward - Q(s,a))
-    const newQValue = record.qValue + ALPHA * (effectiveReward - record.qValue);
-
-    await db
-      .update(rlQTable)
-      .set({
-        qValue: newQValue,
-        visitCount: record.visitCount + 1,
-        lastUpdated: new Date().toISOString(),
-      })
-      .where(eq(rlQTable.id, record.id));
+    await db.update(aiModels).set({ weightsJson: jsonStr, lastUpdated: new Date().toISOString() }).where(eq(aiModels.id, MODEL_ID));
   } else {
-    // Initial update
-    const initialQValue = ALPHA * reward;
-    await db.insert(rlQTable).values({
-      id: crypto.randomUUID(),
-      stateHash,
-      actionId,
-      qValue: initialQValue,
-      visitCount: 1,
-      lastUpdated: new Date().toISOString(),
-    });
+    await db.insert(aiModels).values({ id: MODEL_ID, weightsJson: jsonStr, lastUpdated: new Date().toISOString() });
   }
 }
 
-/**
- * Selects the best action (product to recommend) using Epsilon-Greedy strategy.
- */
+// --- Core API ---
+export async function getQValue(context: any, actionId: string): Promise<number> {
+  const nn = await loadModel();
+  const input = encodeStateAction(context, actionId);
+  const output = nn.predict(input);
+  return output[0];
+}
+
+export async function updateQValue(context: any, actionId: string, reward: number): Promise<void> {
+  const nn = await loadModel();
+  
+  // Anti-reward hacking can be done before passing reward
+  // but for NN, we just train towards the reward directly.
+  const input = encodeStateAction(context, actionId);
+  
+  // Lấy Q-value hiện tại để tính toán Bellman
+  const currentQ = nn.predict(input)[0];
+  const ALPHA = 0.1;
+  const targetQ = currentQ + ALPHA * (reward - currentQ);
+
+  nn.train(input, [targetQ]);
+  
+  // Lưu model (có thể tối ưu hóa lưu định kỳ thay vì mỗi lần)
+  await saveModel(nn);
+}
+
 export async function recommendProduct(context: any, availableProducts: any[]): Promise<any> {
   if (!availableProducts || availableProducts.length === 0) return null;
 
-  const stateHash = hashState(context);
   const isExplore = Math.random() < EPSILON;
 
   if (isExplore) {
-    // Exploration: Choose a random product
     const randomIndex = Math.floor(Math.random() * availableProducts.length);
-    console.log(`[RL-Engine] 🎲 Exploration: Chọn ngẫu nhiên sản phẩm cho state ${stateHash.slice(0, 6)}`);
+    console.log(`[RL-Engine] 🎲 Exploration: Chọn ngẫu nhiên sản phẩm bằng Mạng Nơ-ron.`);
     return availableProducts[randomIndex];
   } else {
-    // Exploitation: Choose the product with the highest Q-value
     let bestProduct = availableProducts[0];
     let maxQ = -Infinity;
 
     for (const product of availableProducts) {
-      const qValue = await getQValue(stateHash, product.id);
+      const qValue = await getQValue(context, product.id);
       if (qValue > maxQ) {
         maxQ = qValue;
         bestProduct = product;
       }
     }
-    console.log(`[RL-Engine] 🎯 Exploitation: Chọn sản phẩm tốt nhất (Q=${maxQ.toFixed(2)}) cho state ${stateHash.slice(0, 6)}`);
+    console.log(`[RL-Engine] 🎯 Exploitation: Chọn sản phẩm tốt nhất (Q=${maxQ.toFixed(2)}) bằng Mạng Nơ-ron.`);
     return bestProduct;
   }
 }

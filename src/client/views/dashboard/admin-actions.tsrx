@@ -124,7 +124,11 @@ export component AdminActions(props: any) {
               if (!confirm(`Bạn có chắc chắn muốn XÓA VĨNH VIỄN ${items.length} sản phẩm đã chọn?`)) return;
 
               try {
-                const responses = await Promise.all(items.map((p) => fetch(`/api/admin/product/${p.id || p._id}`, { method: "DELETE" })));
+                const responses = await Promise.all(
+                  items.map((p) =>
+                    fetch(`/api/admin/product/delete/${p.id || p._id}`, { method: "POST" }),
+                  ),
+                );
                 const errors: string[] = [];
                 for (const res of responses) {
                   if (!res.ok) {
