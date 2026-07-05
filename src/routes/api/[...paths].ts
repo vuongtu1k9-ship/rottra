@@ -1166,6 +1166,12 @@ import { aiAuthMiddleware, guestRateLimiter } from "~/server/middlewares/auth-gu
 export const rootApp = new Hono();
 export const app = new Hono().basePath("/api");
 
+app.onError((err, c) => {
+  console.error("Global Unhandled Hono Error:", err);
+  return c.json({ error: "Global Hono Error: " + (err.message || err.toString()), stack: err.stack }, 500);
+});
+
+
 let exchangeRateCache: Record<string, number> | null = null;
 let exchangeRateLastFetched = 0;
 
