@@ -42,6 +42,7 @@ export component Header(props: any) {
   const [redirecting, setRedirecting] = createSignal(false);
   const [isCartOpen, setIsCartOpen] = createSignal(false);
   const [agentAvatar, setAgentAvatar] = createSignal("");
+  const [agentName, setAgentName] = createSignal("");
 
   // Load initial notification state
   const getInitialNotifyState = () => {
