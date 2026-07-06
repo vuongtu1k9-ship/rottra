@@ -475,72 +475,11 @@ const downloadToLocal = async (url: string): Promise<string> => {
 };
 
 export const getPreciseImageForProduct = async (productName: string, category: string) => {
-  const nameLower = productName.toLowerCase();
-  const catLower = (category || "").toLowerCase();
-
-  if (!productName || nameLower.includes("đang cập nhật") || nameLower.includes("đang tải") || nameLower.includes("undefined")) {
+  if (!productName || productName.toLowerCase().includes("đang cập nhật")) {
     return "/images/no-image.avif";
   }
-
-  // 1. Quét thư mục public/uploads trước
-  try {
-    const uploadDir = "public/uploads";
-    if (fs.existsSync(uploadDir)) {
-      const files = fs.readdirSync(uploadDir);
-
-      // Hàm chuyển đổi tiếng Việt có dấu thành không dấu để so sánh chính xác
-      const normText = (text: string) => {
-        return text
-          .toLowerCase()
-          .normalize("NFD")
-          .replace(/[\u0300-\u036f]/g, "")
-          .replace(/[đĐ]/g, "d")
-          .replace(/[^a-z0-9]/g, " ")
-          .trim()
-          .split(/\s+/)
-          .filter(Boolean);
-      };
-
-      const prodWords = normText(productName);
-      const catWords = normText(category || "");
-
-      let bestMatch = null;
-      let bestScore = 0;
-
-      for (const file of files) {
-        const filePath = `${uploadDir}/${file}`;
-        if (fs.statSync(filePath).isDirectory() || file.startsWith(".")) continue;
-
-        const fileWords = normText(file.substring(0, file.lastIndexOf(".")) || file);
-
-        // Tính điểm khớp từ khóa giữa tên file và tên sản phẩm
-        let score = 0;
-        for (const word of fileWords) {
-          if (prodWords.includes(word)) score += 10;
-          else if (productName.toLowerCase().includes(word)) score += 5;
-
-          if (catWords.includes(word)) score += 3;
-        }
-
-        if (score > bestScore) {
-          bestScore = score;
-          bestMatch = file;
-        }
-      }
-
-      // Nếu độ khớp từ khóa đủ tin cậy, sử dụng ảnh từ uploads
-      if (bestMatch && bestScore >= 5) {
-        console.log(`[IMAGE MATCH] Khớp ảnh cục bộ: ${bestMatch} cho sản phẩm ${productName} (Score: ${bestScore})`);
-        return `/uploads/${bestMatch}`;
-      }
-    }
-  } catch (e) {
-    console.error("Lỗi khi đọc thư mục public/uploads:", e);
-  }
-
-
-  // 2.5. Tự động chuyển giao cho GenerateImageAction xử lý chuẩn hóa định dạng (AVIF/WEBM)
-  return "/images/no-image.avif";
+  const svgStr = generateProductSVG("default", productName, "Liên hệ");
+  return `data:image/svg+xml;base64,${Buffer.from(svgStr).toString("base64")}`;
 };
 
 const globalObj = (typeof process !== "undefined" ? process : globalThis) as any;
