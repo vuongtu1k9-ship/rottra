@@ -442,17 +442,40 @@ Thought 3 Score: [điểm]`;
     sdkMessages[0].content += getSkillManual();
 
     if (options.phiPriceVal !== undefined) {
-      // VÔ HIỆU HÓA TREE OF THOUGHTS ĐỂ TRÁNH LỖI TIMEOUT 524
-      // const bestThought = await this.negotiationTreeOfThoughtsReasoning(options);
-      // const thoughtContext = `
-// === ĐỊNH HƯỚNG TƯ DUY (TREE OF THOUGHTS) ĐƯỢC CHỌN ===
-// ${bestThought}
-// ======================================================
-// Bạn BẮT BUỘC phải viết câu trả lời dựa trên định hướng tư duy trên.
-// Hãy viết suy nghĩ chiến thuật ngầm của bạn trong cặp thẻ <inner_monologue>...</inner_monologue> (ví dụ: <inner_monologue>Ta phải giữ giá bán nông sản vì độ chính xác nét vẽ cao và không được dưới Φ_Price...</inner_monologue>).
-// Và câu thoại chính thức bọc trong cặp thẻ <verbal_strike>...</verbal_strike> (ví dụ: <verbal_strike>Ta không thể giảm sâu hơn nữa, sản phẩm của ta có độ hoàn mỹ cao!</verbal_strike>).`;
+      // ÁP DỤNG CONTEXT ENGINEERING (1-PASS REASONING) THAY THẾ CHO TOT ĐỂ TRÁNH 524
+      const accuracyStr = options.accuracyScore !== undefined ? (options.accuracyScore * 100).toFixed(1) : "50.0";
+      const phiPriceStr = options.phiPriceVal.toLocaleString();
+      const budgetStr = options.budget !== undefined ? options.budget.toLocaleString() : "Không giới hạn";
 
-      // sdkMessages[0].content = `${sdkMessages[0].content}\n${thoughtContext}`;
+      const contextEngineeredPrompt = `
+=== CONTEXT ENGINEERING: ĐIỀU KIỆN THỊ TRƯỜNG & SUY LUẬN ĐƠN LƯỢT ===
+[DỮ LIỆU ĐỘNG]
+- Giá tối thiểu chấp nhận được (Φ_Price): ${phiPriceStr}₫
+- Độ chính xác bản vẽ nông sản (Whiteboard): ${accuracyStr}%
+- Ngân sách hiện tại: ${budgetStr}₫
+
+[QUY TẮC REASONING BẮT BUỘC]
+Trước khi đưa ra lời thoại giao dịch, bạn PHẢI phân tích tính toán ngầm dựa trên DỮ LIỆU ĐỘNG trên, đặt vào thẻ <inner_monologue>...</inner_monologue>.
+Trong <inner_monologue>, hãy suy nghĩ theo 3 bước:
+1. Đánh giá lời đề nghị của đối phương so với Φ_Price (${phiPriceStr}₫).
+2. Quyết định chiến thuật: Nếu đối phương trả dưới Φ_Price, TUYỆT ĐỐI KHÔNG BÁN, phải châm biếm/từ chối. Nếu trên Φ_Price, có thể chốt hoặc mồi thêm (FOMO). Nhấn mạnh độ chính xác ${accuracyStr}% để tạo uy tín.
+3. Chốt lại câu thoại ngắn gọn sắc bén (dưới 3 câu) bọc trong thẻ <verbal_strike>...</verbal_strike>.
+
+⚠️ CẢNH BÁO QUAN TRỌNG VỀ CÁ TÍNH (PERSONA):
+Bạn đang nhập vai [${options.botName}]. 
+TUYỆT ĐỐI KHÔNG ĐƯỢC dùng những câu nói rập khuôn. Lời thoại trong <verbal_strike> PHẢI mang đậm phong cách, cách xưng hô và cá tính ĐỘC BẢN của riêng bạn. 
+(Ví dụ: Nếu bạn là Tô Lượng thì phải oai phong lẫm liệt; nếu là Thương Nguyệt Đại Đế thì phải điềm tĩnh, gọi "hiền hữu"; nếu là Đào Tiểu Cửu thì phải nhí nhảnh xưng "em/Tiểu Cửu"; nếu là U Vương Mẫu thì phải thâm hiểm, v.v.). MỖI NGƯỜI MỘT VẺ, KHÔNG AI GIỐNG AI!
+
+Ví dụ định dạng đầu ra (KHÔNG copy nội dung, chỉ copy cấu trúc):
+<inner_monologue>
+(Suy nghĩ chiến thuật của riêng bạn dựa trên dữ liệu giá và độ chính xác...)
+</inner_monologue>
+<verbal_strike>
+(Câu thoại phản hồi mang đậm chất riêng của ${options.botName}...)
+</verbal_strike>
+===================================================================`;
+
+      sdkMessages[0].content = `${sdkMessages[0].content}\n${contextEngineeredPrompt}`;
     }
 
 
