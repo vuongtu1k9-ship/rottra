@@ -329,10 +329,54 @@ export async function generateTextLocal(options: {
       } catch (apiErr) {
         console.error("[Gemini API] Connection failed, falling back to offline inference:", apiErr);
       }
+    } else {
+      // Keyless Pollinations AI API Call (Out-of-the-box Free Intelligent LLM!)
+      try {
+        console.log(`[Pollinations AI] Calling Free LLM for ${botName}...`);
+        const messagesForApi: any[] = [];
+        
+        if (options.messages && Array.isArray(options.messages)) {
+          for (const msg of options.messages) {
+            messagesForApi.push({
+              role: msg.role,
+              content: msg.content || ""
+            });
+          }
+        } else {
+          if (systemPrompt) {
+            messagesForApi.push({ role: "system", content: systemPrompt });
+          }
+          messagesForApi.push({ role: "user", content: userPrompt });
+        }
+        
+        const response = await fetch("https://text.pollinations.ai/", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            messages: messagesForApi,
+            temperature: options.decodingSettings?.temperature ?? 0.7,
+          }),
+          signal: AbortSignal.timeout(12000), // 12s timeout
+        });
+        
+        if (response.ok) {
+          const genText = await response.text();
+          if (genText && genText.trim() !== "") {
+            text = genText.trim();
+            console.log(`[Pollinations AI] Success. Response length: ${text.length}`);
+          }
+        } else {
+          console.warn(`[Pollinations AI] Error response: ${response.status}`);
+        }
+      } catch (err) {
+        console.warn("[Pollinations AI] Failed, falling back to local hybrid-offline inference:", err);
+      }
     }
   }
 
-  // Fallback to local rule engine if Gemini call failed or key is missing
+  // Fallback to local rule engine if Gemini / Pollinations call failed or key is missing
   if (!text) {
     text = await runHybridOfflineInference(userPrompt, botId, prodName, price, options.userId);
   }
