@@ -485,6 +485,23 @@ export class GenerateVideoAction extends BotActionExecutor {
         return { success: false, action: "video", message: "Lỗi kết xuất Hyperframes" };
       }
 
+      // Lưu video vào database
+      const realVideoUrl = `/videos/output_${prod.id}.webm`;
+      let currentMedia: any[] = [];
+      if (typeof prod.media === "string") {
+        try {
+          currentMedia = JSON.parse(prod.media);
+        } catch (e) {}
+      } else if (Array.isArray(prod.media)) {
+        currentMedia = prod.media;
+      }
+
+      const exists = currentMedia.some((m: any) => m.link === realVideoUrl);
+      if (!exists) {
+        const newMedia = [...currentMedia, { link: realVideoUrl, type: "video" }];
+        await db.update(product).set({ media: newMedia }).where(eq(product.id, prod.id));
+      }
+
       await helpers.logActivity(
         userId, 
         `Bot tạo video AI cho '${prod.name}'`, 
