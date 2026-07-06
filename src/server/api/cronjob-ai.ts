@@ -3,7 +3,7 @@ import { agentTask } from "~/infra/database/schema";
 import { eq, and, lte } from "drizzle-orm";
 import { generateTextLocal } from "~/core/nlp-cognitive/ai-sdk";
 
-const HEARTBEAT_INTERVAL_MS = 60000; // 60 seconds
+const HEARTBEAT_INTERVAL_MS = process.env.HEARTBEAT_INTERVAL_MS ? parseInt(process.env.HEARTBEAT_INTERVAL_MS, 10) : 60000; // 60 seconds
 
 export function startCronjobAI() {
   console.log("🚀 [Cronjob AI] Autonomous Core starting up...");
