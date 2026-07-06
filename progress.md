@@ -620,6 +620,7 @@
 - `check-assembly-chattick.ts` - Tự động cập nhật.
 - `check-getbotmessage-calls.ts` - Tự động cập nhật.
 - `refactor-assembly-v2.ts` - Tự động cập nhật.
+- `scripts/sd_generator.ts` - Tự động cập nhật.
 
 ## Evidence of Completion
 
