@@ -650,41 +650,10 @@ export component Assembly(props: any) {
   const [thinkingAgents, setThinkingAgents] = createSignal<Set<string>>(new Set());
   
   
-  // TTS Voice Cache
-  let viVoice: SpeechSynthesisVoice | null = null;
-  const loadViVoice = () => {
-    if (viVoice) return;
-    const voices = window.speechSynthesis.getVoices();
-    viVoice = voices.find(v => v.lang.includes("vi")) || voices[0] || null;
-  };
-  
-  const playBotTTS = (msg: any) => {
-    if (!msg || msg.type !== "chat" || !msg.senderId?.startsWith("bot_")) return;
-    // Clean markdown and emojis for speech
-    const cleanText = msg.text.replace(/(\*|_|#|\[|\]|\(|\))/g, "").replace(/[\u{1F600}-\u{1F6FF}]/gu, "");
-    if (!cleanText.trim()) return;
-    
-    loadViVoice();
-    const utterance = new SpeechSynthesisUtterance(cleanText);
-    if (viVoice) utterance.voice = viVoice;
-    utterance.lang = "vi-VN";
-    
-    // Customize pitch/rate based on bot ID for unique voices
-    const hash = msg.senderId.split("").reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0);
-    utterance.pitch = 0.8 + (hash % 10) * 0.05; // 0.8 to 1.25
-    utterance.rate = 1.05;
-    
-    window.speechSynthesis.speak(utterance);
-  };
-
   const setMessages = (val: any) => {
     if (typeof val === "function") {
       _setMessages((prev) => {
         const next = val(prev);
-        if (next.length > prev.length) {
-          const lastMsg = next[next.length - 1];
-          playBotTTS(lastMsg);
-        }
         return next.length > 200 ? next.slice(-200) : next;
       });
     } else {

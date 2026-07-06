@@ -314,7 +314,7 @@ Thought 3 Score: [điểm]`;
     // Memory Compression: Chỉ lấy tối đa 10 tin nhắn, và cắt gọn nội dung dài để tiết kiệm Token
     const recentHistory = (chatHistory || []).slice(-10).map((msg: any) => ({
       ...msg,
-      text: msg.text.length > 200 ? msg.text.substring(0, 200) + "..." : msg.text
+      text: (msg.text || "").length > 200 ? (msg.text || "").substring(0, 200) + "..." : (msg.text || "")
     }));
 
     const getEntropy = (str: string): number => {
