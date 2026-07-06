@@ -46,7 +46,8 @@ export function getPrimaryMediaType(item: any) {
   const first = validList[0];
 
   if (first) {
-    return typeof first === "string" ? "image" : first.type || "image";
+    const t = typeof first === "string" ? "image" : first.type || "image";
+    return t.startsWith("video") ? "video" : "image";
   }
   return "image";
 }
@@ -83,7 +84,8 @@ export component ProductCard(props: any) {
 
   const currentMediaType = () => {
     const m = currentMedia();
-    return m ? (typeof m === "string" ? "image" : m.type || "image") : "image";
+    const t = m ? (typeof m === "string" ? "image" : m.type || "image") : "image";
+    return t.startsWith("video") ? "video" : "image";
   };
 
   const formatVN = (n: any) => formatCurrency(Number(n));
