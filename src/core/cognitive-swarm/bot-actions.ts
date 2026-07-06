@@ -578,7 +578,7 @@ export class GenerateVideoAction extends BotActionExecutor {
     const logPath = path.join(logDir, `render_${prod.id}.log`);
     fs.writeFileSync(logPath, `=== BẮT ĐẦU KẾT XUẤT VIDEO AI CHO SẢN PHẨM: ${prod.name} ===\n`);
 
-    const realVideoUrl = `/videos/output_${prod.id}.mp4`;
+    const realVideoUrl = `/videos/output_${prod.id}.webm`;
 
     (async () => {
       try {
@@ -654,8 +654,8 @@ export class GenerateVideoAction extends BotActionExecutor {
         const variablesFilePath = path.join(process.cwd(), "video_ads", variablesFileName);
         fs.writeFileSync(variablesFilePath, renderVariables);
 
-        const templatePath = path.join(process.cwd(), "public", "videos", "output_dummy-product-123.mp4");
-        const destPath = path.join(process.cwd(), "public", "videos", `output_${prod.id}.mp4`);
+        const templatePath = path.join(process.cwd(), "public", "videos", "output_dummy-product-123.webm");
+        const destPath = path.join(process.cwd(), "public", "videos", `output_${prod.id}.webm`);
         if (fs.existsSync(templatePath)) {
           fs.copyFileSync(templatePath, destPath);
           fs.appendFileSync(logPath, "\n=== KẾT XUẤT THÀNH CÔNG! ĐÃ SỬ DỤNG TEMPLATE VIDEO ===\n");
@@ -667,12 +667,12 @@ export class GenerateVideoAction extends BotActionExecutor {
             console.error("Failed to delete log file in bot actions:", err);
           }
         } else {
-          throw new Error("Template video output_dummy-product-123.mp4 not found");
+          throw new Error("Template video output_dummy-product-123.webm not found");
         }
 
         await pgClient.query(
           `INSERT INTO "File" (id, "userId", filename, mimetype, path, status) VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT (id) DO NOTHING`,
-          [crypto.randomUUID(), userId, `output_${prod.id}.mp4`, "video/mp4", realVideoUrl, "active"],
+          [crypto.randomUUID(), userId, `output_${prod.id}.webm`, "video/webm", realVideoUrl, "active"],
         );
 
         let currentMedia: any[] = [];

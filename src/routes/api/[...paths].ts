@@ -6909,7 +6909,7 @@ app.post("/admin/product/:id/video", verifyAuth, async (c: any) => {
   // Reset/Create log file
   fs.writeFileSync(logPath, `=== BẮT ĐẦU KẾT XUẤT VIDEO AI CHO SẢN PHẨM: ${dbProduct.name} ===\n`);
 
-  const realVideoUrl = `/videos/output_${productId}.mp4`;
+  const realVideoUrl = `/videos/output_${productId}.webm`;
 
   // Run child process rendering purely in the background to avoid HTTP timeouts
   (async () => {
@@ -7108,7 +7108,7 @@ app.post("/admin/product/:id/video", verifyAuth, async (c: any) => {
             "hyperframes@0.6.97",
             "render",
             "-o",
-            `../public/videos/output_${productId}.mp4`,
+            `../public/videos/output_${productId}.webm`,
             "--variables-file",
             `variables_${productId}.json`,
           ],
@@ -7154,7 +7154,7 @@ app.post("/admin/product/:id/video", verifyAuth, async (c: any) => {
       // Ghi nhận vào bảng file sau khi thành công (tránh crash Drizzle ORM)
       await pgClient.query(
         `INSERT INTO "File" (id, "userId", filename, mimetype, path, status) VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT (id) DO NOTHING`,
-        [crypto.randomUUID(), currentUser.id, `output_${productId}.mp4`, "video/mp4", realVideoUrl, "active"],
+        [crypto.randomUUID(), currentUser.id, `output_${productId}.webm`, "video/webm", realVideoUrl, "active"],
       );
 
       if (dbProduct) {
