@@ -301,6 +301,9 @@ export class GenerateImageAction extends BotActionExecutor {
         base64Image = `data:image/${ext};base64,${base64Data}`;
         imageHtml = `<div class="image-wrapper"><img src="${base64Image}" alt="Product" /></div>`;
       }
+    } else if (productImageUrl && productImageUrl.startsWith("data:image/")) {
+      base64Image = productImageUrl;
+      imageHtml = `<div class="image-wrapper"><img src="${base64Image}" alt="Product" /></div>`;
     }
 
     if (!base64Image) {
@@ -564,6 +567,8 @@ export class GenerateVideoAction extends BotActionExecutor {
         const base64Data = fs.readFileSync(localPath).toString("base64");
         productBase64 = `data:image/${ext};base64,${base64Data}`;
       }
+    } else if (productImageUrl && productImageUrl.startsWith("data:image/")) {
+      productBase64 = productImageUrl;
     }
 
     const logDir = path.join(process.cwd(), "public", "videos");
