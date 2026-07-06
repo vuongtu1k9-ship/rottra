@@ -1,7 +1,7 @@
 const CACHE_NAME = "rottra-v2";
 const STATIC_ASSETS = [
   "/",
-  "/favicon.png",
+  "/favicon.avif",
 ];
 
 self.addEventListener("install", (event) => {
@@ -50,9 +50,9 @@ self.addEventListener("fetch", (event) => {
         })
         .catch(() => caches.match("/").then(cached => {
           if (cached) return cached;
-          return new Response("Offline resource unavailable", { 
-            status: 503, 
-            statusText: "Service Unavailable" 
+          return new Response("Offline resource unavailable", {
+            status: 503,
+            statusText: "Service Unavailable"
           });
         }))
     );
@@ -73,9 +73,9 @@ self.addEventListener("fetch", (event) => {
         })
         .catch((err) => {
           console.warn("[SW] Fetch failed for:", request.url, err);
-          return new Response("Offline resource unavailable", { 
-            status: 503, 
-            statusText: "Service Unavailable" 
+          return new Response("Offline resource unavailable", {
+            status: 503,
+            statusText: "Service Unavailable"
           });
         });
     })
