@@ -312,6 +312,7 @@ export async function generateTextLocal(options: {
               "Content-Type": "application/json",
             },
             body: JSON.stringify(requestBody),
+            signal: AbortSignal.timeout(6000), // Dọn rác socket nếu quá 6s tránh OOM (520/502)
           }
         );
         
@@ -358,7 +359,7 @@ export async function generateTextLocal(options: {
             messages: messagesForApi,
             temperature: options.decodingSettings?.temperature ?? 0.7,
           }),
-          signal: AbortSignal.timeout(12000), // 12s timeout
+          signal: AbortSignal.timeout(6000), // Dọn rác socket nếu quá 6s tránh OOM (520/502)
         });
         
         if (response.ok) {
