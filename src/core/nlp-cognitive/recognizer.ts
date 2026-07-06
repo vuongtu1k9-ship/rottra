@@ -295,21 +295,32 @@ export function oklchDistance(c1: { L: number; C: number; H: number }, c2: { L: 
   return Math.sqrt(dL * dL + dC * dC + dH * dH);
 }
 
+const colorNameCache = new Map<string, string>();
+
 // Main recognition entry point
 export async function getColorName(hex: string): Promise<string> {
   const h = hex.toLowerCase().replace("#", "");
-  if (h === "ec4899" || h === "f472b6" || h === "db2777" || h === "f43f5e") return "Hồng";
-  if (h === "ef4444" || h === "b91c1c") return "Đỏ";
-  if (h === "eab308" || h === "facc15" || h === "fbbf24" || h === "f59e0b" || h === "fde047" || h === "fef08a") return "Vàng";
-  if (h === "78350f" || h === "92400e" || h === "d97706" || h === "a16207" || h === "854d0e") return "Nâu";
-  if (h === "22c55e" || h === "4ade80" || h === "16a34a" || h === "15803d" || h === "10b981") return "Xanh lá";
-  if (h === "3b82f6" || h === "60a5fa" || h === "2563eb") return "Xanh dương";
-  if (h === "06b6d4" || h === "22d3ee" || h === "38bdf8" || h === "67e8f9") return "Xanh cyan";
-  if (h === "cbd5e1" || h === "e2e8f0" || h === "f1f5f9" || h === "ffffff" || h === "f3f4f6") return "Trắng xám";
-  if (h === "64748b" || h === "475569" || h === "94a3b8") return "Xám";
-  if (h === "1f2937" || h === "111827" || h === "374151" || h === "000000") return "Đen";
-  if (h === "8b5cf6" || h === "a78bfa") return "Tím";
-  if (h === "f97316" || h === "fb923c") return "Cam";
+  if (colorNameCache.has(h)) return colorNameCache.get(h)!;
+
+  let resolvedColor = "";
+
+  if (h === "ec4899" || h === "f472b6" || h === "db2777" || h === "f43f5e") resolvedColor = "Hồng";
+  else if (h === "ef4444" || h === "b91c1c") resolvedColor = "Đỏ";
+  else if (h === "eab308" || h === "facc15" || h === "fbbf24" || h === "f59e0b" || h === "fde047" || h === "fef08a") resolvedColor = "Vàng";
+  else if (h === "78350f" || h === "92400e" || h === "d97706" || h === "a16207" || h === "854d0e") resolvedColor = "Nâu";
+  else if (h === "22c55e" || h === "4ade80" || h === "16a34a" || h === "15803d" || h === "10b981") resolvedColor = "Xanh lá";
+  else if (h === "3b82f6" || h === "60a5fa" || h === "2563eb") resolvedColor = "Xanh dương";
+  else if (h === "06b6d4" || h === "22d3ee" || h === "38bdf8" || h === "67e8f9") resolvedColor = "Xanh cyan";
+  else if (h === "cbd5e1" || h === "e2e8f0" || h === "f1f5f9" || h === "ffffff" || h === "f3f4f6") resolvedColor = "Trắng xám";
+  else if (h === "64748b" || h === "475569" || h === "94a3b8") resolvedColor = "Xám";
+  else if (h === "1f2937" || h === "111827" || h === "374151" || h === "000000") resolvedColor = "Đen";
+  else if (h === "8b5cf6" || h === "a78bfa") resolvedColor = "Tím";
+  else if (h === "f97316" || h === "fb923c") resolvedColor = "Cam";
+
+  if (resolvedColor) {
+    colorNameCache.set(h, resolvedColor);
+    return resolvedColor;
+  }
 
   try {
     const oklch = hexToOklch(h);
@@ -323,11 +334,13 @@ export async function getColorName(hex: string): Promise<string> {
         system: "Bạn là AI nhận diện màu sắc từ thông số OKLCH. Chỉ trả về duy nhất 1-2 từ tên màu sắc chính bằng tiếng Việt.",
         prompt,
         decodingSettings: { temperature: 0.1, maxTokens: 10 },
+        isInternalReasoning: true,
       });
 
       if (aiResponse && aiResponse.text) {
         const cleanName = aiResponse.text.replace(/[^\p{L}\s]/gu, "").trim();
         if (cleanName.length > 0 && cleanName.length < 20) {
+          colorNameCache.set(h, cleanName);
           return cleanName;
         }
       }
@@ -360,8 +373,10 @@ export async function getColorName(hex: string): Promise<string> {
         closestName = c.name;
       }
     }
+    colorNameCache.set(h, closestName);
     return closestName;
   } catch {
+    colorNameCache.set(h, "Khác");
     return "Khác";
   }
 }
