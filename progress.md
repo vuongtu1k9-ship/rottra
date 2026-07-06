@@ -607,6 +607,11 @@
 - `scripts/clean-alien-images.ts` - Tự động cập nhật.
 - `src/server/helpers/media-validator.ts` - Tự động cập nhật.
 - `public/sw.js` - Tự động cập nhật.
+- `src/core/cognitive-swarm/swarm-dispatcher.ts` - Tự động cập nhật.
+- `scripts/ai-pipeline/train-ts-ai.ts` - Tự động cập nhật.
+- `src/core/nlp-cognitive/mlp-network.ts` - Tự động cập nhật.
+- `src/core/nlp-cognitive/ts-intent-classifier.ts` - Tự động cập nhật.
+- `src/core/nlp-cognitive/vectorizer.ts` - Tự động cập nhật.
 
 ## Evidence of Completion
 
