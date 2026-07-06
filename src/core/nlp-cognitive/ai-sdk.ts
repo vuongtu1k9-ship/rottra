@@ -252,15 +252,90 @@ export async function generateTextLocal(options: {
           }
         } catch (e) {
           console.error("Failed to resolve HyDE query offline:", e);
+        }
       }
     }
   }
-}
+
   // --- PURE ROTTRA AI CORE (NANO BANANA LITE EDITION) ---
+  if (!text) {
+    const apiKey = process.env.GOOGLE_AI_API_KEY || process.env.GEMINI_API_KEY;
+    if (apiKey && apiKey !== "YOUR_API_KEY_HERE" && apiKey.trim() !== "") {
+      try {
+        console.log(`[Gemini API] Calling Gemini 1.5 Flash for ${botName}...`);
+        
+        const contents: any[] = [];
+        let systemInstructionText = systemPrompt || "";
+        
+        if (options.messages && Array.isArray(options.messages)) {
+          const systemParts: string[] = [];
+          for (const msg of options.messages) {
+            if (msg.role === "system") {
+              systemParts.push(msg.content);
+            } else {
+              contents.push({
+                role: msg.role === "assistant" ? "model" : "user",
+                parts: [{ text: msg.content || "" }]
+              });
+            }
+          }
+          if (systemParts.length > 0) {
+            systemInstructionText = systemParts.join("\n\n");
+          }
+        } else {
+          contents.push({
+            role: "user",
+            parts: [{ text: userPrompt }]
+          });
+        }
+        
+        const requestBody: any = {
+          contents,
+        };
+        if (systemInstructionText) {
+          requestBody.systemInstruction = {
+            parts: [{ text: systemInstructionText }]
+          };
+        }
+        
+        const temp = options.decodingSettings?.temperature ?? 0.7;
+        requestBody.generationConfig = {
+          temperature: temp,
+          maxOutputTokens: options.decodingSettings?.maxTokens ?? 1024,
+        };
+        
+        const response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(requestBody),
+          }
+        );
+        
+        if (response.ok) {
+          const resJson = await response.json();
+          const genText = resJson.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (genText) {
+            text = genText;
+            console.log(`[Gemini API] Success. Generated response length: ${text.length}`);
+          }
+        } else {
+          const errText = await response.text();
+          console.warn(`[Gemini API] Error response: ${response.status} - ${errText}`);
+        }
+      } catch (apiErr) {
+        console.error("[Gemini API] Connection failed, falling back to offline inference:", apiErr);
+      }
+    }
+  }
+
+  // Fallback to local rule engine if Gemini call failed or key is missing
   if (!text) {
     text = await runHybridOfflineInference(userPrompt, botId, prodName, price, options.userId);
   }
-
   // --- WRITE TO SEMANTIC CACHE ---
   if (text && !options.isInternalReasoning) {
     writeSemanticCache(botId, userPrompt, text);
