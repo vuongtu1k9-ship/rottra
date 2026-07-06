@@ -2,6 +2,7 @@
   "name": "rottra",
   "type": "module",
   "scripts": {
+    "start": "bun run src/server/prod.ts",
     "dev": "vite",
     "build": "bun --bun run vite build",
     "deploy": "wrangler pages deploy dist --project-name rottra --branch main --commit-dirty=true",
