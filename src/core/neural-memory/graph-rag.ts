@@ -1,6 +1,6 @@
 import { db } from "~/infra/database/db-pool";
 import { agentMemory, vectorDocument } from "~/infra/database/schema";
-import { eq } from "drizzle-orm";
+import { eq, or, sql, and } from "drizzle-orm";
 import { generateEmbedding, cleanAndNormalize } from "~/core/neural-memory/vector-rag";
 import { cosineSimilarityZeroAlloc } from "~/core/quant-engine/vector-simd";
 
@@ -80,15 +80,16 @@ const addEdge = (sourceLabel: string, targetLabel: string, relation: string, wei
 };
 
 // Rules-based entity extraction and graph building
-export const buildKnowledgeGraph = async (forceBuild = false) => {
-  if (!forceBuild && cachedGraphNodes && cachedGraphEdges && Date.now() - lastGraphBuildTime < GRAPH_CACHE_TTL_MS) {
+export const buildKnowledgeGraph = async (forceBuild = false, query?: string) => {
+  // Zleap-AI SAG: Skip cache if we are querying a dynamic sub-graph
+  if (!query && !forceBuild && cachedGraphNodes && cachedGraphEdges && Date.now() - lastGraphBuildTime < GRAPH_CACHE_TTL_MS) {
     console.log("[GraphRAG] Cache HIT - Skipping DB Query");
     return { nodes: cachedGraphNodes, edges: cachedGraphEdges };
   }
 
-  console.log("[GraphRAG] Cache MISS - Rebuilding from DB...");
+  console.log(`[GraphRAG] Cache MISS - Rebuilding from DB${query ? ` for query: ${query}` : ""}...`);
 
-  if (!forceBuild && globalNodes.size > 0) return { nodes: Array.from(globalNodes.values()), edges: globalEdges };
+  if (!query && !forceBuild && globalNodes.size > 0) return { nodes: Array.from(globalNodes.values()), edges: globalEdges };
 
   const { AgentKnowledgeBase } = await import("~/core/neural-memory/knowledge-base");
   const { ALL_DOMAIN_TRAINING_PAIRS } = await import("~/core/nlp-cognitive/domain-training-data");
@@ -178,9 +179,18 @@ export const buildKnowledgeGraph = async (forceBuild = false) => {
     }
   }
 
-  // 3. Process Dynamic User Memories from Database
+  // 3. Process Dynamic User Memories from Database (SAG: SQL-Driven sub-graph matching)
   try {
-    const memories = await db.select().from(agentMemory).where(eq(agentMemory.contextKey, "user_training"));
+    let memoryQuery: any = db.select().from(agentMemory).where(eq(agentMemory.contextKey, "user_training"));
+    if (query) {
+      const qClean = query.toLowerCase();
+      const words = qClean.split(/\s+/).filter(w => w.length > 2);
+      if (words.length > 0) {
+        const conditions = words.map(w => sql`LOWER(${agentMemory.contextValue}) LIKE ${'%' + w + '%'}`);
+        memoryQuery = db.select().from(agentMemory).where(and(eq(agentMemory.contextKey, "user_training"), or(...conditions)));
+      }
+    }
+    const memories = await memoryQuery;
     for (const mem of memories) {
       const text = (mem.contextValue as any)?.text;
       if (text) {
@@ -211,9 +221,18 @@ export const buildKnowledgeGraph = async (forceBuild = false) => {
     console.error("[GraphRAG] Failed to load dynamic database memories:", e);
   }
 
-  // 4. Process Dynamic Vector Documents (LLM Wiki Cards) from Database
+  // 4. Process Dynamic Vector Documents (LLM Wiki Cards) from Database (SAG: SQL-Driven filtering)
   try {
-    const docs = await db.select().from(vectorDocument);
+    let docsQuery: any = db.select().from(vectorDocument);
+    if (query) {
+      const qClean = query.toLowerCase();
+      const words = qClean.split(/\s+/).filter(w => w.length > 2);
+      if (words.length > 0) {
+        const conditions = words.map(w => sql`LOWER(${vectorDocument.title}) LIKE ${'%' + w + '%'} OR LOWER(${vectorDocument.content}) LIKE ${'%' + w + '%'}`);
+        docsQuery = db.select().from(vectorDocument).where(or(...conditions));
+      }
+    }
+    const docs = await docsQuery;
     for (const doc of docs) {
       const parentLabel = doc.title;
       addNode(parentLabel, doc.category || "WikiCard", doc.subtitle || doc.content.slice(0, 150) + "...");
@@ -495,7 +514,8 @@ export function selectDiverseNodesMMR(
 
 // Retrieve sub-graph based on a query using CSR Beam Search and MMR
 export const retrieveGraphRAG = async (query: string, maxHops = 2): Promise<GraphRAGResult> => {
-  const { nodes, edges } = await buildKnowledgeGraph();
+  const queryClean = cleanAndNormalize(query);
+  const { nodes, edges } = await buildKnowledgeGraph(false, queryClean);
 
   // Lazily rebuild and cache the CSR structure
   if (!cachedCSR || cachedCSR.nodes.length !== nodes.length || edges.length * 2 !== cachedCSR.columnIndices.length) {
@@ -503,7 +523,6 @@ export const retrieveGraphRAG = async (query: string, maxHops = 2): Promise<Grap
     (globalThis as any)._cachedCSR = cachedCSR;
   }
 
-  const queryClean = cleanAndNormalize(query);
   const queryVector = generateEmbedding(queryClean);
 
   // 1. Traverse using Semantic Beam Search
