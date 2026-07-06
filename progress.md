@@ -621,6 +621,7 @@
 - `check-getbotmessage-calls.ts` - Tự động cập nhật.
 - `refactor-assembly-v2.ts` - Tự động cập nhật.
 - `scripts/sd_generator.ts` - Tự động cập nhật.
+- `src/core/neural-memory/graph-rag.ts` - Tự động cập nhật.
 
 ## Evidence of Completion
 

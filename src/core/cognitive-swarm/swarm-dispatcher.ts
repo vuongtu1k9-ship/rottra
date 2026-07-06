@@ -10,6 +10,7 @@ import { agentMemory, product, blockchainLedger, negotiationLog } from "~/infra/
 import { eq, desc } from "drizzle-orm";
 import crypto from "crypto";
 import { generateProductVideoAd } from "~/server/helpers/video-ad-generator";
+import { skillRegistry, getSkillManual } from "~/core/cognitive-swarm/skills/skill-registry";
 
 export interface AgentDNA {
   greed: number;
@@ -433,6 +434,9 @@ Thought 3 Score: [điểm]`;
       sdkMessages[0].content = `${systemPrompt}\n\n=== CONTEXT TRUY XUẤT (RAG) ===\n${ragContext}\n================================`;
     }
 
+    // --- INJECT SKILL MANUAL (ReAct Loop) ---
+    sdkMessages[0].content += getSkillManual();
+
     if (options.phiPriceVal !== undefined) {
       const bestThought = await this.negotiationTreeOfThoughtsReasoning(options);
       const thoughtContext = `
@@ -456,7 +460,7 @@ Và câu thoại chính thức bọc trong cặp thẻ <verbal_strike>...</verba
     const w2 = 0.3; // Vibe weight
     const w3 = 0.2; // Tone/Quality weight
 
-    while (loopCount < 1 && !approved) {
+    while (loopCount < 4 && !approved) {
       loopCount++;
       const { text } = await generateTextLocal({
         messages: currentInputMessages,
@@ -465,6 +469,25 @@ Và câu thoại chính thức bọc trong cặp thẻ <verbal_strike>...</verba
         isInternalReasoning: true,
       });
       currentResponse = text || "";
+
+      // --- ReAct Loop: Parse JSON Skill ---
+      let toolCallParsed = null;
+      try {
+        const jsonMatch = currentResponse.match(/\{[\s\S]*"tool"[\s\S]*"args"[\s\S]*\}/);
+        if (jsonMatch) {
+           toolCallParsed = JSON.parse(jsonMatch[0]);
+        }
+      } catch (e) {}
+
+      if (toolCallParsed && toolCallParsed.tool && skillRegistry[toolCallParsed.tool]) {
+         console.log(`[ReAct] Agent called skill: ${toolCallParsed.tool}`);
+         const skill = skillRegistry[toolCallParsed.tool];
+         const result = await skill.execute(toolCallParsed.args);
+         
+         currentInputMessages.push({ role: "assistant", content: currentResponse });
+         currentInputMessages.push({ role: "system", content: `[KẾT QUẢ TOOL ${skill.name}]:\n${result}\nTiếp tục trả lời User dựa trên kết quả này. Nếu đã đủ thông tin, hãy trả lời bình thường.` });
+         continue; // Loop again with result
+      }
 
       // Post-processing:
       let cleanedResponse = filterMythosFable(currentResponse);
