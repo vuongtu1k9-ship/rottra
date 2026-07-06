@@ -374,6 +374,7 @@ Thought 3 Score: [điểm]`;
         messages: sdkMessages,
         decodingSettings,
         model,
+        isInternalReasoning: true,
       });
       return {
         success: true,
@@ -452,6 +453,7 @@ Và câu thoại chính thức bọc trong cặp thẻ <verbal_strike>...</verba
         messages: currentInputMessages,
         decodingSettings,
         model,
+        isInternalReasoning: true,
       });
       currentResponse = text || "";
 
