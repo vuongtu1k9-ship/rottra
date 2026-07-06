@@ -385,33 +385,38 @@ Thought 3 Score: [điểm]`;
     // --- STEP 3.5: RAG CONTEXT INJECTION & CHUNKING (ADVANCED) ---
     let ragContext = "";
     try {
-      const isComplexQuery =
-        lastMsgText.split(/\s+/).length >= 8 ||
-        /(và|còn|đồng thời|so sánh|tại sao|làm thế nào|nguyên nhân|ảnh hưởng|quy trình)/i.test(lastMsgText);
+      // Bypass RAG for trade/meeting chats to prevent performance degradation and timeouts (524)
+      const isMeetingChat = options.phiPriceVal !== undefined || options.budget !== undefined || options.quantity !== undefined;
 
-      if (isComplexQuery) {
-        const advancedResult = await advancedRAG(lastMsgText, {
-          useHyde: true,
-          useStepBack: true,
-          useDecomposition: true,
-          useContextual: true,
-          topK: 2,
-        });
-        if (advancedResult && advancedResult.finalAnswer) {
-          const chunks = this.chunkText(advancedResult.finalAnswer, maxContextChunkWords);
-          if (chunks.length > 0) {
-            ragContext = chunks[0];
-          }
-        }
-      } else {
-        const candidates = await hybridRetrieve(lastMsgText, 3);
-        if (candidates && candidates.length > 0) {
-          const fusion = computeAttentionFusion(lastMsgText, candidates);
-          const fusedText = fusion.fusedContextText || "";
-          if (fusedText) {
-            const chunks = this.chunkText(fusedText, maxContextChunkWords);
+      if (!isMeetingChat) {
+        const isComplexQuery =
+          lastMsgText.split(/\s+/).length >= 8 ||
+          /(và|còn|đồng thời|so sánh|tại sao|làm thế nào|nguyên nhân|ảnh hưởng|quy trình)/i.test(lastMsgText);
+
+        if (isComplexQuery) {
+          const advancedResult = await advancedRAG(lastMsgText, {
+            useHyde: true,
+            useStepBack: true,
+            useDecomposition: true,
+            useContextual: true,
+            topK: 2,
+          });
+          if (advancedResult && advancedResult.finalAnswer) {
+            const chunks = this.chunkText(advancedResult.finalAnswer, maxContextChunkWords);
             if (chunks.length > 0) {
               ragContext = chunks[0];
+            }
+          }
+        } else {
+          const candidates = await hybridRetrieve(lastMsgText, 3);
+          if (candidates && candidates.length > 0) {
+            const fusion = computeAttentionFusion(lastMsgText, candidates);
+            const fusedText = fusion.fusedContextText || "";
+            if (fusedText) {
+              const chunks = this.chunkText(fusedText, maxContextChunkWords);
+              if (chunks.length > 0) {
+                ragContext = chunks[0];
+              }
             }
           }
         }
