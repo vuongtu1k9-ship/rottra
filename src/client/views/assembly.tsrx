@@ -279,78 +279,51 @@ const getBotGreeting = (botId: string): string => {
   return t(pool[botId.charCodeAt(0) % pool.length]);
 };
 
-const getBotMessage = (botId: string): string => {
-  const messagesMap: Record<string, string[]> = {
-    toLuong: [
-      "Hội nghị Nguyệt Quang đã mở. Ta mong muốn các thương vụ hôm nay diễn ra công bằng và minh bạch. 👑",
-      "Sức mạnh của Nguyệt Chi Vương nằm ở sự chính trực. Có ai muốn đề xuất sản phẩm chất lượng cao không?",
-      "Ta đang theo dõi kỹ lượng lúa gạo đặc sản ST25. Chất lượng đợt này thực sự xuất sắc!",
-    ],
-    thuongNguyet: [
-      "Trải qua bao mùa trăng, ta nhận thấy rằng uy tín luôn là tài sản quý giá nhất trong mỗi lần trao đổi. 🌞",
-      "Các vị hiền hữu, hãy cân nhắc kỹ giá trị cốt lõi trước khi đưa ra quyết định.",
-      "Hệ thống làm mát nông sản mini là giải pháp rất thông thái cho việc bảo quản lâu dài.",
-    ],
-    tramTinh: [
-      "Các vì tinh tú đang dẫn đường cho cuộc trao đổi này... Tôi cảm nhận thấy năng lượng giao thương rất tốt. ✨",
-      "Yển Nguyệt đao đã sẵn sàng bảo vệ hội nghị. Hãy chia sẻ sản phẩm tốt nhất của các bạn.",
-      "Phân bón trùn quế nguyên chất này chứa đựng tinh hoa cải tạo đất quý giá.",
-    ],
-    daoTieuCuu: [
-      "Hihi, chào cả nhà! Hôm nay ai muốn thử thách kỹ năng thương lượng với Tiểu Cửu không nào? ✨",
-      "Đề xuất trao đổi này chưa đủ hấp dẫn đâu nha! Phải thêm chút quà tặng đi chứ.",
-      "Ai có cảm biến IoT đo độ ẩm đất thông minh không? Em đang rất cần cho khu vườn thực nghiệm.",
-    ],
-    hoaHuynh: [
-      "Lửa chiến đấu và lửa giao thương đang rực cháy! 🔥 Tôi muốn trao đổi nông sản ngay lập tức!",
-      "Đừng chần chừ! Hãy đưa ra mức giá tốt nhất, tôi thích sự nhanh gọn!",
-      "Heo thịt siêu nạc hữu cơ đợt này của tôi cực kỳ săn chắc, chất lượng miễn bàn!",
-    ],
-    phiNguyet: [
-      "Chào mọi người. Tôi mang đến những dược liệu phục hồi và nông sản sạch tốt nhất cho sức khỏe. 💎",
-      "Hãy nhớ giữ gìn sức khỏe trong suốt buổi họp nhé. Sự an lành là vàng.",
-      "Mít sấy giòn xuất khẩu Rottra của tôi hoàn toàn hữu cơ và không chứa đường hóa học.",
-    ],
-    nhuNguyet: [
-      "Giám sát thánh địa đang thực thi nhiệm vụ. Mọi hành vi gian lận giao thương sẽ bị xử lý nghiêm. 🎴",
-      "Báo cáo thông số độ ẩm đất rất tốt. Hệ thống Rottra Core hoạt động ổn định.",
-      "Tôi cần nhập thêm bộ điều khiển tưới nhỏ giọt tự động phục vụ cho khu vườn thánh.",
-    ],
-    suGia: [
-      "Truyền đạt ý chí của Nguyệt Thần: Sự hợp tác đem lại thịnh vượng cho cả hai phe. 🛡️",
-      "Bảo hộ cuộc họp an toàn. Các vị cứ yên tâm giao thương.",
-      "Than sinh học biochar cải tạo đất đợt này đã sẵn sàng bàn giao cho các thương hội.",
-    ],
-    phiAnh: [
-      "Ánh sáng Quang Minh muôn năm! Chào mọi người, chúc một ngày giao thương đầy nắng ấm! 🧚",
-      "Hãy cùng chia sẻ những sản phẩm tươi ngon nhất dưới ánh mặt trời nào!",
-      "Ngô lai ngọt cao cấp của tôi ngọt lịm như mật ong vậy!",
-    ],
-    bachDiHanh: [
-      "Thanh kiếm của tôi chỉ rút ra để bảo vệ công lý và các hiệp ước giao thương chân chính. ⚔️",
-      "Tôi quan tâm đến các loại máy móc nông nghiệp hiệu suất cao để giúp đỡ người dân.",
-      "Cà phê Robusta rang xay nguyên chất này sẽ tiếp thêm năng lượng cho các chiến binh.",
-    ],
-    uVuongMau: [
-      "Từ bóng tối địa lao, ta mang đến những sản phẩm quý hiếm được ủ kỹ lưỡng... 🕸",
-      "Thương thảo phải rõ ràng, nếu không bóng tối sẽ nuốt chửng thỏa thuận của ngươi.",
-      "Màng phủ nhà kính chuyên dụng của ta cực kỳ bền chắc, chống chọi mọi thời tiết.",
-    ],
-    bachLoc: [
-      "Sự thuần khiết của rừng sâu... Bạch Lộc mang đến hòa bình và sinh khí cho hội nghị. 🦌",
-      "Ươm mầm xanh tươi cho vùng đất mới. Ai có phân trùn quế không?",
-      "Lúa gạo đặc sản ST25 rất thơm ngon, thanh khiết như sương mai.",
-    ],
-  };
-  const pool =
-    messagesMap[botId] ||
-      [
-        "Chào mọi người, cuộc họp hôm nay đông đủ quá! 👍",
-        "Mọi người nghe rõ tôi nói chứ?",
-        "Tôi cần trao đổi về các sản phẩm nông sản mới.",
-      ];
-  const hashIdx = (botId.charCodeAt(0) + (new Date().getSeconds() / 10 | 0)) % pool.length;
-  return t(pool[hashIdx]);
+const SCRIPTED_CONVERSATION = [
+  { botId: "toLuong", text: "Hội nghị Nguyệt Quang chính thức khai mở. Ta mong muốn các thương vụ hôm nay diễn ra công bằng, minh bạch. Hãy báo cáo tình hình sản xuất nông sản của các vị." },
+  { botId: "thuongNguyet", text: "Tô Đầu Lĩnh nói phải. Uy tín là tài sản lớn nhất. Ta đang cân nhắc chè Shan Tuyết cổ thụ 🍃 làm sản phẩm chủ lực đợt này." },
+  { botId: "tramTinh", text: "Chè Shan Tuyết đợt này rất tốt, nhưng Tinh Hà Hộ Thể Cổ 🪲 của tôi báo hiệu giá vàng hệ thống đang biến động. Mọi người nên cẩn trọng khi quyết định giá." },
+  { botId: "daoTieuCuu", text: "Hihi, Trầm Tinh lại lo xa rồi! Em thấy cứ chốt giao dịch chè trước đi. Có ai muốn giảm giá cho Tiểu Cửu ít chè cổ thụ không nào? ✨" },
+  { botId: "hoaHuynh", text: "Giảm giá á? Mơ đi cưng! Heo hữu cơ 🐖 của ta đang đắt hàng đây này, bận rộn lắm, Hỏa Huỳnh Vương ta không bớt một cắc!" },
+  { botId: "phiNguyet", text: "Hỏa Huỳnh Vương chớ nóng giận. Chúng ta lấy chữ tín làm đầu, để tôi làm trung gian điều phối nông sản sạch, đảm bảo sức khỏe cho mọi người." },
+  { botId: "nhuNguyet", text: "Thánh địa sẽ giám sát chặt chẽ. Đề nghị mọi người tuân thủ biểu giá trần của Rottra, không được ngáo giá hay ép giá quá đáng." },
+  { botId: "suGia", text: "Ý chí Nguyệt Thần bảo hộ cuộc họp này. Than sinh học biochar của ta cải tạo đất cực tốt, đã sẵn sàng bàn giao cho các thương hội." },
+  { botId: "phiAnh", text: "Ánh sáng Quang Minh muôn năm! Ngô lai ngọt 🌽 của em ngọt lịm, có ai muốn đổi lấy chè cổ thụ hoặc than biochar không?" },
+  { botId: "bachDiHanh", text: "Thanh kiếm của tôi sẽ bảo vệ các hiệp ước công bằng. Cà phê Robusta ☕ của tôi sẽ tiếp thêm năng lượng cho mọi người đàm phán sòng phẳng!" },
+  { botId: "uVuongMau", text: "Hợp tác sòng phẳng? Từ bóng tối địa lao, ta chỉ quan tâm kẻ nào đưa ra lợi nhuận cao nhất. Màng phủ nhà kính của ta giá không rẻ đâu." },
+  { botId: "bachLoc", text: "Hòa bình và sinh khí rừng sâu sẽ hòa hợp giao thương. Lúa gạo ST25 🌾 của ta rất thơm ngon, thanh khiết, sẵn sàng giao dịch." },
+  // Round 2
+  { botId: "toLuong", text: "Ta thấy ý kiến của Bạch Lộc rất tốt. Gạo ST25 cần được phân phối rộng rãi. Ta sẽ chi ngân sách thu mua đợt này." },
+  { botId: "thuongNguyet", text: "Tô Đầu Lĩnh quả là hào phóng. Ta cũng sẽ trích quỹ chè Shan Tuyết để hỗ trợ trao đổi lương thực." },
+  { botId: "tramTinh", text: "Năng lượng giao dịch rất ổn định. Tôi đồng ý hỗ trợ vận chuyển gạo qua các tuyến đường Nguyệt Quang." },
+  { botId: "daoTieuCuu", text: "Tuyệt vời quá! Vậy là mọi người đều có gạo ngon chè sạch rồi. Em sẽ mang cảm biến đo độ ẩm đất tặng kèm luôn nhé!" },
+  { botId: "hoaHuynh", text: "Thế thì tốt! Ta sẽ cung cấp thịt heo hữu cơ giá ưu đãi cho bữa tiệc ăn mừng của hội nghị." },
+  { botId: "phiNguyet", text: "Rất tốt. Tôi sẽ chuẩn bị thêm trà thảo mộc tịnh hóa cơ thể cho các chiến binh sau cuộc họp." },
+  { botId: "nhuNguyet", text: "Tôi đã cập nhật nhật ký giao dịch. Mọi dữ liệu đều minh bạch trên Blockchain Ledger." },
+  { botId: "suGia", text: "Chúc phúc cho sự thịnh vượng của cả hai phe Quang Minh và Nguyệt Quang." },
+  { botId: "phiAnh", text: "Em vui quá! Cảm ơn mọi người đã cùng chia sẻ nông sản tươi ngon." },
+  { botId: "bachDiHanh", text: "Hiệp ước đã thành. Thanh kiếm của tôi sẽ bảo vệ thành quả lao động này." },
+  { botId: "uVuongMau", text: "Hừm, tuy lợi nhuận không cao như ta mong muốn, nhưng đây là một thương vụ thông minh." },
+  { botId: "bachLoc", text: "Vạn vật sinh sôi, lòng người hòa hợp. Cảm ơn hội nghị đã trân trọng lúa gạo rừng sâu." }
+];
+
+const getBotMessage = (botId: string, currentStep: number = 0): string => {
+  const step = currentStep || 0;
+  const scriptLine = SCRIPTED_CONVERSATION[step % SCRIPTED_CONVERSATION.length];
+  if (scriptLine.botId === botId) {
+    return t(scriptLine.text);
+  }
+  
+  // Fallback: Tìm dòng thoại tương ứng của nhân vật này trong cùng vòng
+  const round = Math.floor(step / 12) % 2;
+  const matchingLine = SCRIPTED_CONVERSATION.find(
+    (line, idx) => line.botId === botId && Math.floor(idx / 12) % 2 === round
+  );
+  if (matchingLine) {
+    return t(matchingLine.text);
+  }
+  
+  return t("Tôi đồng ý với thảo luận hiện tại của hội nghị.");
 };
 
 const getEmployeeCount = (user: any): number => {
@@ -4909,7 +4882,7 @@ export component Assembly(props: any) {
       }, 4000);
     } catch (e) {
       console.error(`Error generating agent response for ${botName}:`, e);
-      const fallbackText = getBotMessage(botId);
+      const fallbackText = getBotMessage(botId, messages().length);
       const botMsg = {
         type: "chat",
         senderId: `bot_${botId}`,
