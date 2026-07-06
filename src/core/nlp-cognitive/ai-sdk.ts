@@ -49,17 +49,19 @@ export async function generateTextLocal(options: {
     }
     return result;
   };
-
   if (options.messages && Array.isArray(options.messages)) {
+    const systemContents: string[] = [];
     for (const msg of options.messages) {
       if (msg.role === "system") {
-        systemPrompt = msg.content || "";
+        systemContents.push(msg.content || "");
       } else if (msg.role === "user") {
         userPrompt = msg.content || "";
       }
     }
+    if (systemContents.length > 0) {
+      systemPrompt = systemContents.join("\n\n");
+    }
   }
-
   const botNameMatch = systemPrompt.match(/Tên Thương Nhân:\s*([^\n\r]+)/i) || systemPrompt.match(/Bạn là\s*([^,]+)/i);
   let botName = botNameMatch ? botNameMatch[1].trim() : "Trợ lý Rottra";
   if (botName.length > 20 || botName.toLowerCase().includes("chuyên gia")) {

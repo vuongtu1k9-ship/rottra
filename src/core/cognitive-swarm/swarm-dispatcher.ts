@@ -59,6 +59,7 @@ export interface RottraAIChatOptions {
   lastMsgText: string;
   chatHistory: any[];
   systemPrompt: string;
+  dynamicStatePrompt?: string;
   model?: string;
   decodingSettings?: DecodingSettings;
   // Dynamic market and database parity fields:
@@ -355,7 +356,10 @@ Thought 3 Score: [điểm]`;
 ============================================================\n`;
 
     const sdkMessages: any[] = [
-      { role: "system", content: vibeMindsetInstruction + systemPrompt },
+      // 1. Static prompt first (for optimal cacheability!)
+      { role: "system", content: systemPrompt },
+      // 2. Dynamic state and vibe second
+      { role: "system", content: vibeMindsetInstruction + (options.dynamicStatePrompt ? `\n${options.dynamicStatePrompt}` : "") },
       ...recentHistory.map((msg: any) => ({
         role: msg.senderId === `bot_${botId}` ? "assistant" : "user",
         content: msg.senderId === `bot_${botId}` ? msg.text : `${msg.sender}: ${msg.text}`,
