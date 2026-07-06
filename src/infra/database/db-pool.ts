@@ -42,8 +42,8 @@ function initDb() {
     globalForDb.pgClient ??
     postgres(connectionString, {
       max: 2, // Giảm pool size trên Cloudflare Workers để chống lỗi cạn kiệt Connection (502 Bad Gateway)
-      idle_timeout: 3000, // Giải phóng connection nhàn rỗi cực nhanh
-      connect_timeout: 10_000,
+      idle_timeout: 3, // Giải phóng connection nhàn rỗi sau 3 giây (đơn vị của postgres.js là giây)
+      connect_timeout: 10, // Timeout kết nối 10 giây
       prepare: false,
       onnotice: () => {},
       transform: { undefined: null },
