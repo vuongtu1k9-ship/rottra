@@ -396,82 +396,7 @@ export class GenerateImageAction extends BotActionExecutor {
                   avifBase64 = canvas.toDataURL("image/webp", 0.9);
                 }
 
-                // 2. Capture WebM (AV1 + Opus)
-                const audioCtx = new AudioContext();
-                const dest = audioCtx.createMediaStreamDestination();
-                
-                // Simple algorithmic beat (Opus generation)
-                let bpm = 80;
-                if (mood === "positive") bpm = 110;
-                else if (mood === "urgent") bpm = 130;
-                else if (mood === "calm") bpm = 65;
-                
-                const beatInterval = 60 / bpm;
-                for (let i = 0; i < 8; i++) {
-                  const osc = audioCtx.createOscillator();
-                  const gain = audioCtx.createGain();
-                  osc.connect(gain);
-                  gain.connect(dest);
-                  
-                  osc.type = "sine";
-                  osc.frequency.setValueAtTime(440 * Math.pow(2, (Math.floor(Math.random() * 12)) / 12), audioCtx.currentTime + i * beatInterval);
-                  
-                  gain.gain.setValueAtTime(0, audioCtx.currentTime + i * beatInterval);
-                  gain.gain.linearRampToValueAtTime(0.5, audioCtx.currentTime + i * beatInterval + 0.1);
-                  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + i * beatInterval + beatInterval);
-                  
-                  osc.start(audioCtx.currentTime + i * beatInterval);
-                  osc.stop(audioCtx.currentTime + i * beatInterval + beatInterval);
-                }
 
-                const canvasStream = canvas.captureStream(30);
-                const combinedStream = new MediaStream([
-                  ...canvasStream.getTracks(),
-                  ...dest.stream.getTracks()
-                ]);
-
-                let mimeType = 'video/webm; codecs=av1,opus';
-                if (!MediaRecorder.isTypeSupported(mimeType)) {
-                  mimeType = 'video/webm; codecs=vp9,opus'; // fallback
-                }
-
-                const recorder = new MediaRecorder(combinedStream, { mimeType, videoBitsPerSecond: 2500000 });
-                const chunks = [];
-                recorder.ondataavailable = e => { 
-                  if(e.data && e.data.size > 0) chunks.push(e.data); 
-                };
-                recorder.onstop = () => {
-                  setTimeout(() => {
-                    const blob = new Blob(chunks, { type: mimeType });
-                    const reader = new FileReader();
-                    reader.onload = () => {
-                      resolve({
-                        avifBase64,
-                        webmBase64: reader.result,
-                        mimeType
-                      });
-                    };
-                    reader.readAsDataURL(blob);
-                  }, 500); // Wait a bit for chunks to settle
-                };
-
-                // Request data every 100ms
-                recorder.start(100);
-
-                // Small animation loop for video using rAF to ensure frames are generated
-                let animationId;
-                function animate() {
-                  ctx.fillStyle = "rgba(255,255,255,0.01)";
-                  ctx.fillRect(40, 40, 1000, 1000);
-                  animationId = requestAnimationFrame(animate);
-                }
-                animate();
-
-                // Record for exactly 4 seconds
-                setTimeout(() => {
-                  cancelAnimationFrame(animationId);
-                  recorder.stop();
-                }, 4000);
 
               } catch (err) {
                 resolve({ error: err.message });
@@ -522,22 +447,15 @@ export class GenerateImageAction extends BotActionExecutor {
       fs.mkdirSync(path.dirname(avifPath), { recursive: true });
       fs.writeFileSync(avifPath, Buffer.from(avifData, "base64"));
 
-      // Save WebM Video (AV1 + Opus)
-      const webmData = result.webmBase64.replace(/^data:video\/\w+;base64,/, "");
-      const webmFileName = `banner_${prod.id}_${idStamp}.webm`;
-      const webmPath = path.join(process.cwd(), "public", "images", "banners", webmFileName);
-      fs.writeFileSync(webmPath, Buffer.from(webmData, "base64"));
-
-      console.log(`✅ Đã xuất thành công AVIF và WebM (${result.mimeType}) bằng chính lõi Rottra AI!`);
+      console.log(`✅ Đã xuất thành công AVIF bằng chính lõi Rottra AI!`);
 
       const newImageUrl = `/images/banners/${avifFileName}`;
-      const newVideoUrl = `/images/banners/${webmFileName}`;
 
       const currentMedia = Array.isArray(prod.media) ? prod.media : [];
       const filteredMedia = currentMedia.filter(
         (m: any) => !(m.link && typeof m.link === "string" && m.link.startsWith("/images/banners/")),
       );
-      const newMedia = [...filteredMedia, { link: newImageUrl, type: "image" }, { link: newVideoUrl, type: "video" }];
+      const newMedia = [...filteredMedia, { link: newImageUrl, type: "image" }];
 
       await db.update(product).set({ media: newMedia }).where(eq(product.id, prod.id));
       await helpers.logActivity(userId, `Bot tạo ảnh sản phẩm '${prod.name}'`, `Hệ thống tự động kết xuất banner quảng cáo AI`, "product");
@@ -558,151 +476,29 @@ export class GenerateVideoAction extends BotActionExecutor {
     }
     const prod = myProducts[Math.floor(Math.random() * myProducts.length)];
 
-    const productImageUrl = helpers.getProductImageUrl(prod.media as any[], "file");
-    let productBase64 = "";
-    if (productImageUrl && productImageUrl.startsWith("file://")) {
-      const localPath = productImageUrl.replace("file://", "");
-      if (fs.existsSync(localPath)) {
-        const ext = path.extname(localPath).substring(1) || "png";
-        const base64Data = fs.readFileSync(localPath).toString("base64");
-        productBase64 = `data:image/${ext};base64,${base64Data}`;
+    try {
+      // Sử dụng Hyperframes Engine để xuất video AV1 chuẩn xịn thay vì đồ giả lập
+      const { generateProductVideoAd } = await import("../../server/helpers/video-ad-generator");
+      const result = await generateProductVideoAd(prod.id);
+
+      if (!result.success) {
+        return { success: false, action: "video", message: "Lỗi kết xuất Hyperframes" };
       }
-    } else if (productImageUrl && productImageUrl.startsWith("data:image/")) {
-      productBase64 = productImageUrl;
+
+      await helpers.logActivity(
+        userId, 
+        `Bot tạo video AI cho '${prod.name}'`, 
+        `Hyperframes Engine đã xuất video WebM AV1 mới.`, 
+        "product"
+      );
+      // Giả định rewardAgentBudget tồn tại
+      await rewardAgentBudget(userId, 80000000);
+
+      return { success: true, action: "video", productName: prod.name, message: result.ttsScript };
+    } catch (e: any) {
+      console.error("Lỗi khi Bot dùng Hyperframes:", e);
+      return { success: false, action: "video", message: e.message || "Failed to render video" };
     }
-
-    const logDir = path.join(process.cwd(), "public", "videos");
-    if (!fs.existsSync(logDir)) {
-      fs.mkdirSync(logDir, { recursive: true });
-    }
-    const logPath = path.join(logDir, `render_${prod.id}.log`);
-    fs.writeFileSync(logPath, `=== BẮT ĐẦU KẾT XUẤT VIDEO AI CHO SẢN PHẨM: ${prod.name} ===\n`);
-
-    const realVideoUrl = `/videos/output_${prod.id}.webm`;
-
-    (async () => {
-      try {
-        fs.appendFileSync(logPath, `> Khởi tạo bộ não AI nội bộ: Đang phân tích kịch bản Copywriter Tiktok...\n`);
-
-        let salt = 0;
-        // Standard for loop (Tiêu chuẩn lặp đơn giản)
-        for (let i = 0; i < prod.id.length; i++) {
-          salt = prod.id.charCodeAt(i) + ((salt << 5) - salt);
-        }
-        const randomSeed = Math.abs(salt);
-        const pick = (arr: string[]) => arr[randomSeed % arr.length];
-
-        const hooks = [
-          "Trời ơi tin được không!",
-          "Dừng lại 3 giây xem ngay siêu phẩm này!",
-          "Deal sốc cuối tuần, không mua thì tiếc hùi hụi!",
-          "Cảnh báo! Sản phẩm gây nghiện đang làm mưa làm gió!",
-        ];
-        const catLower = (prod.category || "").toLowerCase();
-        let adjectives = ["chất lượng đỉnh cao", "siêu xịn sò", "đẳng cấp nhất", "dùng là mê"];
-        if (catLower.includes("ăn") || catLower.includes("thực phẩm") || catLower.includes("uống")) {
-          adjectives = ["ngon khó cưỡng", "chuẩn vị mẹ làm", "giòn rụm", "đậm đà khó quên"];
-        }
-        const ctas = ["Chốt đơn liền tay kẻo lỡ!", "Bấm vào giỏ hàng ngay nào!", "Số lượng có hạn, rước em nó về thôi!"];
-        const ttsScript = `${pick(hooks)} Siêu phẩm ${prod.name} ${pick(adjectives)}. Giá sốc hôm nay chỉ ${prod.price?.toLocaleString("vi-VN") || "hủy diệt"} đồng. ${pick(ctas)} Trên nền tảng thương mại Rottra!`;
-
-        fs.appendFileSync(logPath, `> Đã sinh kịch bản AI: "${ttsScript}"\n`);
-        fs.appendFileSync(logPath, `> Đang tổng hợp giọng nói AI (Voiceover) cho sản phẩm...\n`);
-
-        const ttsUrl = `https://translate.googleapis.com/translate_tts?client=gtx&ie=UTF-8&tl=vi&q=${encodeURIComponent(ttsScript)}`;
-        const ttsFileName = `tts_current.mp3`;
-        const ttsPath = path.join(process.cwd(), "video_ads", "assets", ttsFileName);
-
-        try {
-          const response = await fetch(ttsUrl, {
-            headers: { "User-Agent": "Mozilla/5.0" },
-          });
-          if (response.ok) {
-            const ab = await response.arrayBuffer();
-            fs.writeFileSync(ttsPath, Buffer.from(ab));
-            fs.appendFileSync(logPath, `> Đã tạo xong âm thanh Voiceover AI thành công.\n\n`);
-          } else {
-            fs.appendFileSync(logPath, `> Tạo Voiceover thất bại (${response.status}), sẽ dùng âm thanh mặc định.\n\n`);
-          }
-        } catch (e) {
-          fs.appendFileSync(logPath, `> Lỗi tải Voiceover: ${e}\n\n`);
-        }
-
-        const formattedName = prod.name.length < 30 ? `SIÊU PHẨM: ${prod.name.toUpperCase()}` : prod.name.toUpperCase();
-        const themeColors = ["#0acf83", "#1abcfe", "#a259ff", "#f24e1e", "#ff8a00", "#FF3366", "#00C853", "#2962FF"];
-        let hash = 0;
-        for (let i = 0; i < prod.id.length; i++) {
-          hash = prod.id.charCodeAt(i) + ((hash << 5) - hash);
-        }
-        const colorIndex = Math.abs(hash) % themeColors.length;
-        const themeColor = themeColors[colorIndex];
-
-        const renderVariables = JSON.stringify({
-          productId: prod.id,
-          productName: formattedName,
-          productPrice: prod.price?.toLocaleString("vi-VN") + "đ" || "Liên hệ",
-          productDesc: prod.description || "",
-          category: prod.category || "",
-          quantity: prod.quantity || 0,
-          heavy: prod.heavy || 0,
-          expired: prod.expired ? new Date(prod.expired).toLocaleDateString("vi-VN") : "",
-          productImage: productBase64 || productImageUrl,
-          themeColor: themeColor,
-        });
-
-        const variablesFileName = `variables_${prod.id}.json`;
-        const variablesFilePath = path.join(process.cwd(), "video_ads", variablesFileName);
-        fs.writeFileSync(variablesFilePath, renderVariables);
-
-        const templatePath = path.join(process.cwd(), "public", "videos", "output_dummy-product-123.webm");
-        const destPath = path.join(process.cwd(), "public", "videos", `output_${prod.id}.webm`);
-        if (fs.existsSync(templatePath)) {
-          fs.copyFileSync(templatePath, destPath);
-          fs.appendFileSync(logPath, "\n=== KẾT XUẤT THÀNH CÔNG! ĐÃ SỬ DỤNG TEMPLATE VIDEO ===\n");
-          try {
-            if (fs.existsSync(logPath)) {
-              fs.unlinkSync(logPath);
-            }
-          } catch (err) {
-            console.error("Failed to delete log file in bot actions:", err);
-          }
-        } else {
-          throw new Error("Template video output_dummy-product-123.webm not found");
-        }
-
-        await pgClient.query(
-          `INSERT INTO "File" (id, "userId", filename, mimetype, path, status) VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT (id) DO NOTHING`,
-          [crypto.randomUUID(), userId, `output_${prod.id}.webm`, "video/webm", realVideoUrl, "active"],
-        );
-
-        let currentMedia: any[] = [];
-        if (typeof prod.media === "string") {
-          try {
-            currentMedia = JSON.parse(prod.media);
-          } catch (e) {}
-        } else if (Array.isArray(prod.media)) {
-          currentMedia = prod.media;
-        }
-
-        // Functional check using some()
-        const exists = currentMedia.some((m: any) => m.link === realVideoUrl);
-        if (!exists) {
-          const newMedia = [...currentMedia, { link: realVideoUrl, type: "video" }];
-          await pgClient.query(`UPDATE "Product" SET media = $1 WHERE id = $2`, [JSON.stringify(newMedia), prod.id]);
-        }
-        await helpers.logActivity(
-          userId,
-          `Bot tạo video quảng cáo cho '${prod.name}'`,
-          `Hệ thống tự động kết xuất video AI thành công`,
-          "product",
-        );
-        await rewardAgentBudget(userId, 120000000);
-      } catch (err: any) {
-        console.error("Bot background render failed:", err.message);
-      }
-    })();
-
-    return { success: true, action: "video", productName: prod.name, videoUrl: realVideoUrl };
   }
 }
 
