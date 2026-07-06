@@ -1,6 +1,7 @@
 import { db, pgClient } from "~/infra/database/db-pool";
 import { product, review, cart, orderItem, user } from "~/infra/database/schema";
 import { eq } from "drizzle-orm";
+import { sanitizeProductMedia } from "~/server/helpers/media-validator";
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
@@ -79,7 +80,7 @@ export class AddProductAction extends BotActionExecutor {
       expired: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(),
       status: true,
       sellerId: userId,
-      media: [{ link: matchedImg, name: uniqueName, type: "image/jpeg" }],
+      media: sanitizeProductMedia([{ link: matchedImg, name: uniqueName, type: "image/jpeg" }]),
     });
 
     await helpers.logActivity(userId, `Bot thêm sản phẩm mới '${uniqueName}'`, `Hệ thống tự động thêm sản phẩm mới của Agent`, "product");
@@ -191,7 +192,7 @@ export class EditProductAction extends BotActionExecutor {
         category: template.category,
         price: newPrice,
         quantity: newQty,
-        media: [{ link: matchedImg, type: "image" }],
+        media: sanitizeProductMedia([{ link: matchedImg, type: "image" }]),
       })
       .where(eq(product.id, prod.id));
 
@@ -243,7 +244,7 @@ export class FixImageAction extends BotActionExecutor {
     }
     const prod = myProducts[0];
     const matchedImg = await helpers.getPreciseImageForProduct(prod.name, prod.category || "Nông sản");
-    const newMedia = [{ link: matchedImg, type: "image" }];
+    const newMedia = sanitizeProductMedia([{ link: matchedImg, type: "image" }]);
 
     await db
       .update(product)
