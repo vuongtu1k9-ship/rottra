@@ -612,6 +612,10 @@
 - `src/core/nlp-cognitive/mlp-network.ts` - Tự động cập nhật.
 - `src/core/nlp-cognitive/ts-intent-classifier.ts` - Tự động cập nhật.
 - `src/core/nlp-cognitive/vectorizer.ts` - Tự động cập nhật.
+- `scripts/check-images.ts` - Tự động cập nhật.
+- `scripts/find-alien.ts` - Tự động cập nhật.
+- `scripts/fix-alien.ts` - Tự động cập nhật.
+- `scripts/refactor-video.ts` - Tự động cập nhật.
 
 ## Evidence of Completion
 
