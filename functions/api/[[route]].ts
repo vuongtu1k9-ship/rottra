@@ -56,6 +56,12 @@ export const onRequest: PagesFunction<{ ROTTRA_KV?: KVNamespace; BACKEND_URL?: s
       redirect: "manual",
     });
 
+    // If WebSocket upgrade (101 Switching Protocols), return the response directly
+    // wrapping it in a new Response strips the WebSocket context
+    if (response.status === 101) {
+      return response;
+    }
+
     // Create a new response to allow modifying headers
     const newResponse = new Response(response.body, response);
     newResponse.headers.set("X-Debug-Backend", targetUrl.toString());
