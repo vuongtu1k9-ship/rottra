@@ -5,6 +5,14 @@ import { A } from "@solidjs/router";
 import { UserAvatar } from "~/client/components/user-avatar.tsrx";
 import { currencySymbol, formatCurrency } from "~/client/stores/i18n-store";
 
+export function getSafeMediaUrl(url: string): string {
+  if (!url) return "/images/no-image.avif";
+  if (url.startsWith("http://") || url.startsWith("https://")) {
+    return "/images/no-image.avif"; // Chặn toàn bộ link ngoài
+  }
+  return url;
+}
+
 export function getPrimaryImage(item: any) {
   if (!item) return "/images/Rottra-logo.avif";
   const media = item.media;
@@ -19,7 +27,8 @@ export function getPrimaryImage(item: any) {
   const first = validList[0];
 
   if (first) {
-    return typeof first === "string" ? first : first.link;
+    const rawUrl = typeof first === "string" ? first : first.link;
+    return getSafeMediaUrl(rawUrl);
   }
   return "/images/Rottra-logo.avif";
 }
@@ -68,7 +77,8 @@ export component ProductCard(props: any) {
 
   const currentMediaUrl = () => {
     const m = currentMedia();
-    return m ? (typeof m === "string" ? m : m.link) : "/no-image.avif";
+    const rawUrl = m ? (typeof m === "string" ? m : m.link) : "/no-image.avif";
+    return getSafeMediaUrl(rawUrl);
   };
 
   const currentMediaType = () => {
