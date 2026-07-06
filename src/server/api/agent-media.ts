@@ -1,15 +1,20 @@
 import { Hono } from "hono";
+import { zValidator } from "@hono/zod-validator";
+import { z } from "zod";
 import { generateProductSVG, generateMusicSequence, notesToWav, createWavFile, getLocalAgentMedia } from "~/server/api/local-media-engine";
 
 export const mediaApp = new Hono();
 
+const imageSchema = z.object({
+  agentId: z.string({ required_error: "Missing agentId" }),
+  productName: z.string({ required_error: "Missing productName" }),
+  price: z.string().optional(),
+});
+
 // POST /api/media/image — Tạo ảnh SVG sản phẩm theo style agent
-mediaApp.post("/image", async (c) => {
+mediaApp.post("/image", zValidator("json", imageSchema), async (c) => {
   try {
-    const { agentId, productName, price } = await c.req.json();
-    if (!agentId || !productName) {
-      return c.json({ success: false, error: "Missing agentId or productName" }, 400);
-    }
+    const { agentId, productName, price } = c.req.valid("json");
 
     const svg = generateProductSVG(agentId, productName, price || "Liên hệ");
     return c.json({ success: true, svg, contentType: "image/svg+xml" });
@@ -18,13 +23,16 @@ mediaApp.post("/image", async (c) => {
   }
 });
 
+const musicSchema = z.object({
+  agentId: z.string({ required_error: "Missing agentId" }),
+  mood: z.string().optional(),
+  bars: z.number().optional(),
+});
+
 // POST /api/media/music — Tạo nhạc WAV algorithmic
-mediaApp.post("/music", async (c) => {
+mediaApp.post("/music", zValidator("json", musicSchema), async (c) => {
   try {
-    const { agentId, mood, bars } = await c.req.json();
-    if (!agentId) {
-      return c.json({ success: false, error: "Missing agentId" }, 400);
-    }
+    const { agentId, mood, bars } = c.req.valid("json");
 
     const sequence = generateMusicSequence(agentId, mood || "neutral", bars || 4);
     const pcm = notesToWav(sequence.notes);
@@ -39,13 +47,17 @@ mediaApp.post("/music", async (c) => {
   }
 });
 
+const bothSchema = z.object({
+  agentId: z.string({ required_error: "Missing agentId" }),
+  productName: z.string().optional(),
+  price: z.string().optional(),
+  replyText: z.string().optional(),
+});
+
 // POST /api/media/both — Tạo cả ảnh + nhạc
-mediaApp.post("/both", async (c) => {
+mediaApp.post("/both", zValidator("json", bothSchema), async (c) => {
   try {
-    const { agentId, productName, price, replyText } = await c.req.json();
-    if (!agentId) {
-      return c.json({ success: false, error: "Missing agentId" }, 400);
-    }
+    const { agentId, productName, price, replyText } = c.req.valid("json");
 
     const result = getLocalAgentMedia(agentId, productName || "Sản phẩm", price || "Liên hệ", replyText || "");
     const pcm = notesToWav(result.music.notes);
