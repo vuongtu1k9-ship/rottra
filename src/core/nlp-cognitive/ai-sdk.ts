@@ -202,9 +202,16 @@ export async function generateTextLocal(options: {
 
   // --- ROTTRA AI: Offline inference pipeline ---
   if (options.isInternalReasoning) {
-    // 1. If it has a structured prompt with Bối cảnh tri thức from Private Brain
+    // 1. Bóc tách dữ liệu RAG từ systemPrompt hoặc userPrompt
+    const systemContextMatch = systemPrompt.match(/Dữ liệu RAG được cung cấp:\s*([\s\S]+?)$/i);
     const contextMatch = userPrompt.match(/Bối cảnh tri thức:\s*([\s\S]+?)(?:\n\n|\n[A-Z\u00C0-\u017F]|$)/i);
-    if (contextMatch && contextMatch[1].trim() !== "Không có") {
+    
+    if (systemContextMatch && systemContextMatch[1].trim() !== "") {
+      let contextText = systemContextMatch[1].trim();
+      contextText = contextText.replace(/Nội dung từ bài giảng YouTube "[^"]+":\s*/gi, "");
+      contextText = contextText.replace(/Xem trực tiếp tại:\s*https?:\/\/\S+/gi, "");
+      text = contextText;
+    } else if (contextMatch && contextMatch[1].trim() !== "Không có") {
       let contextText = contextMatch[1].trim();
       contextText = contextText.replace(/Nội dung từ bài giảng YouTube "[^"]+":\s*/gi, "");
       contextText = contextText.replace(/Xem trực tiếp tại:\s*https?:\/\/\S+/gi, "");

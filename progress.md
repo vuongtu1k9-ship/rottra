@@ -604,6 +604,8 @@
 - `src/native/ai-hub/main.ts` - Tự động cập nhật.
 - `src/native/genetic/genetic_algorithm.ts` - Tự động cập nhật.
 - `src/server/api/agent-media.ts` - Tự động cập nhật.
+- `scripts/clean-alien-images.ts` - Tự động cập nhật.
+- `src/server/helpers/media-validator.ts` - Tự động cập nhật.
 
 ## Evidence of Completion
 

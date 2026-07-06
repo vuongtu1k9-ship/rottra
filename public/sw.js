@@ -34,6 +34,11 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  // Bypass cache for cross-origin requests (e.g. external images from other domains)
+  if (url.origin !== self.location.origin) {
+    return;
+  }
+
   // Network-first for HTML pages
   if (request.headers.get("accept")?.includes("text/html")) {
     event.respondWith(
