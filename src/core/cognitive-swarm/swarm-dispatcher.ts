@@ -446,7 +446,7 @@ Và câu thoại chính thức bọc trong cặp thẻ <verbal_strike>...</verba
     const w2 = 0.3; // Vibe weight
     const w3 = 0.2; // Tone/Quality weight
 
-    while (loopCount < 3 && !approved) {
+    while (loopCount < 1 && !approved) {
       loopCount++;
       const { text } = await generateTextLocal({
         messages: currentInputMessages,

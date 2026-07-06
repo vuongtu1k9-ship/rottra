@@ -606,6 +606,7 @@
 - `src/server/api/agent-media.ts` - Tự động cập nhật.
 - `scripts/clean-alien-images.ts` - Tự động cập nhật.
 - `src/server/helpers/media-validator.ts` - Tự động cập nhật.
+- `public/sw.js` - Tự động cập nhật.
 
 ## Evidence of Completion
 

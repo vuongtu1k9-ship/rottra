@@ -6,6 +6,7 @@ import fs from "fs";
 import path from "path";
 import crypto from "crypto";
 import { serverAgentBudgets } from "~/shared/constants";
+import { generateProductSVG } from "~/server/api/local-media-engine";
 
 async function rewardAgentBudget(userId: string, amount: number) {
   try {
@@ -67,7 +68,8 @@ export class AddProductAction extends BotActionExecutor {
 
     const prod = agriculturalProducts[Math.floor(Math.random() * agriculturalProducts.length)];
     const uniqueName = `${prod.name} (Lô ${Math.floor(Math.random() * 1000)})`;
-    const matchedImg = await helpers.getPreciseImageForProduct(prod.name, prod.category || "Nông sản");
+    const svgStr = generateProductSVG(agentId, uniqueName, prod.price.toString());
+    const matchedImg = `data:image/svg+xml;base64,${Buffer.from(svgStr).toString("base64")}`;
 
     await db.insert(product).values({
       id: crypto.randomUUID(),
@@ -182,7 +184,8 @@ export class EditProductAction extends BotActionExecutor {
 
     const newPrice = Math.max(5000, Math.round(basePrice * multiplier));
     const newQty = template.quantity + Math.floor(Math.random() * 50);
-    const matchedImg = await helpers.getPreciseImageForProduct(template.name, template.category || "Nông sản");
+    const svgStr = generateProductSVG(agentId, newName, newPrice.toString());
+    const matchedImg = `data:image/svg+xml;base64,${Buffer.from(svgStr).toString("base64")}`;
 
     await db
       .update(product)
@@ -243,7 +246,8 @@ export class FixImageAction extends BotActionExecutor {
       return { success: false, action: "fix-image", message: "No products to fix" };
     }
     const prod = myProducts[0];
-    const matchedImg = await helpers.getPreciseImageForProduct(prod.name, prod.category || "Nông sản");
+    const svgStr = generateProductSVG(agentId, prod.name, (prod.price || 0).toString());
+    const matchedImg = `data:image/svg+xml;base64,${Buffer.from(svgStr).toString("base64")}`;
     const newMedia = sanitizeProductMedia([{ link: matchedImg, type: "image" }]);
 
     await db

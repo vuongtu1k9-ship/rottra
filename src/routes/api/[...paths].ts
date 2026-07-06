@@ -48,6 +48,7 @@ import {
   trainAndSaveNlpModel,
 } from "~/core/nlp-cognitive/tokenizer";
 import { getAgentTools, getPredatoryProductsForAgent } from "~/core/cognitive-swarm/game-theory";
+import { generateProductSVG } from "~/server/api/local-media-engine";
 import { evaluateMathExpression, solveCustomAlgorithm } from "~/core/quant-engine/financial-solver";
 import { hybridRetrieve, rerank, tinyLLMVerify, computeAttentionFusion, compileToLlmWiki } from "~/core/neural-memory/vector-rag";
 import { RAGLogger } from "~/core/neural-memory/rag-logger";
@@ -8690,7 +8691,8 @@ app.post("/agent/sync-assets", async (c: any) => {
             where: eq(product.sellerId, userId),
           });
           if (fallbackProd) {
-            const matchedImg = await getPreciseImageForProduct(asset.product, fallbackProd.category || "Nông sản");
+            const svgStr = generateProductSVG(key, asset.product, (fallbackProd.price || 0).toString());
+            const matchedImg = `data:image/svg+xml;base64,${Buffer.from(svgStr).toString("base64")}`;
             await db
               .update(product)
               .set({
@@ -8703,7 +8705,8 @@ app.post("/agent/sync-assets", async (c: any) => {
               .where(eq(product.id, fallbackProd.id));
           } else {
             // Create new product in product table if it doesn't exist yet
-            const matchedImg = await getPreciseImageForProduct(asset.product, "Nông sản");
+            const svgStr = generateProductSVG(key, asset.product, (asset.price || 10000).toString());
+            const matchedImg = `data:image/svg+xml;base64,${Buffer.from(svgStr).toString("base64")}`;
             await db.insert(product).values({
               id: crypto.randomUUID(),
               name: asset.product,
