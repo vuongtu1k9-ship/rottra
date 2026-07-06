@@ -600,6 +600,7 @@
 - `scripts/update-product.ts` - Tự động cập nhật.
 - `src/native/ai-hub/main.cpp` - Tự động cập nhật.
 - `src/native/genetic/genetic_algorithm.cpp` - Tự động cập nhật.
+- `src/core/nlp-cognitive/youtube-learner.ts` - Tự động cập nhật.
 
 ## Evidence of Completion
 
