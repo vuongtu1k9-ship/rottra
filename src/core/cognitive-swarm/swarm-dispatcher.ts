@@ -460,6 +460,7 @@ Và câu thoại chính thức bọc trong cặp thẻ <verbal_strike>...</verba
     const w2 = 0.3; // Vibe weight
     const w3 = 0.2; // Tone/Quality weight
 
+    let reactCount = 0;
     while (loopCount < 1 && !approved) {
       loopCount++;
       const { text } = await generateTextLocal({
@@ -480,13 +481,19 @@ Và câu thoại chính thức bọc trong cặp thẻ <verbal_strike>...</verba
       } catch (e) {}
 
       if (toolCallParsed && toolCallParsed.tool && skillRegistry[toolCallParsed.tool]) {
-         console.log(`[ReAct] Agent called skill: ${toolCallParsed.tool}`);
+         if (reactCount >= 2) {
+           console.log(`[ReAct] Agent hit max reactCount limit. Breaking loop.`);
+           break;
+         }
+         console.log(`[ReAct] Agent called skill: ${toolCallParsed.tool} (count: ${reactCount + 1})`);
+         reactCount++;
          const skill = skillRegistry[toolCallParsed.tool];
          const result = await skill.execute(toolCallParsed.args);
          
          currentInputMessages.push({ role: "assistant", content: currentResponse });
          currentInputMessages.push({ role: "system", content: `[KẾT QUẢ TOOL ${skill.name}]:\n${result}\nTiếp tục trả lời User dựa trên kết quả này. Nếu đã đủ thông tin, hãy trả lời bình thường.` });
-         continue; // Loop again with result
+         loopCount--; // Loop again with result
+         continue;
       }
 
       // Post-processing:
