@@ -2474,7 +2474,7 @@ export component Assembly(props: any) {
       }
     }).catch((err) => console.error("Failed to fetch initial stock quotes:", err));
 
-    initTensorEngine();
+    import("~/core/nlp-cognitive/tensor-recognizer").then((m) => m.initTensorEngine()).catch(console.error);
     try {
       const res = await fetch("/api/agent/assets");
       const data = await res.json();
