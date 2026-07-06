@@ -311,7 +311,11 @@ Thought 3 Score: [điểm]`;
     const hasGoldKeywords = /vàng|vay\s+vàng|nợ\s+vàng|cho\s+vay\s+vàng/i.test(trimmedLastMsg);
     const bypassQA = (isFastPath || !!cachedResponse) && !hasGoldKeywords;
 
-    const recentHistory = (chatHistory || []).slice(-10);
+    // Memory Compression: Chỉ lấy tối đa 10 tin nhắn, và cắt gọn nội dung dài để tiết kiệm Token
+    const recentHistory = (chatHistory || []).slice(-10).map((msg: any) => ({
+      ...msg,
+      text: msg.text.length > 200 ? msg.text.substring(0, 200) + "..." : msg.text
+    }));
 
     const getEntropy = (str: string): number => {
       const freqs: Record<string, number> = {};
