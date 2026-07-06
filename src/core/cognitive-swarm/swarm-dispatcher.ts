@@ -442,17 +442,19 @@ Thought 3 Score: [điểm]`;
     sdkMessages[0].content += getSkillManual();
 
     if (options.phiPriceVal !== undefined) {
-      const bestThought = await this.negotiationTreeOfThoughtsReasoning(options);
-      const thoughtContext = `
-=== ĐỊNH HƯỚNG TƯ DUY (TREE OF THOUGHTS) ĐƯỢC CHỌN ===
-${bestThought}
-======================================================
-Bạn BẮT BUỘC phải viết câu trả lời dựa trên định hướng tư duy trên.
-Hãy viết suy nghĩ chiến thuật ngầm của bạn trong cặp thẻ <inner_monologue>...</inner_monologue> (ví dụ: <inner_monologue>Ta phải giữ giá bán nông sản vì độ chính xác nét vẽ cao và không được dưới Φ_Price...</inner_monologue>).
-Và câu thoại chính thức bọc trong cặp thẻ <verbal_strike>...</verbal_strike> (ví dụ: <verbal_strike>Ta không thể giảm sâu hơn nữa, sản phẩm của ta có độ hoàn mỹ cao!</verbal_strike>).`;
+      // VÔ HIỆU HÓA TREE OF THOUGHTS ĐỂ TRÁNH LỖI TIMEOUT 524
+      // const bestThought = await this.negotiationTreeOfThoughtsReasoning(options);
+      // const thoughtContext = `
+// === ĐỊNH HƯỚNG TƯ DUY (TREE OF THOUGHTS) ĐƯỢC CHỌN ===
+// ${bestThought}
+// ======================================================
+// Bạn BẮT BUỘC phải viết câu trả lời dựa trên định hướng tư duy trên.
+// Hãy viết suy nghĩ chiến thuật ngầm của bạn trong cặp thẻ <inner_monologue>...</inner_monologue> (ví dụ: <inner_monologue>Ta phải giữ giá bán nông sản vì độ chính xác nét vẽ cao và không được dưới Φ_Price...</inner_monologue>).
+// Và câu thoại chính thức bọc trong cặp thẻ <verbal_strike>...</verbal_strike> (ví dụ: <verbal_strike>Ta không thể giảm sâu hơn nữa, sản phẩm của ta có độ hoàn mỹ cao!</verbal_strike>).`;
 
-      sdkMessages[0].content = `${sdkMessages[0].content}\n${thoughtContext}`;
+      // sdkMessages[0].content = `${sdkMessages[0].content}\n${thoughtContext}`;
     }
+
 
     // --- STEP 4: PREDICTIVE CODING SWARM FLOW ---
     let loopCount = 0;
