@@ -647,6 +647,8 @@ export component Assembly(props: any) {
   const [toolkitReport, setToolkitReport] = createSignal<any>(getCachedToolkitReport());
 
   const [messages, _setMessages] = createSignal<any[]>([]);
+  const [thinkingAgents, setThinkingAgents] = createSignal<Set<string>>(new Set());
+  
   
   // TTS Voice Cache
   let viVoice: SpeechSynthesisVoice | null = null;
@@ -4786,6 +4788,7 @@ export component Assembly(props: any) {
   const triggerAgentResponse = async (botId: string, botName: string) => {
     try {
       setRemoteParticipants((prev) => prev.map((p) => p.id === botId ? { ...p, isSpeaking: true } : p));
+      setThinkingAgents((prev) => new Set(prev).add(botId));
 
       const res = await fetch("/api/agent/meeting-chat", {
         method: "POST",
@@ -4932,6 +4935,12 @@ export component Assembly(props: any) {
       }
 
       setRemoteParticipants((prev) => prev.map((p) => p.id === botId ? { ...p, isSpeaking: false } : p));
+    } finally {
+      setThinkingAgents((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(botId);
+        return newSet;
+      });
     }
   };
 
@@ -7353,12 +7362,32 @@ export component Assembly(props: any) {
                         </div>
                       }
                     </div>
-                  } else {
+                  } else if (thinkingAgents().size === 0) {
                     <div class="flex h-full flex-col items-center justify-center py-12">
                       <Icon path={chatBubbleLeftRight} class="mx-auto mb-4 h-12 w-12 text-gray-700" />
                       <p class="text-gray-500 text-sm italic">{"Chưa có tin nhắn nào"}</p>
                     </div>
                   }
+                  
+                  {/* Typing Indicators */}
+                  <Show when={thinkingAgents().size > 0}>
+                    <div class="flex flex-col gap-3 mt-4">
+                      for (const botId of Array.from(thinkingAgents())) {
+                        <div class="flex flex-col items-start">
+                          <div class="flex items-baseline gap-2 mb-1">
+                            <span class="text-xs font-bold text-indigo-400">
+                              {LORE_CHARACTERS.find(c => c.id === botId.replace('bot_', ''))?.name || "Thương nhân AI"}
+                            </span>
+                          </div>
+                          <div class={`px-4 py-2 rounded-2xl rounded-tl-none w-fit flex gap-1 ${theme() === "dark" ? "bg-[#1e1e1e] text-white" : "bg-gray-100 text-gray-800"}`}>
+                            <div class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0ms"></div>
+                            <div class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 150ms"></div>
+                            <div class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 300ms"></div>
+                          </div>
+                        </div>
+                      }
+                    </div>
+                  </Show>
                 </div>
 
                 {/* Chat Input */}
