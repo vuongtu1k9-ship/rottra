@@ -4632,8 +4632,8 @@ export component Assembly(props: any) {
 
         const sysMsg = {
           type: "chat",
-          senderId: "bot_system",
-          sender: t("Hệ thống Phân phối"),
+          senderId: "rottra_ai",
+          sender: t("Rottra"),
           text: t(
             "⚡ Ban Quản Trị đã điều chỉnh thông số của Đại diện {name} (Ngân sách: {budget}đ, Hàng hóa: {quantity} chiếc, Giá bán: {price}đ).",
           ).replace("{name}", t(agent.name)).replace("{budget}", formatCurrency(agent.budget)).replace(
@@ -4684,7 +4684,7 @@ export component Assembly(props: any) {
 
           const chatMsg = {
             type: "chat",
-            senderId: "bot_system",
+            senderId: "rottra_ai",
             sender: t("Hệ thống Phân phối"),
             text: announceMsg,
             time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
