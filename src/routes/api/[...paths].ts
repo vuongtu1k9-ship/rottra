@@ -9148,7 +9148,18 @@ app.post("/agent/sabotage", async (c: any) => {
 app.all("/agent/cron-tick", async (c: any) => {
   try {
     const secret = c.req.query("secret") || (await c.req.json().catch(() => ({}))).secret;
-    const expectedSecret = process.env.BETTER_AUTH_SECRET || "super_secret_rontra_key_2026_safe";
+    
+    const getSecret = (ctx: any) => {
+      if (ctx.env && ctx.env.CRON_SECRET) return ctx.env.CRON_SECRET;
+      if (ctx.env && ctx.env.BETTER_AUTH_SECRET) return ctx.env.BETTER_AUTH_SECRET;
+      if (typeof process !== "undefined" && process.env) {
+        if (process.env.CRON_SECRET) return process.env.CRON_SECRET;
+        if (process.env.BETTER_AUTH_SECRET) return process.env.BETTER_AUTH_SECRET;
+      }
+      return "super_secret_rontra_key_2026_safe";
+    };
+
+    const expectedSecret = getSecret(c);
     if (secret !== expectedSecret) {
       return c.json({ success: false, error: "Unauthorized" }, 401);
     }
