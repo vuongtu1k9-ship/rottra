@@ -1,4 +1,4 @@
-import * as tf from "@tensorflow/tfjs";
+let tf: any = null;
 import * as fs from "node:fs";
 import * as path from "node:path";
 
@@ -7,14 +7,14 @@ const EMBEDDING_DIM = 1024;
 const MAX_SEQ_LEN = 128;
 const VOCAB_SIZE = 500; // Character-level hashing modulo
 
-let model: tf.LayersModel | null = null;
+let model: any = null;
 let embedderReady = false;
 
 // Default path to save/load the custom model
 const MODEL_DIR = path.join(process.cwd(), "scripts/ai-pipeline/output/rottra-native-dl");
 const MODEL_PATH = `file://${MODEL_DIR}/model.json`;
 
-function buildModel(): tf.LayersModel {
+function buildModel(): any {
   const input = tf.input({ shape: [MAX_SEQ_LEN], dtype: "int32" });
 
   const embedding = tf.layers
@@ -23,7 +23,7 @@ function buildModel(): tf.LayersModel {
       outputDim: 128,
       maskZero: true,
     })
-    .apply(input) as tf.SymbolicTensor;
+    .apply(input);
 
   const conv = tf.layers
     .conv1d({
@@ -32,23 +32,33 @@ function buildModel(): tf.LayersModel {
       activation: "relu",
       padding: "same",
     })
-    .apply(embedding) as tf.SymbolicTensor;
+    .apply(embedding);
 
-  const pool = tf.layers.globalMaxPooling1d().apply(conv) as tf.SymbolicTensor;
+  const pool = tf.layers.globalMaxPooling1d().apply(conv);
 
   const dense = tf.layers
     .dense({
       units: EMBEDDING_DIM,
       activation: "linear",
     })
-    .apply(pool) as tf.SymbolicTensor;
+    .apply(pool);
 
   return tf.model({ inputs: input, outputs: dense });
 }
 
 export async function initMultilingualEmbedding(): Promise<boolean> {
   if (embedderReady) return true;
+
+  const isCloudflare = typeof (globalThis as any).caches !== "undefined" || (typeof process !== "undefined" && process.env && process.env.CF_PAGES === "1");
+  if (isCloudflare) {
+    console.log("[EMBEDDING] Cloudflare Pages environment detected. Bypassing TensorFlow model and running in TF-IDF fallback mode.");
+    return false;
+  }
+
   try {
+    // Lazy load tfjs to avoid loading it entirely on Cloudflare Workers
+    tf = await import("@tensorflow/tfjs");
+
     if (fs.existsSync(path.join(MODEL_DIR, "model.json"))) {
       console.log(`📦 Loading custom trained DL model from ${MODEL_DIR}...`);
       model = await tf.loadLayersModel(MODEL_PATH);
@@ -107,13 +117,13 @@ export async function embed(text: string): Promise<number[]> {
   const inputTensor = tf.tensor2d([tokens], [1, MAX_SEQ_LEN], "int32");
 
   const output = tf.tidy(() => {
-    const pred = model!.apply(inputTensor, { training: false }) as tf.Tensor;
+    const pred = model!.apply(inputTensor, { training: false }) as any;
     return pred.dataSync();
   });
 
   inputTensor.dispose();
 
-  const vec = Array.from(output);
+  const vec = Array.from(output) as number[];
   return l2NormalizeArray(vec);
 }
 
@@ -129,7 +139,7 @@ export async function embedBatch(texts: string[]): Promise<number[][]> {
     const inputTensor = tf.tensor2d(tokensBatch, [batchTexts.length, MAX_SEQ_LEN], "int32");
 
     const output = tf.tidy(() => {
-      const preds = model!.apply(inputTensor, { training: false }) as tf.Tensor;
+      const preds = model!.apply(inputTensor, { training: false }) as any;
       return preds.arraySync() as number[][];
     });
 
