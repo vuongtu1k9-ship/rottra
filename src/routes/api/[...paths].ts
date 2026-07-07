@@ -5271,18 +5271,49 @@ Nhiệm vụ của bạn:
 3. Trả lời cực kỳ ngắn gọn (1-2 câu tiếng Việt) thông báo quyết định của mình cho phòng họp. Bắt buộc chứa chữ [LONG] hoặc [SHORT] ở đầu câu.
 Lưu ý: Không giải thích lằng nhằng, nói như một sói già phố Wall. Đừng thêm tên bạn ở đầu.`;
 
-    const res = await RottraAI.chat({
-      botId,
-      botName,
-      prodName: assetSymbol,
-      price: String(assetPrice),
-      lastMsgText: `Thị trường ${assetType} đang có sóng, ta phải bắt sóng ${assetSymbol} ngay!`,
-      chatHistory: [],
-      systemPrompt,
-      budget,
-    });
+    let replyText = "";
+    let apiSuccess = false;
 
-    const replyText = res.replyText || "";
+    try {
+      const CHAT_TIMEOUT_MS = 7000;
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("RottraAI.chat timed out")), CHAT_TIMEOUT_MS)
+      );
+      const chatPromise = RottraAI.chat({
+        botId,
+        botName,
+        prodName: assetSymbol,
+        price: String(assetPrice),
+        lastMsgText: `Thị trường ${assetType} đang có sóng, ta phải bắt sóng ${assetSymbol} ngay!`,
+        chatHistory: [],
+        systemPrompt,
+        budget,
+      });
+      const res = await Promise.race([chatPromise, timeoutPromise]);
+      replyText = res.replyText || "";
+      apiSuccess = res.success;
+    } catch (chatErr) {
+      console.warn("[Trade Financial Chat Timeout/Error] Activating fallback:", chatErr);
+    }
+
+    if (!apiSuccess || !replyText) {
+      const isLongFallback = assetTrend === "up" ? true : assetTrend === "down" ? false : Math.random() > 0.5;
+      const decision = isLongFallback ? "[LONG]" : "[SHORT]";
+      const fallbackTemplates = isLongFallback 
+        ? [
+            `Thị trường đang có sóng tốt, ta sẽ gom hàng ngay mã ${assetSymbol} để tối ưu hóa lợi nhuận.`,
+            `Xu hướng đang đi lên rất rõ rệt, không thể bỏ lỡ cơ hội bứt phá này.`,
+            `Bảng điện tử đang ủng hộ phe bò, quyết định mua tích trữ đón sóng lớn!`
+          ]
+        : [
+            `Lực bán đang chiếm ưu thế tuyệt đối, ta quyết định sọc xuống bảo vệ vị thế ngân quỹ.`,
+            `Thị trường lao dốc không phanh, đây là lúc gom lời từ lệnh sọc khống.`,
+            `Đầu tư thông minh là phải biết đi ngược sóng khi gió đổi chiều, quyết định bán khống!`
+          ];
+      const randomText = fallbackTemplates[Math.floor(Math.random() * fallbackTemplates.length)];
+      replyText = `${decision} ${randomText}`;
+    }
+
     let isLong = true;
     if (replyText.toUpperCase().includes("[SHORT]")) isLong = false;
 
