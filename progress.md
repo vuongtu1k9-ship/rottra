@@ -481,6 +481,7 @@
 - `src/client/views/form.tsrx` - Tự động cập nhật.
 - `src/server/middlewares/auth-guard.ts` - Tự động cập nhật.
 - `src/server/api/agent-market.ts` - Tự động cập nhật.
+- `scripts/db-ops/seeders/seed-economy.ts` - Tự động cập nhật.
 
 ## Evidence of Completion
 

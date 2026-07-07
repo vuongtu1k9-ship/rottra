@@ -165,22 +165,37 @@ const WARNING_COOLDOWN_MS = 60000;
 
 export async function checkAndAutoCleanMemoryIfNeeded(): Promise<{ cleaned: boolean; reason?: string }> {
   try {
-    const totalMem = os.totalmem();
-    const freeMem = os.freemem();
-    const freeMemPercentage = (freeMem / totalMem) * 100;
-    const freeMemGB = freeMem / 1024 / 1024 / 1024;
+    let totalMem = 0;
+    let freeMem = 0;
 
-    const processMem = process.memoryUsage();
-    const heapUsedMB = processMem.heapUsed / 1024 / 1024;
+    if (os && typeof os.totalmem === "function") {
+      totalMem = os.totalmem();
+    }
+    if (os && typeof os.freemem === "function") {
+      freeMem = os.freemem();
+    }
+
+    const freeMemPercentage = totalMem > 0 ? (freeMem / totalMem) * 100 : 100;
+    const freeMemGB = totalMem > 0 ? freeMem / 1024 / 1024 / 1024 : 16;
+
+    let heapUsedMB = 0;
+    if (typeof process !== "undefined" && typeof process.memoryUsage === "function") {
+      try {
+        const processMem = process.memoryUsage();
+        heapUsedMB = processMem.heapUsed / 1024 / 1024;
+      } catch {}
+    }
 
     let heapLimitMB = 1500;
-    try {
-      const heapStats = v8.getHeapStatistics();
-      heapLimitMB = heapStats.heap_size_limit / 1024 / 1024;
-    } catch {}
+    if (v8 && typeof v8.getHeapStatistics === "function") {
+      try {
+        const heapStats = v8.getHeapStatistics();
+        heapLimitMB = heapStats.heap_size_limit / 1024 / 1024;
+      } catch {}
+    }
 
-    const isSystemRamLow = (freeMemPercentage < 10.0 && freeMemGB < 1.5) || freeMem / 1024 / 1024 < 500;
-    const isProcessHeapLow = heapUsedMB > heapLimitMB * 0.85;
+    const isSystemRamLow = totalMem > 0 && ((freeMemPercentage < 10.0 && freeMemGB < 1.5) || freeMem / 1024 / 1024 < 500);
+    const isProcessHeapLow = heapUsedMB > 0 && heapUsedMB > heapLimitMB * 0.85;
 
     if (isSystemRamLow || isProcessHeapLow) {
       const now = Date.now();
@@ -201,6 +216,7 @@ export async function checkAndAutoCleanMemoryIfNeeded(): Promise<{ cleaned: bool
       } else if (typeof global !== "undefined" && (global as any).gc) {
         (global as any).gc();
       }
+      return { cleaned: true, reason: isSystemRamLow ? "low_system_ram" : "low_process_heap" };
     }
   } catch (err: any) {
     console.error("❌ Lỗi trong phân hệ Memory Guard:", err);
