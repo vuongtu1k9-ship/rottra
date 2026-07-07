@@ -211,7 +211,9 @@ export default defineConfig({
       "child_process": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts"),
       "net": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts"),
       "tls": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts"),
-      "util": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts")
+      "util": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts"),
+      "node:async_hooks": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts"),
+      "async_hooks": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts")
     },
     dedupe: ["solid-js", "solid-js/web", "@solidjs/router", "solid-heroicons", "@tsrx/solid"],
     extensions: ['.ts', '.ts', '.tsrx', '.json']
