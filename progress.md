@@ -479,6 +479,8 @@
 - `index.html` - Tự động cập nhật.
 - `src/client/views/dashboard/setting-system.tsrx` - Tự động cập nhật.
 - `src/client/views/form.tsrx` - Tự động cập nhật.
+- `src/server/middlewares/auth-guard.ts` - Tự động cập nhật.
+- `src/server/api/agent-market.ts` - Tự động cập nhật.
 
 ## Evidence of Completion
 

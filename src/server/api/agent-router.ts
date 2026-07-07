@@ -1138,18 +1138,42 @@ export let currentGoldPrice: GoldPrice | null = null;
 
 export async function fetchGoldPrice(): Promise<GoldPrice | null> {
   try {
+    const res = await fetch("https://www.vang.today/api/prices");
+    if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+    const data = (await res.json()) as any;
+
+    if (data && data.success && data.prices) {
+      const sjc = data.prices.VNGSJC || data.prices.SJL1L10 || data.prices.SJ9999;
+      if (sjc && sjc.buy && sjc.sell) {
+        currentGoldPrice = {
+          buy: Number(sjc.buy),
+          sell: Number(sjc.sell),
+          updatedText: data.date && data.time ? `${data.date} ${data.time}` : new Date().toLocaleString(),
+        };
+        broadcastToSimulation({
+          type: "trade-sync",
+          goldPrice: currentGoldPrice,
+        });
+        return currentGoldPrice;
+      }
+    }
+  } catch (err: any) {
+    console.warn("⚠️ [Gold Today] Failed to fetch from vang.today, falling back to local/default:", err.message);
+  }
+
+  try {
     const res = await fetch("http://127.0.0.1:8080/gold-prices");
     if (!res.ok) throw new Error(`HTTP error ${res.status}`);
     const data = (await res.json()) as any;
 
     let buy = data.buy || parseFloat(data.gia_mua || "0") * 1000;
     if (!Number.isFinite(buy) || buy <= 0) {
-      buy = currentGoldPrice && Number.isFinite(currentGoldPrice.buy) && currentGoldPrice.buy > 0 ? currentGoldPrice.buy : 148800000;
+      buy = currentGoldPrice && Number.isFinite(currentGoldPrice.buy) && currentGoldPrice.buy > 0 ? currentGoldPrice.buy : 147500000;
     }
 
     let sell = data.sell || parseFloat(data.gia_ban || "0") * 1000;
     if (!Number.isFinite(sell) || sell <= 0) {
-      sell = currentGoldPrice && Number.isFinite(currentGoldPrice.sell) && currentGoldPrice.sell > 0 ? currentGoldPrice.sell : 151800000;
+      sell = currentGoldPrice && Number.isFinite(currentGoldPrice.sell) && currentGoldPrice.sell > 0 ? currentGoldPrice.sell : 150500000;
     }
 
     currentGoldPrice = {
@@ -1163,6 +1187,13 @@ export async function fetchGoldPrice(): Promise<GoldPrice | null> {
     });
   } catch (err: any) {
     console.error("❌ [Gold REST] Failed to fetch gold price:", err.message);
+    if (!currentGoldPrice) {
+      currentGoldPrice = {
+        buy: 147500000,
+        sell: 150500000,
+        updatedText: new Date().toLocaleString(),
+      };
+    }
   }
   return currentGoldPrice;
 }
@@ -1171,10 +1202,10 @@ export function connectGoldPriceWs() {
   console.log("ℹ️ [Gold Price] Initializing REST API polling for gold prices...");
   // Initial fetch
   fetchGoldPrice().catch(() => {});
-  // Start periodic polling every 10 seconds
+  // Start periodic polling every 5 minutes (300000ms) to stay polite
   setInterval(async () => {
     await fetchGoldPrice().catch(() => {});
-  }, 10000);
+  }, 300000);
 }
 
 export async function runFable5HeartbeatTick(forceShock?: string) {

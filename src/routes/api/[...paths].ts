@@ -1905,6 +1905,46 @@ async function getEnrichedProfile(dbUser: any) {
   };
 }
 
+function getEnrichedProfileInMemory(dbUser: any, sellerProducts: any[]) {
+  const profile = { ...(dbUser?.profile || {}) };
+  const key = dbUser?.id?.replace(/^user_?/, "") || "";
+  const defaultProd = serverDefaultProducts[dbUser?.id || ""];
+  const defaultSkill = serverAgentSkills[key];
+
+  const activeProducts = sellerProducts.filter((prod: any) => {
+    if (!prod.expired) return true;
+    if (prod.expired.trim() === "") return true;
+    const parsed = Date.parse(prod.expired);
+    return !isNaN(parsed);
+  });
+  const agentProduct = activeProducts[0];
+
+  profile.budget = profile.budget !== undefined ? profile.budget : serverAgentBudgets[dbUser?.id] || 0;
+  profile.gold = profile.gold !== undefined ? profile.gold : (serverAgentGold[dbUser?.id] ?? 0.0);
+  profile.employees = serverAgentEmployees[key] ?? 5;
+  profile.product = agentProduct ? agentProduct.name : profile.product || defaultProd?.product || "";
+  profile.quantity = agentProduct ? agentProduct.quantity || 0 : profile.quantity || defaultProd?.quantity || 0;
+  profile.price = agentProduct ? agentProduct.price || 0 : profile.price || defaultProd?.price || 0;
+  profile.skillLevel = profile.skillLevel !== undefined ? profile.skillLevel : defaultSkill?.level || 0;
+  profile.skillTitle = getDynamicSkillTitle(dbUser?.id || "", profile.skillLevel);
+  profile.loanParams = agentLoanParametersMap[key] || {
+    baseIncome: 25000000,
+    pDefault: 0.1,
+    behaviorScore: 1.0,
+    creditHistoryFactor: 1.0,
+    policyApproval: 1.0,
+    macroAdjustment: 1.0,
+  };
+  profile.loanAmount = calculateAgentLoanAmount(dbUser?.id || "");
+
+  return {
+    ...profile,
+    fullName: profile.fullName || dbUser?.name,
+    id: dbUser?.id,
+    role: dbUser?.role,
+  };
+}
+
 app.get("/profile", verifyAuth, async (c: any) => {
   const query = c.req.query();
   if (query.userId !== undefined) {
@@ -3614,16 +3654,31 @@ app.get("/product", async (c: any) => {
     const productIds = allproduct.map((p: any) => p.id);
     const sellerIds = Array.from(new Set(allproduct.map((p: any) => p.sellerId).filter(Boolean)));
 
-    // Fetch all reviews and sellers in parallel batch queries
-    const [allReviews, allSellers] = await Promise.all([
-      productIds.length > 0
-        ? db
+    // D1/SQLite has a limit on bind parameters (max 100).
+    // We chunk input arrays into groups of 90 to prevent failures.
+    const chunkArray = <T>(arr: T[], size: number): T[][] => {
+      const chunks: T[][] = [];
+      for (let i = 0; i < arr.length; i += size) {
+        chunks.push(arr.slice(i, i + size));
+      }
+      return chunks;
+    };
+
+    const reviewChunks = chunkArray(productIds, 90);
+    const sellerChunks = chunkArray(sellerIds, 90);
+
+    const [reviewResults, sellerResults] = await Promise.all([
+      Promise.all(
+        reviewChunks.map((chunk) =>
+          db
             .select()
             .from(review)
-            .where(inArray(review.productId, productIds as string[]))
-        : Promise.resolve([]),
-      sellerIds.length > 0
-        ? db
+            .where(inArray(review.productId, chunk as string[]))
+        )
+      ),
+      Promise.all(
+        sellerChunks.map((chunk) =>
+          db
             .select({
               id: user.id,
               name: user.name,
@@ -3631,9 +3686,13 @@ app.get("/product", async (c: any) => {
               profile: user.profile,
             })
             .from(user)
-            .where(inArray(user.id, sellerIds as string[]))
-        : Promise.resolve([]),
+            .where(inArray(user.id, chunk as string[]))
+        )
+      ),
     ]);
+
+    const allReviews = reviewResults.flat();
+    const allSellers = sellerResults.flat();
 
     // Map reviews and sellers in-memory
     const reviewsMap = new Map<string, any[]>();
@@ -8654,8 +8713,9 @@ app.post("/agent/sync-assets", async (c: any) => {
       "bachLoc",
     ];
 
-    // Find leader before sync
+    // Pre-fetch all users and products to avoid sequential D1 queries
     const allUsersBefore = await db.query.user.findMany();
+    const allProducts = await db.query.product.findMany();
     const dbAgentsBefore = allUsersBefore.filter((u: any) => agentIds.includes(u.id));
 
     const brainParams = RottraPrivateBrain.getParameters();
@@ -8666,9 +8726,9 @@ app.post("/agent/sync-assets", async (c: any) => {
     let prevLeaderId = "toLuong";
     let maxPrevTotalWealth = -Infinity;
     for (const u of dbAgentsBefore) {
-      const enriched = await getEnrichedProfile(u);
-      const b = Number(enriched?.budget ?? 0);
-      const g = Number(enriched?.gold ?? 0);
+      const prof = (u.profile as any) || {};
+      const b = Number(prof.budget !== undefined ? prof.budget : serverAgentBudgets[u.id] || 0);
+      const g = Number(prof.gold !== undefined ? prof.gold : (serverAgentGold[u.id] ?? 10.0));
       const totalWealth = b + g * goldPriceVal;
       if (totalWealth > maxPrevTotalWealth) {
         maxPrevTotalWealth = totalWealth;
@@ -8676,12 +8736,11 @@ app.post("/agent/sync-assets", async (c: any) => {
       }
     }
 
-    for (const key of Object.keys(assets)) {
+    // Process all asset synchronizations in parallel
+    const assetSyncPromises = Object.keys(assets).map(async (key) => {
       const asset = assets[key];
-      const userId = await resolveAgentUserId(key);
-      const dbUser = await db.query.user.findFirst({
-        where: eq(user.id, userId),
-      });
+      const userId = key.replace(/^bot_/, "");
+      const dbUser = allUsersBefore.find((u: any) => u.id === userId);
 
       if (dbUser) {
         const existingProfile = (dbUser.profile as any) || {};
@@ -8719,10 +8778,9 @@ app.post("/agent/sync-assets", async (c: any) => {
       }
 
       if (asset.product) {
-        // Sync changes back to the actual product table in the database
-        const dbProduct = await db.query.product.findFirst({
-          where: and(eq(product.sellerId, userId), eq(sql`lower(${product.name})`, asset.product.trim().toLowerCase())),
-        });
+        const dbProduct = allProducts.find(
+          (p: any) => p.sellerId === userId && p.name.trim().toLowerCase() === asset.product.trim().toLowerCase()
+        );
 
         if (dbProduct) {
           await db
@@ -8735,10 +8793,7 @@ app.post("/agent/sync-assets", async (c: any) => {
             })
             .where(eq(product.id, dbProduct.id));
         } else {
-          // Fallback search: check if they have any product at all to update
-          const fallbackProd = await db.query.product.findFirst({
-            where: eq(product.sellerId, userId),
-          });
+          const fallbackProd = allProducts.find((p: any) => p.sellerId === userId);
           if (fallbackProd) {
             const svgStr = generateProductSVG(key, asset.product, (fallbackProd.price || 0).toString());
             const matchedImg = `data:image/svg+xml;base64,${Buffer.from(svgStr).toString("base64")}`;
@@ -8753,7 +8808,6 @@ app.post("/agent/sync-assets", async (c: any) => {
               })
               .where(eq(product.id, fallbackProd.id));
           } else {
-            // Create new product in product table if it doesn't exist yet
             const svgStr = generateProductSVG(key, asset.product, (asset.price || 10000).toString());
             const matchedImg = `data:image/svg+xml;base64,${Buffer.from(svgStr).toString("base64")}`;
             await db.insert(product).values({
@@ -8772,10 +8826,7 @@ app.post("/agent/sync-assets", async (c: any) => {
           }
         }
       } else {
-        // If product is not specified (e.g. only budget/fine sync), just update the price/quantity of their first product if present
-        const fallbackProd = await db.query.product.findFirst({
-          where: eq(product.sellerId, userId),
-        });
+        const fallbackProd = allProducts.find((p: any) => p.sellerId === userId);
         if (fallbackProd) {
           await db
             .update(product)
@@ -8788,18 +8839,20 @@ app.post("/agent/sync-assets", async (c: any) => {
             .where(eq(product.id, fallbackProd.id));
         }
       }
-    }
+    });
+
+    await Promise.all(assetSyncPromises);
 
     if (lastTrade) {
       const { buyerId, sellerId, productName, qty, price, cost } = lastTrade;
-      const dbBuyerId = await resolveAgentUserId(buyerId);
-      const dbSellerId = await resolveAgentUserId(sellerId);
+      const dbBuyerId = buyerId.replace(/^bot_/, "");
+      const dbSellerId = sellerId.replace(/^bot_/, "");
 
       // 1. Create a real Order in the database
       const orderId = crypto.randomUUID();
-      const dbProduct = await db.query.product.findFirst({
-        where: and(eq(product.sellerId, dbSellerId), eq(sql`lower(${product.name})`, productName.trim().toLowerCase())),
-      });
+      const dbProduct = allProducts.find(
+        (p: any) => p.sellerId === dbSellerId && p.name.trim().toLowerCase() === productName.trim().toLowerCase()
+      );
       const cartItem = dbProduct
         ? {
             id: dbProduct.id,
@@ -8870,23 +8923,23 @@ app.post("/agent/sync-assets", async (c: any) => {
         timestamp: timestampStr,
       });
 
-      // Ghi nhật ký kinh nghiệm cho Buyer và Seller
-      await updateAgentJournal(dbBuyerId, {
+      // Ghi nhật ký kinh nghiệm cho Buyer và Seller (background)
+      updateAgentJournal(dbBuyerId, {
         type: "strategy",
         title: `Chiến lược thu mua: ${productName}`,
         content: `Thu mua ${qty} đơn vị ${productName} từ đối tác với giá trị ${cost.toLocaleString()}đ để mở rộng kinh doanh.`,
-      });
-      await updateAgentJournal(dbBuyerId, {
+      }).catch(() => {});
+      updateAgentJournal(dbBuyerId, {
         type: "prediction",
         title: `Dự báo nhu cầu ${productName.split(" ")[0]}`,
         content: `Dự kiến nhu cầu đối với ${productName} sẽ tăng 15% trong tuần tới, giúp tối ưu hóa giá trị sản phẩm.`,
-      });
+      }).catch(() => {});
 
-      await updateAgentJournal(dbSellerId, {
+      updateAgentJournal(dbSellerId, {
         type: "calculation",
         title: `Doanh thu phân phối: ${productName}`,
         content: `Bán thành công ${qty} đơn vị ${productName} cho ${dbBuyerId.replace(/^user_?/, "")}, mang lại doanh thu ${cost.toLocaleString()}đ.`,
-      });
+      }).catch(() => {});
     }
 
     // Kiểm tra xem vị trí quản lý có thay đổi không sau khi sync
@@ -8896,9 +8949,9 @@ app.post("/agent/sync-assets", async (c: any) => {
     let newLeaderId = "toLuong";
     let maxNewTotalWealth = -Infinity;
     for (const u of dbAgentsAfter) {
-      const enriched = await getEnrichedProfile(u);
-      const b = Number(enriched?.budget ?? 0);
-      const g = Number(enriched?.gold ?? 0);
+      const prof = (u.profile as any) || {};
+      const b = Number(prof.budget ?? 0);
+      const g = Number(prof.gold ?? 0);
       const totalWealth = b + g * goldPriceVal;
       if (totalWealth > maxNewTotalWealth) {
         maxNewTotalWealth = totalWealth;
@@ -8915,7 +8968,7 @@ app.post("/agent/sync-assets", async (c: any) => {
       const finalProducts = await db.query.product.findMany();
       const assetsPayload: Record<string, any> = {};
       for (const u of dbAgentsAfter) {
-        const enriched = await getEnrichedProfile(u);
+        const enriched = getEnrichedProfileInMemory(u, finalProducts);
         const prof = (u.profile as any) || {};
         const key = u.id.replace(/^user_?/, "");
 
