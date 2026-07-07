@@ -2471,7 +2471,10 @@ export component Assembly(props: any) {
           "BTC",
         ],
       }),
-    }).then((r) => r.json()).then((d) => {
+    }).then((r) => {
+      if (!r.ok) throw new Error(`HTTP error! status: ${r.status}`);
+      return r.json();
+    }).then((d) => {
       if (d?.success && d.quotes) {
         setStockQuotes(d.quotes.filter(Boolean));
       }
@@ -2590,7 +2593,10 @@ export component Assembly(props: any) {
             "BTC",
           ],
         }),
-      }).then((r) => r.json()).then((d) => {
+      }).then((r) => {
+        if (!r.ok) throw new Error(`HTTP error! status: ${r.status}`);
+        return r.json();
+      }).then((d) => {
         if (d?.success && d.quotes) {
           setStockQuotes((prevQuotes) => {
             const prevMap = new Map(prevQuotes.map((q) => [q.symbol, q.price]));

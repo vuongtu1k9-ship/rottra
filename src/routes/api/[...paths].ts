@@ -1225,6 +1225,78 @@ app.route("/agent", agentApp);
 // Better Auth Endpoint
 app.all("/auth/*", (c: any) => auth.handler(c.req.raw));
 
+// Global registry for active WebSocket signaling connections
+interface SignalingClient {
+  socket: any;
+  room: string;
+}
+const activeSignalingClients: SignalingClient[] = [];
+
+// WebSocket signaling room for WebRTC P2P Mesh on Cloudflare Workers
+app.get("/ws-signaling", async (c) => {
+  const upgradeHeader = c.req.header("Upgrade");
+  if (upgradeHeader !== "websocket") {
+    return c.text("Expected Upgrade: websocket", 426);
+  }
+
+  const room = c.req.query("room") || "default";
+  
+  // Create a WebSocket pair for Cloudflare Workers
+  const [client, server] = Object.values(new WebSocketPair()) as [any, any];
+
+  server.accept();
+
+  const clientInfo = { socket: server, room };
+  activeSignalingClients.push(clientInfo);
+
+  server.addEventListener("message", (event: any) => {
+    try {
+      const data = JSON.parse(event.data);
+      if (data.type === "ping") {
+        try {
+          server.send(JSON.stringify({ type: "pong" }));
+        } catch (_) {}
+        return;
+      }
+
+      const isGlobal = data.type === "trade-sync" || data.type === "global" || data.type === "swarm-telemetry-update" || !room;
+
+      activeSignalingClients.forEach((peer) => {
+        if (peer.socket !== server && peer.socket.readyState === 1) { // 1 = WebSocket.OPEN
+          if (isGlobal || peer.room === room) {
+            try {
+              peer.socket.send(event.data);
+            } catch (_) {}
+          }
+        }
+      });
+    } catch (e) {
+      activeSignalingClients.forEach((peer) => {
+        if (peer.socket !== server && peer.room === room && peer.socket.readyState === 1) {
+          try {
+            peer.socket.send(event.data);
+          } catch (_) {}
+        }
+      });
+    }
+  });
+
+  const cleanup = () => {
+    const idx = activeSignalingClients.indexOf(clientInfo);
+    if (idx !== -1) {
+      activeSignalingClients.splice(idx, 1);
+    }
+  };
+
+  server.addEventListener("close", cleanup);
+  server.addEventListener("error", cleanup);
+
+  return new Response(null, {
+    status: 101,
+    webSocket: client,
+  });
+});
+
 // --- Device Parser & Activity Logger Helpers ---
 const parseDevice = (userAgent?: string) => {
   if (!userAgent) return "Không xác định";
