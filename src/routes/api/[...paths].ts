@@ -3,7 +3,6 @@ import { cors } from "hono/cors";
 import { secureHeaders } from "hono/secure-headers";
 import zlib from "node:zlib";
 import WebSocket from "ws";
-import sharp from "sharp";
 import { db, pgClient } from "~/infra/database/db-pool";
 import {
   user,
@@ -2068,12 +2067,17 @@ app.post("/upload", verifyAuth, async (c: any) => {
       // Auto-convert images to AVIF
       if (finalMimeType.startsWith("image/") || ["jpg", "jpeg", "png", "webp", "gif"].includes(ext)) {
         try {
-          buffer = await sharp(buffer)
-            .resize(1600, 1600, { fit: "inside", withoutEnlargement: true }) // Scale down huge images to save CPU
-            .avif({ quality: 75, effort: 3 }) // effort 3 reduces encoding time significantly vs default 4
-            .toBuffer();
-          ext = "avif";
-          finalMimeType = "image/avif";
+          if (!isCloudflare) {
+            const sharpName = "sharp";
+            const sharpModule = await import(sharpName);
+            const sharp = sharpModule.default || sharpModule;
+            buffer = await sharp(buffer)
+              .resize(1600, 1600, { fit: "inside", withoutEnlargement: true }) // Scale down huge images to save CPU
+              .avif({ quality: 75, effort: 3 }) // effort 3 reduces encoding time significantly vs default 4
+              .toBuffer();
+            ext = "avif";
+            finalMimeType = "image/avif";
+          }
         } catch (imgErr) {
           console.warn("Failed to convert image to AVIF, keeping original format", imgErr);
         }
@@ -7847,7 +7851,12 @@ function applyDiffusionModelToPoints(
 
 async function traceImageBuffer(buffer: Buffer): Promise<{ x: number; y: number; isStart?: boolean }[]> {
   try {
-    const sharpModule = await import("sharp");
+    if (isCloudflare) {
+      console.warn("sharp is not supported on Cloudflare Pages");
+      return [];
+    }
+    const sharpName = "sharp";
+    const sharpModule = await import(sharpName);
     const sharp = sharpModule.default || sharpModule;
 
     // 1. Resize and get greyscale raw pixels

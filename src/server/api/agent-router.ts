@@ -21,7 +21,6 @@ import { curriculumData } from "../../../scripts/db-ops/seeders/curriculum-data"
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import sharp from "sharp";
 import { eq, like, sql, and, inArray, desc } from "drizzle-orm";
 import WebSocket from "ws";
 import { parseTranslationQuery } from "~/core/nlp-cognitive/multilingual-translator";

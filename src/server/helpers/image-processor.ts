@@ -1,14 +1,23 @@
-import sharp from "sharp";
 import { randomBytes } from "node:crypto";
 
 type ImageStyle = "watercolor" | "sketch" | "cyberpunk" | "oil" | "realism" | "corrupt" | "restore_blind";
 
-function generatePaperTexture(width: number, height: number): Promise<Buffer> {
+let sharpInstance: any = null;
+async function getSharp() {
+  if (sharpInstance) return sharpInstance;
+  const sharpName = "sharp";
+  const mod = await import(sharpName);
+  sharpInstance = mod.default || mod;
+  return sharpInstance;
+}
+
+async function generatePaperTexture(width: number, height: number): Promise<Buffer> {
   const noise = Buffer.alloc(width * height * 3);
   for (let i = 0; i < noise.length; i += 3) {
     const val = Math.round(128 + (Math.random() * 24 - 12));
     noise[i] = noise[i + 1] = noise[i + 2] = val;
   }
+  const sharp = await getSharp();
   return sharp(noise, {
     raw: { width, height, channels: 3 },
   })
@@ -18,6 +27,7 @@ function generatePaperTexture(width: number, height: number): Promise<Buffer> {
 }
 
 export async function applySketchStyle(inputPath: string): Promise<Buffer> {
+  const sharp = await getSharp();
   const img = sharp(inputPath);
   const { width, height } = await img.metadata();
   if (!width || !height) throw new Error("Invalid image");
@@ -44,6 +54,7 @@ export async function applySketchStyle(inputPath: string): Promise<Buffer> {
 }
 
 export async function applyWatercolorStyle(inputPath: string): Promise<Buffer> {
+  const sharp = await getSharp();
   const img = sharp(inputPath);
   const { width, height } = await img.metadata();
   if (!width || !height) throw new Error("Invalid image");
@@ -52,6 +63,7 @@ export async function applyWatercolorStyle(inputPath: string): Promise<Buffer> {
 }
 
 export async function applyCyberpunkStyle(inputPath: string): Promise<Buffer> {
+  const sharp = await getSharp();
   const img = sharp(inputPath);
   const { width, height } = await img.metadata();
   if (!width || !height) throw new Error("Invalid image");
@@ -60,10 +72,12 @@ export async function applyCyberpunkStyle(inputPath: string): Promise<Buffer> {
 }
 
 export async function applyOilStyle(inputPath: string): Promise<Buffer> {
+  const sharp = await getSharp();
   return sharp(inputPath).median(5).sharpen().modulate({ saturation: 1.3 }).raw().toBuffer();
 }
 
 export async function applyRealismStyle(inputPath: string): Promise<Buffer> {
+  const sharp = await getSharp();
   return sharp(inputPath)
     .median(3)
     .sharpen({ sigma: 1.5, m1: 1.4, m2: 2 })
@@ -73,10 +87,12 @@ export async function applyRealismStyle(inputPath: string): Promise<Buffer> {
 }
 
 export async function restoreImage(inputPath: string): Promise<Buffer> {
+  const sharp = await getSharp();
   return sharp(inputPath).median(3).sharpen({ sigma: 2, m1: 1.3, m2: 3 }).modulate({ brightness: 1.12, saturation: 1.08 }).raw().toBuffer();
 }
 
 export async function splitImage(inputPath: string, outputBase: string, gridSize: number): Promise<string[]> {
+  const sharp = await getSharp();
   const img = sharp(inputPath);
   const { width, height } = await img.metadata();
   if (!width || !height) throw new Error("Invalid image");
@@ -106,6 +122,7 @@ export async function splitImage(inputPath: string, outputBase: string, gridSize
 }
 
 export async function corruptImage(inputPath: string, outputPath: string): Promise<void> {
+  const sharp = await getSharp();
   const img = sharp(inputPath);
   const { width, height } = await img.metadata();
   if (!width || !height) throw new Error("Invalid image");
@@ -140,6 +157,7 @@ export async function corruptImage(inputPath: string, outputPath: string): Promi
 export async function processImage(inputPath: string, outputPath: string, style?: ImageStyle): Promise<boolean> {
   try {
     let result: Buffer;
+    const sharp = await getSharp();
 
     switch (style) {
       case "sketch":
@@ -180,6 +198,7 @@ export async function processImage(inputPath: string, outputPath: string, style?
  */
 export async function embedBlindWatermark(inputPath: string, outputPath: string, secretText: string): Promise<boolean> {
   try {
+    const sharp = await getSharp();
     const img = sharp(inputPath);
     const { width, height, channels } = await img.metadata();
     if (!width || !height || !channels) throw new Error("Invalid image metadata");
@@ -225,6 +244,7 @@ export async function embedBlindWatermark(inputPath: string, outputPath: string,
  */
 export async function extractBlindWatermark(inputPath: string): Promise<string | null> {
   try {
+    const sharp = await getSharp();
     const img = sharp(inputPath);
     const { width, height, channels } = await img.metadata();
     if (!width || !height || !channels) throw new Error("Invalid image metadata");

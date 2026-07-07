@@ -472,6 +472,8 @@
 - `src/core/cognitive-swarm/game-theory.ts` - Tự động cập nhật.
 - `src/server/api/creative-engine.ts` - Tự động cập nhật.
 - `src/server/api/local-media-engine.ts` - Tự động cập nhật.
+- `src/core/nlp-cognitive/external-api-docking.ts` - Tự động cập nhật.
+- `src/infra/network/ws-signaling.ts` - Tự động cập nhật.
 
 ## Evidence of Completion
 
