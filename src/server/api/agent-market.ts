@@ -48,7 +48,7 @@ const defaultStockPrices: Record<string, number> = {
   BTC: 0,
 };
 
-const cachedStockQuotes: Record<string, StockQuote> = {};
+export const cachedStockQuotes: Record<string, StockQuote> = {};
 
 async function fetchWithTimeout(url: string, options: any = {}, timeoutMs = 800) {
   const controller = new AbortController();
@@ -63,13 +63,45 @@ async function fetchWithTimeout(url: string, options: any = {}, timeoutMs = 800)
   }
 }
 
-export async function fetchStockQuote(symbol: string): Promise<StockQuote | null> {
+export async function fetchStockQuote(symbol: string, allowLive = true): Promise<StockQuote | null> {
   const sym = symbol.toUpperCase();
+  const now = Date.now();
+
+  // 1. Check cache
+  const cached = cachedStockQuotes[sym];
+  const cacheTTL = 120000; // 2 minutes cache
+  if (cached && cached.price && (now - cached.timestamp < cacheTTL)) {
+    return cached;
+  }
+
+  // 2. Return simulated price update if live fetch is disabled or restricted
+  if (!allowLive) {
+    const basePrice = defaultStockPrices[sym] || 50000;
+    const lastPrice = cached?.price || basePrice;
+    const pctChange = (Math.random() - 0.5) * 0.02;
+    const change = Math.round(lastPrice * pctChange);
+    const newPrice = Math.max(100, lastPrice + change);
+
+    const simulated = {
+      symbol: sym,
+      price: newPrice,
+      change,
+      percentChange: pctChange * 100,
+      high: Math.round(newPrice * 1.02),
+      low: Math.round(newPrice * 0.98),
+      open: lastPrice,
+      previousClose: lastPrice,
+      timestamp: now,
+    };
+    cachedStockQuotes[sym] = simulated;
+    return simulated;
+  }
+
   let quote: StockQuote | null = null;
 
   try {
     if (sym === "BTC") {
-      const cryptoQuote = await fetchCryptoQuote("BTC").catch(() => null);
+      const cryptoQuote = await fetchCryptoQuote("BTC", true).catch(() => null);
       if (cryptoQuote && cryptoQuote.price) {
         quote = {
           symbol: "BTC",
@@ -92,7 +124,7 @@ export async function fetchStockQuote(symbol: string): Promise<StockQuote | null
 
   if (!quote || !quote.price) {
     const basePrice = defaultStockPrices[sym] || 50000;
-    const lastPrice = cachedStockQuotes[sym]?.price || basePrice;
+    const lastPrice = cached?.price || basePrice;
     const pctChange = (Math.random() - 0.5) * 0.02;
     const change = Math.round(lastPrice * pctChange);
     const newPrice = Math.max(100, lastPrice + change);
@@ -106,8 +138,10 @@ export async function fetchStockQuote(symbol: string): Promise<StockQuote | null
       low: Math.round(newPrice * 0.98),
       open: lastPrice,
       previousClose: lastPrice,
-      timestamp: Date.now(),
+      timestamp: now,
     };
+  } else {
+    quote.timestamp = now; // Update timestamp
   }
 
   cachedStockQuotes[sym] = quote;
@@ -222,8 +256,30 @@ async function fetchStockQuoteFallback(symbol: string): Promise<StockQuote | nul
   return null;
 }
 
-export async function fetchCryptoQuote(symbol: string) {
+export async function fetchCryptoQuote(symbol: string, allowLive = true) {
   const sym = symbol.toUpperCase();
+  const now = Date.now();
+
+  const cached = cachedStockQuotes[sym];
+  const cacheTTL = 120000; // 2 minutes
+  if (cached && (now - cached.timestamp < cacheTTL)) {
+    return cached;
+  }
+
+  if (!allowLive) {
+    const basePrice = defaultStockPrices[sym] || 25400;
+    const cachedPrice = cached?.price || basePrice;
+    const pctChange = (Math.random() - 0.5) * 0.02;
+    const newPrice = Math.max(1, Math.round(cachedPrice * (1 + pctChange)));
+    const simulated = {
+      symbol: sym,
+      price: newPrice,
+      timestamp: now,
+    };
+    cachedStockQuotes[sym] = simulated;
+    return simulated;
+  }
+
   try {
     if (sym === "BTC") {
       const coingeckoRes = await fetchWithTimeout(

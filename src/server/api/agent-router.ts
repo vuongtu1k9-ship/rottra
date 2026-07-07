@@ -3076,7 +3076,27 @@ agentApp.post("/stock/quotes", async (c: any) => {
   if (!Array.isArray(symbols) || symbols.length === 0) {
     return c.json({ success: false, message: "Provide symbols array" }, 400);
   }
-  const quotes = await Promise.all(symbols.map((s: string) => fetchStockQuote(s.toUpperCase())));
+
+  // To prevent Cloudflare Workers subrequest limit errors (max 50) and timeouts,
+  // we limit the maximum number of live fetches per request to 4.
+  // The rest will use the cached value or a fast simulated update.
+  let liveFetchCount = 0;
+  const quotes = await Promise.all(symbols.map((s: string) => {
+    const sym = s.toUpperCase();
+    
+    // We import cachedStockQuotes to check cache status
+    const { cachedStockQuotes } = require("./agent-market");
+    const cached = cachedStockQuotes[sym];
+    const isExpired = !cached || (Date.now() - cached.timestamp > 120000);
+    
+    let allowLive = false;
+    if (isExpired && liveFetchCount < 4) {
+      allowLive = true;
+      liveFetchCount++;
+    }
+    return fetchStockQuote(sym, allowLive);
+  }));
+
   return c.json({ success: true, quotes });
 });
 
