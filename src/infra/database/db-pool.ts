@@ -5,6 +5,8 @@ import { Database } from "bun:sqlite";
 import { drizzle as drizzleSqlite } from "drizzle-orm/bun-sqlite";
 import * as schema from "./schema";
 import nativeProcess from "node:process";
+import { dbContext } from "./als";
+import { drizzle as drizzleD1 } from "drizzle-orm/d1";
 
 // Use the native node:process module object to persist the database client across all Vite HMR/ModuleRunner sandboxes
 const globalForDb = nativeProcess as any;
@@ -112,6 +114,19 @@ function initDb() {
 
 export const db = new Proxy({} as any, {
   get(target, prop, receiver) {
+    const d1Binding = dbContext.getStore();
+    if (d1Binding) {
+      const d1Db = drizzleD1(d1Binding, { schema });
+      if (prop === "execute") {
+        return async (...args: any[]) => {
+          // Simplistic execute for D1 if needed
+          return Reflect.apply((d1Db as any).run, d1Db, args);
+        }
+      }
+      const value = Reflect.get(d1Db, prop);
+      return typeof value === "function" ? value.bind(d1Db) : value;
+    }
+
     const { db: activeDb, client: activeClient } = initDb();
     if (prop === "execute") {
       return async (...args: any[]) => {
