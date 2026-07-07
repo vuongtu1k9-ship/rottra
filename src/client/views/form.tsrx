@@ -872,20 +872,83 @@ export const Form = (props: any) => {
                                         }`}
                                       />
                                     </div>
-                                  : <input
-                                      type={field.type || "text"}
-                                      id={field.name}
-                                      name={field.name}
-                                      required={field.required}
-                                      step={field.type === "number" ? "any" : undefined}
-                                      value={props.initialData?.[field.name] || ""}
-                                      placeholder={field.placeholder || "Nhập thông tin..."}
-                                      class={`w-full px-5 py-4 border rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-medium shadow-inner ${
-                                        theme() === "dark"
-                                          ? "bg-[#1e1e1e] border-white/10 text-white placeholder-gray-600"
-                                          : "bg-gray-50/50 border-gray-200 text-gray-700 placeholder:text-gray-300"
-                                      }`}
-                                    />}
+                                  : field.type === "tel"
+                                    ? (() => {
+                                        const initialVal = props.initialData?.[field.name] || "";
+                                        let matchedPrefix = "+84";
+                                        let restOfPhone = initialVal;
+                                        
+                                        const codes = [
+                                          { code: "+84", flag: "🇻🇳", label: "Việt Nam (+84)" },
+                                          { code: "+1", flag: "🇺🇸", label: "Mỹ (+1)" },
+                                          { code: "+86", flag: "🇨🇳", label: "Trung Quốc (+86)" },
+                                          { code: "+81", flag: "🇯🇵", label: "Nhật Bản (+81)" },
+                                          { code: "+358", flag: "🇫🇮", label: "Phần Lan (+358)" },
+                                          { code: "+972", flag: "🇮🇱", label: "Israel (+972)" },
+                                        ];
+
+                                        for (const item of codes) {
+                                          if (initialVal.startsWith(item.code)) {
+                                            matchedPrefix = item.code;
+                                            restOfPhone = initialVal.slice(item.code.length);
+                                            break;
+                                          }
+                                        }
+
+                                        const [prefix, setPrefix] = createSignal(matchedPrefix);
+                                        const [localVal, setLocalVal] = createSignal(restOfPhone);
+
+                                        return (
+                                          <div class="flex gap-2 w-full">
+                                            <input
+                                              type="hidden"
+                                              name={field.name}
+                                              value={prefix() + (localVal().startsWith("0") ? localVal().slice(1) : localVal())}
+                                            />
+                                            <select
+                                              value={prefix()}
+                                              onChange={(e) => setPrefix(e.target.value)}
+                                              class={`w-[130px] px-3 py-4 border rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-bold shadow-inner ${
+                                                theme() === "dark"
+                                                  ? "bg-[#1e1e1e] border-white/10 text-white"
+                                                  : "bg-gray-50/50 border-gray-200 text-gray-700"
+                                              }`}
+                                            >
+                                              {codes.map((c) => (
+                                                <option value={c.code}>
+                                                  {c.flag} {c.code}
+                                                </option>
+                                              ))}
+                                            </select>
+                                            <input
+                                              type="tel"
+                                              required={field.required}
+                                              value={localVal()}
+                                              onInput={(e) => setLocalVal(e.target.value)}
+                                              placeholder={field.placeholder || "Nhập số điện thoại..."}
+                                              class={`flex-1 px-5 py-4 border rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-medium shadow-inner ${
+                                                theme() === "dark"
+                                                  ? "bg-[#1e1e1e] border-white/10 text-white placeholder-gray-600"
+                                                  : "bg-gray-50/50 border-gray-200 text-gray-700 placeholder:text-gray-300"
+                                              }`}
+                                            />
+                                          </div>
+                                        );
+                                      })()
+                                    : <input
+                                        type={field.type || "text"}
+                                        id={field.name}
+                                        name={field.name}
+                                        required={field.required}
+                                        step={field.type === "number" ? "any" : undefined}
+                                        value={props.initialData?.[field.name] || ""}
+                                        placeholder={field.placeholder || "Nhập thông tin..."}
+                                        class={`w-full px-5 py-4 border rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-medium shadow-inner ${
+                                          theme() === "dark"
+                                            ? "bg-[#1e1e1e] border-white/10 text-white placeholder-gray-600"
+                                            : "bg-gray-50/50 border-gray-200 text-gray-700 placeholder:text-gray-300"
+                                        }`}
+                                      />}
               </fieldset>
             </>,
           )}
