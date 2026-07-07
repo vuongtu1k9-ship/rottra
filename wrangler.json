@@ -4,9 +4,6 @@
   "compatibility_flags": [
     "nodejs_compat"
   ],
-  "alias": {
-    "bun:sqlite": "./src/client/mocks/node-polyfills.ts"
-  },
   "kv_namespaces": [
     {
       "binding": "ROTTRA_KV",

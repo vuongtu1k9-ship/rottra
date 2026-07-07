@@ -47,10 +47,12 @@ export const real = (name?: any): any => (isSqlite ? sqReal(name) : pgReal(name)
 export const integer = (name?: any): any => (isSqlite ? sqInteger(name) : pgInteger(name));
 export const timestamp = (name?: any, config?: any): any => {
   if (isSqlite) {
-    if (name && typeof name === "object") {
-      return sqText(undefined as any);
-    }
-    return sqText(name);
+    const col = name && typeof name === "object" ? sqText(undefined as any) : sqText(name);
+    // Mock defaultNow() to use SQLite's CURRENT_TIMESTAMP
+    col.defaultNow = function() {
+      return this.default(sql`CURRENT_TIMESTAMP`);
+    };
+    return col;
   }
   return pgTimestamp(name, config);
 };
@@ -786,7 +788,9 @@ export const vectorDocument = pgTable(
     tenantId: text("tenant_id"), // Multi-tenant isolation ID
     createdAt: timestamp({ withTimezone: true, mode: "string" }).defaultNow(),
   },
-  (table: any) => [index("vector_document_idx").using("hnsw", table.embedding.op("halfvec_cosine_ops"))],
+  isSqlite
+    ? (table: any) => [index("vector_document_idx").on(table.id)] // simple fallback index for SQLite
+    : (table: any) => [index("vector_document_idx").using("hnsw", table.embedding.op("halfvec_cosine_ops"))],
 );
 
 // Bảng lưu trữ nét vẽ AI sản phẩm (AiDrawingPath)
