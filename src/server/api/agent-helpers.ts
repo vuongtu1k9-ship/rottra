@@ -3,7 +3,7 @@ import { activity, agentMemory } from "~/infra/database/schema";
 import { filterMythosFable } from "~/core/cognitive-swarm/hive-mind";
 import crypto from "node:crypto";
 import os from "node:os";
-import v8 from "v8";
+import v8 from "node:v8";
 import { sql, eq, and } from "drizzle-orm";
 import path from "node:path";
 import fs from "node:fs";

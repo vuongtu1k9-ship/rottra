@@ -224,7 +224,17 @@ export default defineConfig({
       "node:worker_threads": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts"),
       "worker_threads": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts"),
       "node:async_hooks": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts"),
-      "async_hooks": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts")
+      "async_hooks": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts"),
+      "zlib": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts"),
+      "node:zlib": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts"),
+      "v8": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts"),
+      "node:v8": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts"),
+      "http": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts"),
+      "node:http": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts"),
+      "https": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts"),
+      "node:https": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts"),
+      "url": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts"),
+      "node:url": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts")
     },
     dedupe: ["solid-js", "solid-js/web", "@solidjs/router", "solid-heroicons", "@tsrx/solid"],
     extensions: ['.ts', '.ts', '.tsrx', '.json']

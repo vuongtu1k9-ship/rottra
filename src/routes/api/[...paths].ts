@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { secureHeaders } from "hono/secure-headers";
-import zlib from "zlib";
+import zlib from "node:zlib";
 import WebSocket from "ws";
 import sharp from "sharp";
 import { db, pgClient } from "~/infra/database/db-pool";

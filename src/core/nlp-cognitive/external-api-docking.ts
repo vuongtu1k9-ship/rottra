@@ -4,6 +4,26 @@
 // Hoạt động hoàn toàn Offline bằng các dữ liệu giả lập (Mock Data) nội bộ.
 // =========================================================================
 
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+function cached<T>(fn: (...args: any[]) => T): (...args: any[]) => T {
+  const cache = new Map<string, { value: T; expiry: number }>();
+  return (...args: any[]) => {
+    const key = JSON.stringify(args);
+    const now = Date.now();
+    const entry = cache.get(key);
+    if (entry && now < entry.expiry) return entry.value;
+    const value = fn(...args);
+    cache.set(key, { value, expiry: now + CACHE_TTL });
+    return value;
+  };
+}
+
+function seededRandom(seed: number): number {
+  const x = Math.sin(seed * 9301 + 49297) * 49297;
+  return x - Math.floor(x);
+}
+
 export const fetchWikipediaSummary = async (title: string): Promise<string | null> => {
   return `[Offline Knowledge] Dữ liệu tham khảo nội bộ cho từ khóa "${title}": Đây là thông tin được giả lập từ bộ não Rottra AI vì hệ thống đang chạy ở chế độ bảo mật ngoại tuyến (100% Offline).`;
 };
@@ -27,16 +47,18 @@ export const fetchGoogleBooks = async (topic: string): Promise<any | null> => {
   ];
 };
 
-export const fetchWeatherstack = async (location: string): Promise<string | null> => {
-  const weathers = [
-    "Nắng đẹp, 32°C, độ ẩm 65%. Thích hợp phơi nông sản.",
-    "Trời râm mát, 28°C, độ ẩm 70%. Rất tốt cho cây trồng phát triển.",
-    "Có mưa rào nhẹ, 26°C, độ ẩm 85%. Chú ý bảo quản kho bãi khỏi ẩm mốc.",
-    "Khô hanh, 34°C, độ ẩm 50%. Cần tăng cường tưới tiêu."
-  ];
-  const randomWeather = weathers[Math.floor(Math.random() * weathers.length)];
-  return `[Mock Weather] Giả lập thời tiết tại ${location}: ${randomWeather}`;
-};
+const weathers = [
+  "Nắng đẹp, 32°C, độ ẩm 65%. Thích hợp phơi nông sản.",
+  "Trời râm mát, 28°C, độ ẩm 70%. Rất tốt cho cây trồng phát triển.",
+  "Có mưa rào nhẹ, 26°C, độ ẩm 85%. Chú ý bảo quản kho bãi khỏi ẩm mốc.",
+  "Khô hanh, 34°C, độ ẩm 50%. Cần tăng cường tưới tiêu.",
+];
+
+export const fetchWeatherstack = cached(async (location: string): Promise<string | null> => {
+  const timeSlot = Math.floor(Date.now() / CACHE_TTL);
+  const idx = Math.floor(seededRandom(timeSlot + location.length) * weathers.length);
+  return `[Mock Weather] Giả lập thời tiết tại ${location}: ${weathers[idx]}`;
+});
 
 export const searchDuckDuckGo = async (query: string): Promise<{ abstract: string; relatedTopics: string[]; url: string } | null> => {
   return {
@@ -63,8 +85,9 @@ export const fetchWiktionary = async (word: string, lang: string = "vi"): Promis
   return `[Từ điển Offline] "${word}": Một khái niệm được định nghĩa theo hệ thống Rottra Core.`;
 };
 
-export const fetchCurrencyFreaks = async (symbols = "VND,USD,EUR"): Promise<string | null> => {
-  const usdToVnd = 25400 + (Math.floor(Math.random() * 200) - 100);
-  const eurToVnd = 27500 + (Math.floor(Math.random() * 200) - 100);
+export const fetchCurrencyFreaks = cached(async (symbols = "VND,USD,EUR"): Promise<string | null> => {
+  const timeSlot = Math.floor(Date.now() / CACHE_TTL);
+  const usdToVnd = 25400 + Math.floor((seededRandom(timeSlot + 1) - 0.5) * 200);
+  const eurToVnd = 27500 + Math.floor((seededRandom(timeSlot + 2) - 0.5) * 200);
   return `[Mock Currency] Tỷ giá nội bộ: 1 USD = ${usdToVnd.toLocaleString()} VND | 1 EUR = ${eurToVnd.toLocaleString()} VND. Cập nhật offline bởi hệ thống Rottra.`;
-};
+});

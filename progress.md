@@ -469,6 +469,9 @@
 - `src/server/services/wifi-agent-service.ts` - Tự động cập nhật.
 - `src/workers/index.ts` - Tự động cập nhật.
 - `vite.config.ts` - Tự động cập nhật.
+- `src/core/cognitive-swarm/game-theory.ts` - Tự động cập nhật.
+- `src/server/api/creative-engine.ts` - Tự động cập nhật.
+- `src/server/api/local-media-engine.ts` - Tự động cập nhật.
 
 ## Evidence of Completion
 

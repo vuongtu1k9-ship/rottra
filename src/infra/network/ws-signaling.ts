@@ -1,6 +1,6 @@
 import { WebSocketServer, WebSocket } from "ws";
-import http from "http";
-import url from "url";
+import http from "node:http";
+import url from "node:url";
 
 // A blazing-fast WebSocket signaling server for WebRTC P2P Mesh using the 'ws' package
 const PORT = 8080;
