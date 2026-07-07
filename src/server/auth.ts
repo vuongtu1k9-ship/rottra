@@ -7,6 +7,7 @@ import crypto from "node:crypto";
 
 export const auth = betterAuth({
   baseURL: process.env.BETTER_AUTH_URL || "http://localhost:5173/api/auth",
+  secret: process.env.BETTER_AUTH_SECRET || "some-secure-default-secret-key-1234567890-rottra-app",
   trustHeaders: true,
   trustedOrigins: [
     "http://localhost:5173",
