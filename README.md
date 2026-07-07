@@ -367,6 +367,29 @@ model = YOLO("yolo26n.pt")
 model.tune(data="coco8.yaml", epochs=10, iterations=30, plots=False)
 Sự tinh chỉnh tự động này cho phép các nhà phát triển vượt xa việc phỏng đoán thủ công. Đối với các nhóm đang mở rộng quy mô hoạt động, việc quản lý các thử nghiệm này và theo dõi sự phát triển hiệu suất của model có thể được tinh giản bằng cách sử dụng Ultralytics Platform, vốn trực quan hóa các chỉ số huấn luyện và hỗ trợ triển khai model.
 
+
+Bí quyết
+Tuyệt chiêu
+Kinh nghiệm
+Chiến thuật
+Chiến lược
+Phương pháp
+Cách làm
+Cách tiếp cận
+Quy trình
+Kỹ thuật
+Công thức
+Mánh (thường mang sắc thái không chính thức)
+Mẹo vặt
+Tối ưu hóa
+Shortcut (lối tắt)
+Workflow
+Best practice (thực hành tốt nhất)
+Pro tip
+Advanced technique
+Deep dive (đi sâu)
+Masterclass (hàm ý trình độ cao)
+thủ thuật", "mẹo", "kỹ năng", "trick", "hack
 Tuyệt chiêu
 Bí kíp
 Chiến lược
@@ -376,3 +399,15 @@ Cao cấp
 Đột phá
 Tinh hoa
 Bí mật (nên dùng cẩn trọng để tránh gây hiểu lầm)
+
+
+Phân khúc khách hàng
+Nhóm khách hàng mục tiêu
+Đối tượng mục tiêu
+Tệp khách hàng tiềm năng
+Cơ sở khách hàng
+Hệ sinh thái khách hàng
+Danh mục khách hàng
+Thị trường mục tiêu
+Chân dung khách hàng (nếu nói về hồ sơ khách hàng)
+Tập khách hàng (ít dùng hơn nhưng vẫn đúng

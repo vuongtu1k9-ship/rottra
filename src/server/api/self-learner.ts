@@ -191,8 +191,8 @@ export async function syncLearnedToLocalModel(): Promise<{ synced: number; total
     }
 
     // Merge vào extra_training_data.jsonl
-    const fs = await import("fs");
-    const path = await import("path");
+    const fs = await import("node:fs");
+    const path = await import("node:path");
     const datasetPath = path.join(process.cwd(), "finetune", "data", "extra_training_data.jsonl");
 
     // Đọc existing entries
@@ -416,8 +416,8 @@ export async function retrainModel(): Promise<{
     }
 
     // 2. Read extra training data
-    const fs = await import("fs");
-    const path = await import("path");
+    const fs = await import("node:fs");
+    const path = await import("node:path");
     const datasetPath = path.join(process.cwd(), "finetune", "data", "extra_training_data.jsonl");
 
     const existingContent = fs.existsSync(datasetPath) ? fs.readFileSync(datasetPath, "utf-8") : "";

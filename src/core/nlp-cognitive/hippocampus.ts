@@ -132,7 +132,7 @@ export class Hippocampus {
     const currentPref = data[userId] || "";
     if (!currentPref.includes(preference)) {
       data[userId] = currentPref ? `${currentPref}. ${preference}` : preference;
-      const fs = await import("fs");
+      const fs = await import("node:fs");
       const dir = path.dirname(profilePath);
       if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
       await Bun.write(profilePath, JSON.stringify(data, null, 2));

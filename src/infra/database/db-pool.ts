@@ -15,30 +15,6 @@ if (!globalForDb._isolateId) {
 }
 
 function initDb() {
-  const isSqlite = process.env.DATABASE_TYPE === "sqlite";
-
-  if (isSqlite) {
-    if (globalForDb.sqliteDb) {
-      return { client: globalForDb.sqliteClient, db: globalForDb.sqliteDb };
-    }
-    const dbPath = process.env.SQLITE_DB_PATH || "rottra.db";
-    console.log(`[DB INIT] 🔌 Connecting to SQLite database at ${dbPath}...`);
-    
-    const req = import.meta.require;
-    if (!req) {
-      throw new Error("Sqlite is only supported in Bun/local environment.");
-    }
-    const { Database } = req("bun:sqlite");
-    const { drizzle: drizzleSqlite } = req("drizzle-orm/bun-sqlite");
-
-    const sqliteClient = new Database(dbPath);
-    sqliteClient.exec("PRAGMA journal_mode = WAL;");
-    const dbInstance = drizzleSqlite(sqliteClient, { schema });
-    globalForDb.sqliteClient = sqliteClient;
-    globalForDb.sqliteDb = dbInstance;
-    return { client: sqliteClient, db: dbInstance };
-  }
-
   if (globalForDb.pgDb) {
     return { client: globalForDb.pgClient, db: globalForDb.pgDb };
   }
@@ -49,9 +25,9 @@ function initDb() {
   const queryClient =
     globalForDb.pgClient ??
     postgres(connectionString, {
-      max: 2, // Giảm pool size trên Cloudflare Workers để chống lỗi cạn kiệt Connection (502 Bad Gateway)
-      idle_timeout: 3, // Giải phóng connection nhàn rỗi sau 3 giây (đơn vị của postgres.js là giây)
-      connect_timeout: 10, // Timeout kết nối 10 giây
+      max: 2,
+      idle_timeout: 3,
+      connect_timeout: 10,
       prepare: false,
       onnotice: () => {},
       transform: { undefined: null },
@@ -75,17 +51,6 @@ function initDb() {
         }
         globalForDb.pgClient = null;
         globalForDb.pgDb = null;
-      }
-      if (globalForDb.sqliteClient) {
-        console.log(`[DB CLEANUP] Closing SQLite client on ${signal}...`);
-        try {
-          globalForDb.sqliteClient.close();
-          console.log(`[DB CLEANUP] ✅ SQLite client closed.`);
-        } catch (err) {
-          console.error(`[DB CLEANUP] ❌ Error closing SQLite client:`, err);
-        }
-        globalForDb.sqliteClient = null;
-        globalForDb.sqliteDb = null;
       }
     };
 
@@ -133,49 +98,9 @@ export const db = new Proxy({} as any, {
       return typeof value === "function" ? value.bind(d1Db) : value;
     }
 
-    const { db: activeDb, client: activeClient } = initDb();
+    const { db: activeDb } = initDb();
     if (prop === "execute") {
       return async (...args: any[]) => {
-        if (process.env.DATABASE_TYPE === "sqlite") {
-          let sqlArg = args[0];
-          let queryStr = "";
-          let bindParams: any[] = [];
-          if (sqlArg && typeof sqlArg === "object" && sqlArg.sql) {
-            queryStr = sqlArg.sql;
-            bindParams = sqlArg.params || [];
-          } else if (typeof sqlArg === "string") {
-            queryStr = sqlArg;
-            bindParams = args.slice(1);
-          }
-
-          if (queryStr) {
-            let sqliteQuery = queryStr;
-            sqliteQuery = sqliteQuery.replace(/timestamp with time zone/gi, "TEXT");
-            sqliteQuery = sqliteQuery.replace(/varchar\(\d+\)/gi, "TEXT");
-            sqliteQuery = sqliteQuery.replace(/jsonb/gi, "TEXT");
-            sqliteQuery = sqliteQuery.replace(/double precision/gi, "REAL");
-            sqliteQuery = sqliteQuery.replace(/\$(\d+)/g, "?$1");
-
-            const stmt = (activeClient as any).prepare(sqliteQuery);
-            const isSelect = /^\s*select/i.test(sqliteQuery);
-            if (isSelect) {
-              const rows = stmt.all(...bindParams);
-              Object.defineProperty(rows, "rows", {
-                get() {
-                  return this;
-                },
-                configurable: true,
-                enumerable: false,
-              });
-              return rows;
-            } else {
-              const res = stmt.run(...bindParams);
-              const wrapRes = { ...res, rows: [] } as any;
-              return wrapRes;
-            }
-          }
-        }
-
         const result = await activeDb.execute(...args);
         if (result && Array.isArray(result)) {
           Object.defineProperty(result, "rows", {
@@ -197,71 +122,12 @@ export const db = new Proxy({} as any, {
 export const pgClient = new Proxy((() => {}) as any, {
   apply(target, thisArg, argumentsList) {
     const { client: activeClient } = initDb();
-    const isTemplate = Array.isArray(argumentsList[0]) && (argumentsList[0] as any).raw !== undefined;
-    if (process.env.DATABASE_TYPE === "sqlite") {
-      if (isTemplate) {
-        const strings = argumentsList[0];
-        const values = argumentsList.slice(1);
-        let queryStr = "";
-        for (let i = 0; i < strings.length; i++) {
-          queryStr += strings[i];
-          if (i < values.length) {
-            queryStr += `$${i + 1}`;
-          }
-        }
-        let sqliteQuery = queryStr;
-        sqliteQuery = sqliteQuery.replace(/timestamp with time zone/gi, "TEXT");
-        sqliteQuery = sqliteQuery.replace(/varchar\(\d+\)/gi, "TEXT");
-        sqliteQuery = sqliteQuery.replace(/jsonb/gi, "TEXT");
-        sqliteQuery = sqliteQuery.replace(/double precision/gi, "REAL");
-        sqliteQuery = sqliteQuery.replace(/\$(\d+)/g, "?$1");
-
-        const stmt = (activeClient as any).prepare(sqliteQuery);
-        const isSelect = /^\s*select/i.test(sqliteQuery);
-        if (isSelect) {
-          return stmt.all(...values);
-        } else {
-          return stmt.run(...values);
-        }
-      } else {
-        return argumentsList;
-      }
-    }
     return (activeClient as any)(...argumentsList);
   },
   get(target, prop, receiver) {
     const { client: activeClient } = initDb();
     if (prop === "query") {
       return async (queryString: string, params?: any[]) => {
-        if (process.env.DATABASE_TYPE === "sqlite") {
-          let sqliteQuery = queryString;
-          sqliteQuery = sqliteQuery.replace(/timestamp with time zone/gi, "TEXT");
-          sqliteQuery = sqliteQuery.replace(/varchar\(\d+\)/gi, "TEXT");
-          sqliteQuery = sqliteQuery.replace(/jsonb/gi, "TEXT");
-          sqliteQuery = sqliteQuery.replace(/double precision/gi, "REAL");
-          sqliteQuery = sqliteQuery.replace(/\$(\d+)/g, "?$1");
-
-          const stmt = (activeClient as any).prepare(sqliteQuery);
-          const isSelect = /^\s*select/i.test(sqliteQuery);
-          const bindParams = params || [];
-
-          if (isSelect) {
-            const rows = stmt.all(...bindParams);
-            return {
-              rows: rows,
-              fields: [],
-              affectedRows: 0,
-            };
-          } else {
-            const info = stmt.run(...bindParams);
-            return {
-              rows: [],
-              fields: [],
-              affectedRows: info.changes,
-            };
-          }
-        }
-
         const rows = await activeClient.unsafe(queryString, params || []);
         return {
           rows: Array.from(rows),

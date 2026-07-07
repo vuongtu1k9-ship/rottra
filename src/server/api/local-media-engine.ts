@@ -210,10 +210,10 @@ export function getLocalAgentMedia(agentId: string, productName: string, price: 
 // ═══════════════════════════════════════════════
 
 export async function callNativeAiHub(mode: 'image' | 'video' | 'text' | 'audio', prompt: string): Promise<any> {
-  const { execFile } = await import("child_process");
-  const { promisify } = await import("util");
-  const fs = await import("fs/promises");
-  const path = await import("path");
+  const { execFile } = await import("node:child_process");
+  const { promisify } = await import("node:util");
+  const fs = await import("node:fs/promises");
+  const path = await import("node:path");
   const execFileAsync = promisify(execFile);
 
   const coreExePath = path.join(process.cwd(), "bin", "ai_core.exe");
@@ -244,8 +244,8 @@ export async function callNativeAiHub(mode: 'image' | 'video' | 'text' | 'audio'
 // Sinh Ảnh Siêu Thực (AVIF) thông qua C++
 export async function createPhotorealisticAVIF(productName: string): Promise<string> {
   try {
-    const crypto = await import("crypto");
-    const path = await import("path");
+    const crypto = await import("node:crypto");
+    const path = await import("node:path");
     const hash = crypto.createHash("md5").update(productName + Date.now()).digest("hex");
     const prompt = `A highly detailed, photorealistic macro shot of premium ${productName}. Resting elegantly on a minimalist dark stone slab. Soft, warm studio lighting highlights the texture. Dark, premium aesthetic. No text, no logos.`;
     

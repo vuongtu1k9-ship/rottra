@@ -2845,59 +2845,31 @@ export async function runFable5HeartbeatTick(forceShock?: string) {
     await db.execute(sql`
       CREATE INDEX IF NOT EXISTS "idx_agent_memory_session_context" ON "AgentMemory" ("sessionId", "contextKey");
     `);
-    if (process.env.DATABASE_TYPE === "sqlite") {
-      await db.execute(sql`
-        CREATE TABLE IF NOT EXISTS "NegotiationLog" (
-          "id" text PRIMARY KEY NOT NULL,
-          "sessionId" text NOT NULL,
-          "round" integer NOT NULL,
-          "sellerId" text NOT NULL,
-          "buyerId" text NOT NULL,
-          "productName" text NOT NULL,
-          "marketPrice" integer NOT NULL,
-          "sellerOffer1" integer NOT NULL,
-          "buyerBid1" integer NOT NULL,
-          "sellerOffer2" integer NOT NULL,
-          "buyerBid2" integer NOT NULL,
-          "finalizedPrice" integer,
-          "success" integer NOT NULL,
-          "dialogue" text NOT NULL,
-          "denoisingLoss" real,
-          "maskedPredictionLoss" real,
-          "contrastiveLoss" real,
-          "timestamp" text DEFAULT CURRENT_TIMESTAMP
-        );
-      `);
-      await db.execute(sql`
-        CREATE INDEX IF NOT EXISTS "idx_negotiation_log_session" ON "NegotiationLog" ("sessionId");
-      `);
-    } else {
-      await db.execute(sql`
-        CREATE TABLE IF NOT EXISTS "NegotiationLog" (
-          "id" text PRIMARY KEY NOT NULL,
-          "sessionId" text NOT NULL,
-          "round" integer NOT NULL,
-          "sellerId" text NOT NULL,
-          "buyerId" text NOT NULL,
-          "productName" text NOT NULL,
-          "marketPrice" integer NOT NULL,
-          "sellerOffer1" integer NOT NULL,
-          "buyerBid1" integer NOT NULL,
-          "sellerOffer2" integer NOT NULL,
-          "buyerBid2" integer NOT NULL,
-          "finalizedPrice" integer,
-          "success" boolean NOT NULL,
-          "dialogue" text NOT NULL,
-          "denoisingLoss" real,
-          "maskedPredictionLoss" real,
-          "contrastiveLoss" real,
-          "timestamp" timestamp with time zone DEFAULT now()
-        );
-      `);
-      await db.execute(sql`
-        CREATE INDEX IF NOT EXISTS "idx_negotiation_log_session" ON "NegotiationLog" ("sessionId");
-      `);
-    }
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS "NegotiationLog" (
+        "id" text PRIMARY KEY NOT NULL,
+        "sessionId" text NOT NULL,
+        "round" integer NOT NULL,
+        "sellerId" text NOT NULL,
+        "buyerId" text NOT NULL,
+        "productName" text NOT NULL,
+        "marketPrice" integer NOT NULL,
+        "sellerOffer1" integer NOT NULL,
+        "buyerBid1" integer NOT NULL,
+        "sellerOffer2" integer NOT NULL,
+        "buyerBid2" integer NOT NULL,
+        "finalizedPrice" integer,
+        "success" boolean NOT NULL,
+        "dialogue" text NOT NULL,
+        "denoisingLoss" real,
+        "maskedPredictionLoss" real,
+        "contrastiveLoss" real,
+        "timestamp" timestamp with time zone DEFAULT now()
+      );
+    `);
+    await db.execute(sql`
+      CREATE INDEX IF NOT EXISTS "idx_negotiation_log_session" ON "NegotiationLog" ("sessionId");
+    `);
     console.log("✅ [Fable 5] Bảng AgentMemory và NegotiationLog đã đồng bộ thành công!");
     await ensureAgentDnaInitialized();
     connectGoldPriceWs();
@@ -3491,7 +3463,7 @@ agentApp.post("/dpo", async (c: any) => {
       return c.json({ success: false, error: "Missing required DPO fields" }, 400);
     }
 
-    const { randomUUID } = await import("crypto");
+    const { randomUUID } = await import("node:crypto");
 
     // 1. Lưu vào Database
     await db.insert(dpoTrainingData).values({

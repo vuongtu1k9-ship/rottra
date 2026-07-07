@@ -381,7 +381,7 @@ export class FederatedLearningCoordinator {
    * Simple hash computation
    */
   private async computeHash(data: any): Promise<string> {
-    const { createHash } = await import("crypto");
+    const { createHash } = await import("node:crypto");
     return createHash("sha256").update(JSON.stringify(data)).digest("hex");
   }
 }

@@ -45,12 +45,7 @@ export const initRAGEngine = async (forceRefresh = false) => {
 
   // Run runtime schema migration to ensure tenant_id column exists
   try {
-    const isSqlite = process.env.DATABASE_TYPE === "sqlite";
-    if (isSqlite) {
-      await db.execute(sql`ALTER TABLE "VectorDocument" ADD COLUMN "tenant_id" TEXT;`).catch(() => {});
-    } else {
-      await db.execute(sql`ALTER TABLE "VectorDocument" ADD COLUMN IF NOT EXISTS "tenant_id" TEXT;`).catch(() => {});
-    }
+    await db.execute(sql`ALTER TABLE "VectorDocument" ADD COLUMN IF NOT EXISTS "tenant_id" TEXT;`).catch(() => {});
   } catch (migErr) {
     // Ignore if column already exists
   }

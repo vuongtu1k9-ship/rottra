@@ -1309,8 +1309,8 @@ ${probSection}
       }
 
       try {
-        const { exec } = await import("child_process");
-        const { promisify } = await import("util");
+        const { exec } = await import("node:child_process");
+        const { promisify } = await import("node:util");
         const execAsync = promisify(exec);
         const { stdout: grepOut } = await execAsync(`grep -rn "${searchKeyword}" src/ --include=\\*.ts --include=\\*.tsx | head -n 7`);
 

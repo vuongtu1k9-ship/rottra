@@ -23,10 +23,17 @@ walk(srcDir, (file) => {
   let content = fs.readFileSync(file, 'utf8');
   let changed = false;
 
-  // Regex to match imports of built-in modules
+  // Regex to match imports of built-in modules in static from statements
   content = content.replace(/(from\s+['"])(fs|path|crypto|os|events|child_process|util|worker_threads|stream)(['"])/g, (match, prefix, moduleName, suffix) => {
     changed = true;
     console.log(`  Updating ${path.basename(file)}: "${moduleName}" -> "node:${moduleName}"`);
+    return `${prefix}node:${moduleName}${suffix}`;
+  });
+
+  // Regex to match dynamic imports like import("fs") or import("fs/promises")
+  content = content.replace(/(import\(['"])(fs|path|crypto|os|events|child_process|util|worker_threads|stream)([^'"]*['"])/g, (match, prefix, moduleName, suffix) => {
+    changed = true;
+    console.log(`  Updating dynamic import in ${path.basename(file)}: "${moduleName}" -> "node:${moduleName}"`);
     return `${prefix}node:${moduleName}${suffix}`;
   });
 

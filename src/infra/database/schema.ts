@@ -15,79 +15,22 @@ import {
   index as pgIndexOriginal,
   customType as pgCustomType,
 } from "drizzle-orm/pg-core";
-import {
-  sqliteTable as sqTable,
-  text as sqText,
-  integer as sqInteger,
-  real as sqReal,
-  unique as sqUnique,
-  index as sqIndex,
-} from "drizzle-orm/sqlite-core";
-import { sql } from "drizzle-orm";
 
-const isSqlite = process.env.DATABASE_TYPE === "sqlite";
-
-export const pgTable = (name: string, columns: any, extra?: any) => {
-  if (isSqlite) {
-    const filteredExtra = extra
-      ? (table: any) => {
-          const list = extra(table);
-          return list.filter((item: any) => {
-            return item && typeof item === "object" && !item._isMockFk;
-          });
-        }
-      : undefined;
-    return sqTable(name, columns, filteredExtra);
-  }
-  return pgTableOriginal(name, columns, extra);
-};
-
-export const text = (name?: any): any => (isSqlite ? sqText(name) : pgText(name));
-export const real = (name?: any): any => (isSqlite ? sqReal(name) : pgReal(name));
-export const integer = (name?: any): any => (isSqlite ? sqInteger(name) : pgInteger(name));
-export const timestamp = (name?: any, config?: any): any => {
-  if (isSqlite) {
-    const col = name && typeof name === "object" ? sqText(undefined as any) : sqText(name);
-    // Mock defaultNow() to use SQLite's CURRENT_TIMESTAMP
-    col.defaultNow = function() {
-      return this.default(sql`CURRENT_TIMESTAMP`);
-    };
-    return col;
-  }
-  return pgTimestamp(name, config);
-};
-export const jsonb = (name?: any): any => (isSqlite ? sqText(name, { mode: "json" }) : pgJsonb(name));
-export const varchar = (name?: any, config?: any): any => (isSqlite ? sqText(name) : pgVarchar(name, config));
-export const bigint = (name?: any, config?: any): any => (isSqlite ? sqInteger(name) : pgBigint(name, config));
-export const boolean = (name?: any): any => (isSqlite ? sqInteger(name, { mode: "boolean" }) : pgBoolean(name));
-export const date = (name?: any): any => (isSqlite ? sqText(name) : pgDate(name));
-export const vector = (name?: any, config?: any): any => (isSqlite ? sqText(name, { mode: "json" }) : pgText(name));
-
-export const foreignKey = (config: any) => {
-  if (isSqlite) {
-    return {
-      _isMockFk: true,
-      onDelete: () => ({ onUpdate: () => ({ _isMockFk: true }) }),
-      onUpdate: () => ({ onDelete: () => ({ _isMockFk: true }) }),
-    };
-  }
-  return pgForeignKeyOriginal(config);
-};
-
-export const check = (name: string, value: any) => {
-  if (isSqlite) return { _isMockFk: true };
-  return pgCheckOriginal(name, value);
-};
-
-export const unique = (name?: string) => {
-  if (isSqlite) return sqUnique(name);
-  return pgUniqueOriginal(name);
-};
-
-export const index = (name: string): any => {
-  if (isSqlite) return sqIndex(name);
-  return pgIndexOriginal(name);
-};
+export const pgTable = pgTableOriginal;
+export const text = pgText;
+export const real = pgReal;
+export const integer = pgInteger;
+export const timestamp = pgTimestamp;
+export const jsonb = pgJsonb;
+export const varchar = pgVarchar;
+export const bigint = pgBigint;
+export const boolean = pgBoolean;
+export const date = pgDate;
+export const vector = (name?: any, config?: any): any => pgText(name);
+export const foreignKey = pgForeignKeyOriginal;
+export const check = pgCheckOriginal;
+export const unique = pgUniqueOriginal;
+export const index = pgIndexOriginal;
 
 export const activity = pgTable(
   "Activity",
@@ -757,22 +700,20 @@ export const blockchainLedger = pgTable("BlockchainLedger", {
   timestamp: timestamp({ withTimezone: true, mode: "string" }).defaultNow(),
 });
 
-export const halfvec = isSqlite
-  ? (name: string, config?: any) => sqText(name, { mode: "json" })
-  : pgCustomType<{ data: number[]; config: { dimensions: number } }>({
-      dataType(config) {
-        return `halfvec(${config?.dimensions ?? 1024})`;
-      },
-      toDriver(value: number[]) {
-        return JSON.stringify(value);
-      },
-      fromDriver(value: any) {
-        if (typeof value === "string") {
-          return value.slice(1, -1).split(",").map(Number);
-        }
-        return value;
-      },
-    });
+export const halfvec = pgCustomType<{ data: number[]; config: { dimensions: number } }>({
+  dataType(config) {
+    return `halfvec(${config?.dimensions ?? 1024})`;
+  },
+  toDriver(value: number[]) {
+    return JSON.stringify(value);
+  },
+  fromDriver(value: any) {
+    if (typeof value === "string") {
+      return value.slice(1, -1).split(",").map(Number);
+    }
+    return value;
+  },
+});
 
 // Bảng VectorDocument phục vụ lưu trữ AI Embeddings (RAG)
 export const vectorDocument = pgTable(
@@ -788,9 +729,7 @@ export const vectorDocument = pgTable(
     tenantId: text("tenant_id"), // Multi-tenant isolation ID
     createdAt: timestamp({ withTimezone: true, mode: "string" }).defaultNow(),
   },
-  isSqlite
-    ? (table: any) => [index("vector_document_idx").on(table.id)] // simple fallback index for SQLite
-    : (table: any) => [index("vector_document_idx").using("hnsw", table.embedding.op("halfvec_cosine_ops"))],
+  (table: any) => [index("vector_document_idx").using("hnsw", table.embedding.op("halfvec_cosine_ops"))],
 );
 
 // Bảng lưu trữ nét vẽ AI sản phẩm (AiDrawingPath)

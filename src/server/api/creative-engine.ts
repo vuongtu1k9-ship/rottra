@@ -249,8 +249,8 @@ export async function generateAgentMusicFull(
     const pcm = notesToWav(sequence.notes);
     const wav = createWavFile(pcm);
 
-    const fs = await import("fs");
-    const path = await import("path");
+    const fs = await import("node:fs");
+    const path = await import("node:path");
     const musicDir = path.join(process.cwd(), "public", "music");
     if (!fs.existsSync(musicDir)) fs.mkdirSync(musicDir, { recursive: true });
 
