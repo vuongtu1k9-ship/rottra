@@ -66,11 +66,17 @@ export const agentApp = new Hono();
 
 registerChatExpertRoute(agentApp);
 
+const isCloudflare = typeof globalThis.caches !== "undefined" && typeof globalThis.WebSocketPair !== "undefined";
+
 // Memory guard auto-check
-if (typeof setInterval !== "undefined") {
-  setInterval(async () => {
-    await checkAndAutoCleanMemoryIfNeeded();
-  }, 5000);
+if (typeof setInterval !== "undefined" && !isCloudflare) {
+  try {
+    setInterval(async () => {
+      await checkAndAutoCleanMemoryIfNeeded();
+    }, 5000);
+  } catch (e) {
+    console.warn("Failed to set memory guard interval:", e);
+  }
 }
 
 export let globalCollatzState = loadCollatzState();
@@ -81,15 +87,21 @@ const flushCollatzState = () => {
 };
 
 // Hook process exit to satisfy "khi tắt dự án lưu kết quả cuối vào để chạy tiếp"
-process.on("exit", flushCollatzState);
-process.on("SIGINT", () => {
-  flushCollatzState();
-  process.exit(0);
-});
-process.on("SIGTERM", () => {
-  flushCollatzState();
-  process.exit(0);
-});
+if (!isCloudflare && typeof process !== "undefined" && typeof process.on === "function") {
+  try {
+    process.on("exit", flushCollatzState);
+    process.on("SIGINT", () => {
+      flushCollatzState();
+      process.exit(0);
+    });
+    process.on("SIGTERM", () => {
+      flushCollatzState();
+      process.exit(0);
+    });
+  } catch (e) {
+    console.warn("Failed to register process exit hooks:", e);
+  }
+}
 
 // API sinh ảnh cục bộ ngoại tuyến 100% bằng thuật toán xử lý hình ảnh TS/Sharp của Sếp
 agentApp.get("/generate-local-image", async (c) => {
@@ -2827,65 +2839,71 @@ export async function runFable5HeartbeatTick(forceShock?: string) {
 }
 
 // Auto-run schema check and initial DNA seeding
-(async () => {
-  try {
-    await db.execute(sql`
-      ALTER TABLE "AgentMemory" ADD COLUMN IF NOT EXISTS "greed" real DEFAULT 0.5;
-    `);
-    await db.execute(sql`
-      ALTER TABLE "AgentMemory" ADD COLUMN IF NOT EXISTS "vengeance" real DEFAULT 0.5;
-    `);
-    await db.execute(sql`
-      ALTER TABLE "AgentMemory" ADD COLUMN IF NOT EXISTS "malice" real DEFAULT 0.5;
-    `);
-    await db.execute(sql`
-      ALTER TABLE "AgentMemory" ADD COLUMN IF NOT EXISTS "state" varchar(50) DEFAULT 'PROUD';
-    `);
-    await db.execute(sql`
-      CREATE INDEX IF NOT EXISTS "idx_agent_memory_session_context" ON "AgentMemory" ("sessionId", "contextKey");
-    `);
-    await db.execute(sql`
-      CREATE TABLE IF NOT EXISTS "NegotiationLog" (
-        "id" text PRIMARY KEY NOT NULL,
-        "sessionId" text NOT NULL,
-        "round" integer NOT NULL,
-        "sellerId" text NOT NULL,
-        "buyerId" text NOT NULL,
-        "productName" text NOT NULL,
-        "marketPrice" integer NOT NULL,
-        "sellerOffer1" integer NOT NULL,
-        "buyerBid1" integer NOT NULL,
-        "sellerOffer2" integer NOT NULL,
-        "buyerBid2" integer NOT NULL,
-        "finalizedPrice" integer,
-        "success" boolean NOT NULL,
-        "dialogue" text NOT NULL,
-        "denoisingLoss" real,
-        "maskedPredictionLoss" real,
-        "contrastiveLoss" real,
-        "timestamp" timestamp with time zone DEFAULT now()
-      );
-    `);
-    await db.execute(sql`
-      CREATE INDEX IF NOT EXISTS "idx_negotiation_log_session" ON "NegotiationLog" ("sessionId");
-    `);
-    console.log("✅ [Fable 5] Bảng AgentMemory và NegotiationLog đã đồng bộ thành công!");
-    await ensureAgentDnaInitialized();
-    connectGoldPriceWs();
-  } catch (err: any) {
-    console.error("❌ [Fable 5] Lỗi đồng bộ cột DNA nhân cách:", err.message);
-  }
-})();
+if (!isCloudflare) {
+  (async () => {
+    try {
+      await db.execute(sql`
+        ALTER TABLE "AgentMemory" ADD COLUMN IF NOT EXISTS "greed" real DEFAULT 0.5;
+      `);
+      await db.execute(sql`
+        ALTER TABLE "AgentMemory" ADD COLUMN IF NOT EXISTS "vengeance" real DEFAULT 0.5;
+      `);
+      await db.execute(sql`
+        ALTER TABLE "AgentMemory" ADD COLUMN IF NOT EXISTS "malice" real DEFAULT 0.5;
+      `);
+      await db.execute(sql`
+        ALTER TABLE "AgentMemory" ADD COLUMN IF NOT EXISTS "state" varchar(50) DEFAULT 'PROUD';
+      `);
+      await db.execute(sql`
+        CREATE INDEX IF NOT EXISTS "idx_agent_memory_session_context" ON "AgentMemory" ("sessionId", "contextKey");
+      `);
+      await db.execute(sql`
+        CREATE TABLE IF NOT EXISTS "NegotiationLog" (
+          "id" text PRIMARY KEY NOT NULL,
+          "sessionId" text NOT NULL,
+          "round" integer NOT NULL,
+          "sellerId" text NOT NULL,
+          "buyerId" text NOT NULL,
+          "productName" text NOT NULL,
+          "marketPrice" integer NOT NULL,
+          "sellerOffer1" integer NOT NULL,
+          "buyerBid1" integer NOT NULL,
+          "sellerOffer2" integer NOT NULL,
+          "buyerBid2" integer NOT NULL,
+          "finalizedPrice" integer,
+          "success" boolean NOT NULL,
+          "dialogue" text NOT NULL,
+          "denoisingLoss" real,
+          "maskedPredictionLoss" real,
+          "contrastiveLoss" real,
+          "timestamp" timestamp with time zone DEFAULT now()
+        );
+      `);
+      await db.execute(sql`
+        CREATE INDEX IF NOT EXISTS "idx_negotiation_log_session" ON "NegotiationLog" ("sessionId");
+      `);
+      console.log("✅ [Fable 5] Bảng AgentMemory và NegotiationLog đã đồng bộ thành công!");
+      await ensureAgentDnaInitialized();
+      connectGoldPriceWs();
+    } catch (err: any) {
+      console.error("❌ [Fable 5] Lỗi đồng bộ cột DNA nhân cách:", err.message);
+    }
+  })();
+}
 
 // Background simulation heartbeat loop running every 5 minutes
-if (typeof setInterval !== "undefined") {
-  setInterval(async () => {
-    try {
-      await runFable5HeartbeatTick();
-    } catch (err: any) {
-      console.error("❌ [Fable 5 Heartbeat] Error in background tick:", err.message);
-    }
-  }, 300000);
+if (typeof setInterval !== "undefined" && !isCloudflare) {
+  try {
+    setInterval(async () => {
+      try {
+        await runFable5HeartbeatTick();
+      } catch (err: any) {
+        console.error("❌ [Fable 5 Heartbeat] Error in background tick:", err.message);
+      }
+    }, 300000);
+  } catch (e) {
+    console.warn("Failed to set heartbeat interval:", e);
+  }
 }
 
 // HTTP endpoint to notify the server that an agent has activated the Harmony block
