@@ -23,6 +23,7 @@ export const aiAuthMiddleware = async (c: any, next: any) => {
     path.includes("/hybrid-retrieve") ||
     path.includes("/rerank") ||
     path.includes("/heartbeat-tick") ||
+    path.includes("/cron-tick") ||
     (path.includes("/system-profile") && c.req.method === "GET");
 
   if (isPublicOrAutomated) {

@@ -59,6 +59,21 @@ export const initRAGEngine = async (forceRefresh = false) => {
     console.error("Failed to query vectorDocument, attempting to initialize offline fallback:", err);
   }
 
+  const expectedDim = 1024;
+  const hasInvalidDim = dbDocs.some(
+    (d) => d.embedding && Array.isArray(d.embedding) && d.embedding.length !== expectedDim
+  );
+
+  if (hasInvalidDim) {
+    console.warn(`[RAG DB HEAL] Found embeddings with dimension !== ${expectedDim}. Re-seeding database...`);
+    try {
+      await db.delete(vectorDocument);
+      dbDocs = [];
+    } catch (deleteErr) {
+      console.error("[RAG DB HEAL ERROR] Failed to clean invalid embeddings:", deleteErr);
+    }
+  }
+
   const tempDocs: FlatDoc[] = [];
   const termFreqs: Record<string, number> = {};
   let tempId = 0;
@@ -329,7 +344,7 @@ export const TinyTokenizer = {
 };
 
 // 2. Lớp Dense Vector Embedding — bge-m3 (1024-dim) with TF-IDF fallback (256-dim)
-const HIDDEN_DIM = 256;
+const HIDDEN_DIM = 1024;
 
 export const generateEmbedding = (text: string, vocab?: string[]): number[] => {
   if (isEmbeddingReady()) {
@@ -867,7 +882,7 @@ export const computeAttentionFusion = (query: string, candidates: RetrievalCandi
   const queryClean = cleanAndNormalize(query);
   const queryVector = generateEmbedding(queryClean); // Vector Q (Query)
 
-  const d_k = 256; // Chiều không gian giả lập (HIDDEN_DIM)
+  const d_k = 1024; // Chiều không gian giả lập (HIDDEN_DIM)
 
   // A. Tính Attention Scores (Q x K^T / sqrt(d_k))
   // Trong đó: Q là vector truy vấn, K là vector của từng tài liệu ứng viên

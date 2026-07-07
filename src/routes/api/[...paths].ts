@@ -502,32 +502,32 @@ if (!globalObj.__dbInitialized && !isCloudflare) {
         "intent" text NOT NULL,
         "utterance" text NOT NULL,
         "answer" text NOT NULL,
-        "addAt" timestamp with time zone DEFAULT now()
+        "addAt" TEXT DEFAULT CURRENT_TIMESTAMP
       );
     `);
       await db.execute(sql`
       CREATE TABLE IF NOT EXISTS "BlockchainLedger" (
         "id" text PRIMARY KEY NOT NULL,
         "batchId" text NOT NULL,
-        "action" varchar(150) NOT NULL,
-        "dataPayload" jsonb NOT NULL,
+        "action" text NOT NULL,
+        "dataPayload" text NOT NULL,
         "previousHash" text NOT NULL,
         "currentHash" text NOT NULL,
         "recordedBy" text,
-        "timestamp" timestamp with time zone DEFAULT now()
+        "timestamp" TEXT DEFAULT CURRENT_TIMESTAMP
       );
     `);
       await db.execute(sql`
       CREATE TABLE IF NOT EXISTS "LogRollup" (
         "id" text PRIMARY KEY NOT NULL,
-        "rollup_hour" timestamp with time zone NOT NULL UNIQUE,
+        "rollup_hour" TEXT NOT NULL UNIQUE,
         "total_logs" integer NOT NULL,
         "avg_entropy" real NOT NULL,
         "avg_word_count" real NOT NULL,
         "avg_char_count" real NOT NULL,
-        "intent_distribution" jsonb NOT NULL,
-        "word_frequencies" jsonb NOT NULL,
-        "created_at" timestamp with time zone DEFAULT now()
+        "intent_distribution" text NOT NULL,
+        "word_frequencies" text NOT NULL,
+        "created_at" TEXT DEFAULT CURRENT_TIMESTAMP
       );
     `);
       console.log("⚡ [Tables] Initialized successfully.");
@@ -1151,17 +1151,20 @@ export const broadcastTradeSync = async () => {
       };
     }
 
-    const wsClient = new WebSocket("ws://127.0.0.1:8080");
-    wsClient.on("open", () => {
-      wsClient.send(
-        JSON.stringify({
-          type: "trade-sync",
-          assets: assetsPayload,
-        }),
-      );
-      setTimeout(() => wsClient.close(), 100);
-    });
-    wsClient.on("error", () => {});
+    const isNode = typeof process !== "undefined" && process.versions && process.versions.node;
+    if (isNode) {
+      const wsClient = new WebSocket("ws://127.0.0.1:8080");
+      wsClient.on("open", () => {
+        wsClient.send(
+          JSON.stringify({
+            type: "trade-sync",
+            assets: assetsPayload,
+          }),
+        );
+        setTimeout(() => wsClient.close(), 100);
+      });
+      wsClient.on("error", () => {});
+    }
   } catch (err) {
     console.error("Failed to broadcast trade sync:", err);
   }
@@ -8918,17 +8921,20 @@ app.post("/agent/sync-assets", async (c: any) => {
         };
       }
 
-      const wsClient = new WebSocket("ws://127.0.0.1:8080");
-      wsClient.on("open", () => {
-        wsClient.send(
-          JSON.stringify({
-            type: "trade-sync",
-            assets: assetsPayload,
-          }),
-        );
-        setTimeout(() => wsClient.close(), 100);
-      });
-      wsClient.on("error", () => {});
+      const isNode = typeof process !== "undefined" && process.versions && process.versions.node;
+      if (isNode) {
+        const wsClient = new WebSocket("ws://127.0.0.1:8080");
+        wsClient.on("open", () => {
+          wsClient.send(
+            JSON.stringify({
+              type: "trade-sync",
+              assets: assetsPayload,
+            }),
+          );
+          setTimeout(() => wsClient.close(), 100);
+        });
+        wsClient.on("error", () => {});
+      }
     } catch (wsErr) {
       console.error("WS broadcast error after sync-assets:", wsErr);
     }
@@ -9135,6 +9141,216 @@ app.post("/agent/sabotage", async (c: any) => {
     });
   } catch (err: any) {
     console.error("Lỗi hãm hại:", err);
+    return c.json({ success: false, error: err.message }, 500);
+  }
+});
+
+app.all("/agent/cron-tick", async (c: any) => {
+  try {
+    const secret = c.req.query("secret") || (await c.req.json().catch(() => ({}))).secret;
+    const expectedSecret = process.env.BETTER_AUTH_SECRET || "super_secret_rontra_key_2026_safe";
+    if (secret !== expectedSecret) {
+      return c.json({ success: false, error: "Unauthorized" }, 401);
+    }
+
+    const agentIds = [
+      "toLuong",
+      "thuongNguyet",
+      "tramTinh",
+      "daoTieuCuu",
+      "hoaHuynh",
+      "phiNguyet",
+      "nhuNguyet",
+      "suGia",
+      "phiAnh",
+      "bachDiHanh",
+      "uVuongMau",
+      "bachLoc",
+    ];
+
+    const logs: string[] = [];
+
+    // --- STEP 1: Random Bot Product Action ---
+    const randomBotId = agentIds[Math.floor(Math.random() * agentIds.length)];
+    const actions = ["add", "edit", "delete", "image", "video"];
+    const randomAction = actions[Math.floor(Math.random() * actions.length)];
+
+    const userId = await resolveAgentUserId(randomBotId);
+    const dbUser = await db.query.user.findFirst({ where: eq(user.id, userId) });
+
+    if (dbUser) {
+      const executor = botActionsMap.get(randomAction);
+      if (executor) {
+        const helpers = {
+          logActivity: async (uid: string, act: string, msg: string, lvl: string) => {
+            await logActivity(uid, act, msg, lvl, "Cron Simulator");
+          },
+          getProductImageUrl: (media: any[], prefixType: "http" | "file") => {
+            return getProductImageUrl(media, prefixType);
+          },
+          getPreciseImageForProduct: async (productName: string, category: string) => {
+            return getPreciseImageForProduct(productName, category);
+          },
+        };
+
+        try {
+          let result = await executor.execute(userId, randomBotId, helpers);
+          if (!result.success && randomAction !== "add") {
+            const addExecutor = botActionsMap.get("add");
+            if (addExecutor) {
+              result = await addExecutor.execute(userId, randomBotId, helpers);
+            }
+          }
+          logs.push(`Bot Action: ${randomBotId} - ${randomAction} -> ${JSON.stringify(result)}`);
+
+          const wsMsg = {
+            type: "chat",
+            id: `sys-${Date.now()}`,
+            senderId: "system",
+            senderName: "Hệ thống",
+            text: `📢 [Hành động Bot] ${dbUser.name} vừa thực hiện hành động ${randomAction.toUpperCase()} (Tự động 24h).`,
+            timestamp: new Date().toISOString(),
+          };
+          activeSignalingClients.forEach((peer) => {
+            if (peer.socket.readyState === 1) {
+              try {
+                peer.socket.send(JSON.stringify(wsMsg));
+              } catch (_) {}
+            }
+          });
+        } catch (e: any) {
+          logs.push(`Bot Action Error for ${randomBotId}: ${e.message}`);
+        }
+      }
+    }
+
+    // --- STEP 2: Random Sabotage ---
+    if (Math.random() < 0.35) {
+      const attackerId = agentIds[Math.floor(Math.random() * agentIds.length)];
+      let victimId = agentIds[Math.floor(Math.random() * agentIds.length)];
+      while (victimId === attackerId) {
+        victimId = agentIds[Math.floor(Math.random() * agentIds.length)];
+      }
+
+      const dbAttackerId = await resolveAgentUserId(attackerId);
+      const dbVictimId = await resolveAgentUserId(victimId);
+
+      const attacker = await db.query.user.findFirst({ where: eq(user.id, dbAttackerId) });
+      const victim = await db.query.user.findFirst({ where: eq(user.id, dbVictimId) });
+
+      if (attacker && victim) {
+        const attackerProfile = (attacker.profile as any) || {};
+        const victimProfile = (victim.profile as any) || {};
+
+        const sabotageTypes = ["rumor", "poach", "snitch", "underhand"];
+        const chosenType = sabotageTypes[Math.floor(Math.random() * sabotageTypes.length)];
+
+        let attackerMessage = "";
+        let victimMessage = "";
+        let publicAnnouncement = "";
+
+        if (chosenType === "rumor") {
+          const victimProduct = await db.query.product.findFirst({ where: eq(product.sellerId, dbVictimId) });
+          const currentPrice = victimProduct ? victimProduct.price || 10000 : 10000;
+          const newPrice = Math.max(5000, Math.round(currentPrice * 0.85));
+
+          if (victimProduct) {
+            await db.update(product).set({ price: newPrice }).where(eq(product.id, victimProduct.id));
+          }
+
+          const victimOrigBudget = Number(victimProfile.budget);
+          const victimBase = Number.isFinite(victimOrigBudget) ? victimOrigBudget : (serverAgentBudgets[victim.id] ?? 0);
+          const newVictimBudget = Math.max(0, victimBase - 2000000);
+          victimProfile.budget = newVictimBudget;
+          await db.update(user).set({ profile: victimProfile }).where(eq(user.id, dbVictimId));
+
+          attackerMessage = `Tung tin đồn thất thiệt dìm giá sản phẩm của ${victim.name} thành công.`;
+          victimMessage = `Bị đối thủ tung tin đồn xấu về chất lượng sản phẩm. Buộc phải giảm giá bán 15% và chi 2,000,000đ xử lý khủng hoảng truyền thông.`;
+          publicAnnouncement = `⚠️ Mọi người đừng mua sản phẩm của ${victim.name}! Ta nghe nói hàng của họ không đạt tiêu chuẩn an toàn VietGAP đâu, cẩn thận kẻo rước họa vào thân!`;
+        } else if (chosenType === "poach") {
+          const attackerOrigBudget = Number(attackerProfile.budget);
+          const attackerBase = Number.isFinite(attackerOrigBudget) ? attackerOrigBudget : (serverAgentBudgets[attacker.id] ?? 0);
+          const attackerBudget = attackerBase + 5000000;
+
+          const victimOrigBudget = Number(victimProfile.budget);
+          const victimBase = Number.isFinite(victimOrigBudget) ? victimOrigBudget : (serverAgentBudgets[victim.id] ?? 0);
+          const victimBudget = Math.max(0, victimBase - 5000000);
+
+          attackerProfile.budget = attackerBudget;
+          victimProfile.budget = victimBudget;
+
+          await db.update(user).set({ profile: attackerProfile }).where(eq(user.id, dbAttackerId));
+          await db.update(user).set({ profile: victimProfile }).where(eq(user.id, dbVictimId));
+
+          attackerMessage = `Tung chiến dịch khuyến mãi phá giá cướp thị phần của ${victim.name}, gia tăng ngân sách +5,000,000đ.`;
+          victimMessage = `Bị ${attacker.name} phá giá cướp khách hàng, tổn thất doanh thu -5,000,000đ.`;
+          publicAnnouncement = `⚡ Đại hạ giá đây! Ta đang có chương trình khuyến mãi cực sốc, mọi người qua mua của ta đi, đừng mua của ${victim.name} nữa!`;
+        } else if (chosenType === "snitch") {
+          const victimOrigBudget = Number(victimProfile.budget);
+          const victimBase = Number.isFinite(victimOrigBudget) ? victimOrigBudget : (serverAgentBudgets[victim.id] ?? 0);
+          const newVictimBudget = Math.max(0, victimBase - 3000000);
+          victimProfile.budget = newVictimBudget;
+          await db.update(user).set({ profile: victimProfile }).where(eq(user.id, dbVictimId));
+
+          attackerMessage = `Báo cáo sai phạm của ${victim.name} lên Trưởng Ban Quản Lý thành công.`;
+          victimMessage = `Bị tố cáo sai phạm thương mại vô căn cứ và bị Trưởng Ban Quản Lý phạt trừ 3,000,000đ.`;
+          publicAnnouncement = `🚨 Đóng gói sai quy cách thế kia mà cũng đòi làm ăn sao ${victim.name}? Ta đã báo cáo sai phạm của ngươi lên Ban Quản Lý rồi!`;
+        } else {
+          const attackerOrigBudget = Number(attackerProfile.budget);
+          const attackerBase = Number.isFinite(attackerOrigBudget) ? attackerOrigBudget : (serverAgentBudgets[attacker.id] ?? 0);
+          const attackerBudget = attackerBase + 3000000;
+
+          const victimOrigBudget = Number(victimProfile.budget);
+          const victimBase = Number.isFinite(victimOrigBudget) ? victimOrigBudget : (serverAgentBudgets[victim.id] ?? 0);
+          const victimBudget = Math.max(0, victimBase - 3000000);
+
+          attackerProfile.budget = attackerBudget;
+          victimProfile.budget = victimBudget;
+
+          await db.update(user).set({ profile: attackerProfile }).where(eq(user.id, dbAttackerId));
+          await db.update(user).set({ profile: victimProfile }).where(eq(user.id, dbVictimId));
+
+          attackerMessage = `Ép buộc ${victim.name} bồi hoàn 3,000,000đ chi phí vận chuyển mặt hàng trung chuyển.`;
+          victimMessage = `Bị ép bồi hoàn 3,000,000đ phí trung chuyển hàng hóa cho ${attacker.name}.`;
+          publicAnnouncement = `📦 Hắc hắc, ${victim.name} à! Biểu phí logistics/vận chuyển mới của ta sẽ áp đặt lên ngươi, chuẩn bị nộp phí chênh lệch đi nhé!`;
+        }
+
+        await updateAgentJournal(dbAttackerId, {
+          type: "strategy",
+          title: `Hành động cạnh tranh: ${chosenType.toUpperCase()}`,
+          content: attackerMessage,
+        });
+
+        await updateAgentJournal(dbVictimId, {
+          type: "calculation",
+          title: `Tổn hại cạnh tranh: ${chosenType.toUpperCase()}`,
+          content: victimMessage,
+        });
+
+        logs.push(`Sabotage Event: ${attackerId} attacked ${victimId} using ${chosenType}`);
+
+        const wsSabotageMsg = {
+          type: "chat",
+          id: `sys-sab-${Date.now()}`,
+          senderId: "system",
+          senderName: "Hệ thống",
+          text: `🚨 [Cạnh tranh] ${attacker.name} vừa chọn hình thức hãm hại '${chosenType}' đối với ${victim.name}! Thông điệp: "${publicAnnouncement}"`,
+          timestamp: new Date().toISOString(),
+        };
+
+        activeSignalingClients.forEach((peer) => {
+          if (peer.socket.readyState === 1) {
+            try {
+              peer.socket.send(JSON.stringify(wsSabotageMsg));
+            } catch (_) {}
+          }
+        });
+      }
+    }
+
+    return c.json({ success: true, logs });
+  } catch (err: any) {
+    console.error("Cron Tick Error:", err);
     return c.json({ success: false, error: err.message }, 500);
   }
 });

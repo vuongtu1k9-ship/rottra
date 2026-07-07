@@ -69,7 +69,7 @@ export const db = new Proxy({} as any, {
     const { db: activeDb } = initDb();
     if (prop === "execute") {
       return async (...args: any[]) => {
-        const result = await activeDb.execute(...args);
+        const result = await activeDb.all(...args);
         if (result && Array.isArray(result)) {
           Object.defineProperty(result, "rows", {
             get() {

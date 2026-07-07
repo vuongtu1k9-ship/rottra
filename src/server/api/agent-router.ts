@@ -13,6 +13,7 @@ import {
   activity,
   negotiationLog,
   dpoTrainingData,
+  chatMessage,
 } from "~/infra/database/schema";
 import { auth } from "~/server/auth";
 import { ALL_DOMAIN_TRAINING_PAIRS } from "~/core/nlp-cognitive/domain-training-data";
@@ -3327,7 +3328,7 @@ agentApp.post("/chat-history/save", async (c: any) => {
     const keepCount = Math.min(messages.length, 200);
     const toSave = messages.slice(-keepCount);
 
-    await pgClient`DELETE FROM "ChatMessage" WHERE "userId" = ${userId}`;
+    await db.delete(chatMessage).where(eq(chatMessage.userId, userId));
 
     if (toSave.length > 0) {
       const rows = toSave.map((m) => ({
@@ -3337,7 +3338,7 @@ agentApp.post("/chat-history/save", async (c: any) => {
         content: m.content,
         createdAt: new Date().toISOString(),
       }));
-      await pgClient`INSERT INTO "ChatMessage" ${pgClient(rows, "id", "userId", "role", "content", "createdAt")}`;
+      await db.insert(chatMessage).values(rows);
     }
 
     return c.json({ success: true, saved: toSave.length });
@@ -3352,12 +3353,20 @@ agentApp.get("/chat-history", async (c: any) => {
     const session = await auth.api.getSession({ headers: c.req.raw.headers });
     if (!session?.user?.id) return c.json({ success: true, messages: [] });
 
-    const rows =
-      await pgClient`SELECT "role", "content", "createdAt" FROM "ChatMessage" WHERE "userId" = ${session.user.id} ORDER BY "createdAt" ASC LIMIT 200`;
+    const rows = await db
+      .select({
+        role: chatMessage.role,
+        content: chatMessage.content,
+        createdAt: chatMessage.createdAt,
+      })
+      .from(chatMessage)
+      .where(eq(chatMessage.userId, session.user.id))
+      .orderBy(chatMessage.createdAt)
+      .limit(200);
 
     return c.json({
       success: true,
-      messages: rows.map((r: any) => ({ role: r.role, content: r.content, createdAt: r.createdAt })),
+      messages: rows,
     });
   } catch (err) {
     console.error("[ChatHistory] Load error:", err);
