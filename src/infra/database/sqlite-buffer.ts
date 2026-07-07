@@ -1,5 +1,5 @@
 import { Database } from "bun:sqlite";
-import path from "path";
+import path from "node:path";
 
 export interface BufferedTransaction {
   id?: number;

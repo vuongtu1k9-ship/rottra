@@ -2,9 +2,9 @@ import { db, pgClient } from "~/infra/database/db-pool";
 import { product, review, cart, orderItem, user } from "~/infra/database/schema";
 import { eq } from "drizzle-orm";
 import { sanitizeProductMedia } from "~/server/helpers/media-validator";
-import fs from "fs";
-import path from "path";
-import crypto from "crypto";
+import fs from "node:fs";
+import path from "node:path";
+import crypto from "node:crypto";
 import { serverAgentBudgets } from "~/shared/constants";
 import { generateProductSVG } from "~/server/api/local-media-engine";
 

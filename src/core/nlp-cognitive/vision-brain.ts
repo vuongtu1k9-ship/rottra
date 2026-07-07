@@ -2,8 +2,8 @@
  * Rottra Vision AI Brain (Pure TypeScript)
  * Analyzes the 64-D OKLCH color/texture vector from Frontend to classify image validity.
  */
-import fs from "fs";
-import path from "path";
+import fs from "node:fs";
+import path from "node:path";
 
 const WEIGHTS_PATH = path.join(process.cwd(), "storage", "vision-weights.json");
 

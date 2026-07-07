@@ -3,7 +3,7 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "~/infra/database/db-pool";
 import * as schema from "~/infra/database/schema";
-import crypto from "crypto";
+import crypto from "node:crypto";
 
 export const auth = betterAuth({
   baseURL: process.env.BETTER_AUTH_URL || "http://localhost:5173/api/auth",

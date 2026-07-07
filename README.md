@@ -366,3 +366,13 @@ model = YOLO("yolo26n.pt")
 # The tuner evolves parameters (lr, momentum, etc.) over 30 generations
 model.tune(data="coco8.yaml", epochs=10, iterations=30, plots=False)
 Sự tinh chỉnh tự động này cho phép các nhà phát triển vượt xa việc phỏng đoán thủ công. Đối với các nhóm đang mở rộng quy mô hoạt động, việc quản lý các thử nghiệm này và theo dõi sự phát triển hiệu suất của model có thể được tinh giản bằng cách sử dụng Ultralytics Platform, vốn trực quan hóa các chỉ số huấn luyện và hỗ trợ triển khai model.
+
+Tuyệt chiêu
+Bí kíp
+Chiến lược
+Kỹ thuật nâng cao
+Chuyên sâu
+Cao cấp
+Đột phá
+Tinh hoa
+Bí mật (nên dùng cẩn trọng để tránh gây hiểu lầm)

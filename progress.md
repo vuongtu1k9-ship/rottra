@@ -401,14 +401,21 @@
 
 ## Files Modified This Session
 
-- `.agents/AGENTS.md` - Tự động cập nhật.
-- `drizzle.config.ts` - Tự động cập nhật.
-- `functions/api/[[route]].ts` - Tự động cập nhật.
-- `src/infra/database/als.ts` - Tự động cập nhật.
-- `src/infra/database/db-pool.ts` - Tự động cập nhật.
-- `src/server/prod.ts` - Tự động cập nhật.
+- `drizzle/0000_omniscient_johnny_storm.sql` - Tự động cập nhật.
+- `drizzle/0000_sync_schema.sql` - Tự động cập nhật.
+- `drizzle/0001_even_rocket_raccoon.sql` - Tự động cập nhật.
+- `drizzle/0002_abnormal_doctor_spectrum.sql` - Tự động cập nhật.
+- `drizzle/meta/0000_snapshot.json` - Tự động cập nhật.
+- `drizzle/meta/0001_snapshot.json` - Tự động cập nhật.
+- `drizzle/meta/0002_snapshot.json` - Tự động cập nhật.
+- `drizzle/meta/_journal.json` - Tự động cập nhật.
+- `src/infra/database/schema.ts` - Tự động cập nhật.
 - `wrangler.json` - Tự động cập nhật.
-- `src/server/api/cronjob-ai.ts` - Tự động cập nhật.
+- `src/infra/database/db-pool.ts` - Tự động cập nhật.
+- `src/routes/api/[...paths].ts` - Tự động cập nhật.
+- `src/server/helpers/agent-scraper.ts` - Tự động cập nhật.
+- `src/core/cognitive-swarm/bot-actions.ts` - Tự động cập nhật.
+- `functions/api/[[route]].ts` - Tự động cập nhật.
 
 ## Evidence of Completion
 

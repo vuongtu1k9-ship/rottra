@@ -5,8 +5,8 @@
  * Runs on Bun runtime.
  */
 
-import { createHash } from "crypto";
-import { randomUUID } from "crypto";
+import { createHash } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { db } from "~/infra/database/db-pool";
 import { blockchainLedger, flRound, flModelVersion, flGradientUpdate } from "~/infra/database/schema";
 import { eq, sql } from "drizzle-orm";

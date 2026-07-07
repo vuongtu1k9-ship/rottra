@@ -3,7 +3,7 @@
 // Mạng Neural, Heuristic Rules, Levenshtein Fuzzy Search & Gamification (Monty Hall)
 // =========================================================================
 
-import * as crypto from "crypto";
+import * as crypto from "node:crypto";
 import { db } from "~/infra/database/db-pool";
 import { product } from "~/infra/database/schema";
 

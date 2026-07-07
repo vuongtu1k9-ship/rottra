@@ -1,5 +1,5 @@
 import sharp from "sharp";
-import { randomBytes } from "crypto";
+import { randomBytes } from "node:crypto";
 
 type ImageStyle = "watercolor" | "sketch" | "cyberpunk" | "oil" | "realism" | "corrupt" | "restore_blind";
 

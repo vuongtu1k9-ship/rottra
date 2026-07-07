@@ -17,8 +17,8 @@
 
 import { SDMEngine } from "./sdm-engine";
 import { KnowledgeGraph } from "./knowledge-graph";
-import { readFileSync, writeFileSync, existsSync } from "fs";
-import { join } from "path";
+import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import { join } from "node:path";
 
 const MODEL_DIR = join(process.cwd(), "finetune", "data");
 const HYBRID_MODEL_PATH = join(MODEL_DIR, "graph_sdm_hybrid.json");

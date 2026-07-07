@@ -3,7 +3,7 @@ import { YoutubeTranscript } from "youtube-transcript";
 import { db } from "~/infra/database/db-pool";
 import { vectorDocument } from "~/infra/database/schema";
 import { eq } from "drizzle-orm";
-import { randomUUID } from "crypto";
+import { randomUUID } from "node:crypto";
 import { generateTextLocal } from "~/core/nlp-cognitive/ai-sdk";
 
 const CHANNEL_ID = "UCmQYoc5Z4l2aEBBVRXbEkwA"; // Trí tuệ Nhân sinh

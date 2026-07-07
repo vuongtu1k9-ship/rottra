@@ -23,10 +23,10 @@ import { eq, sql, inArray, and } from "drizzle-orm";
 import * as dbSchema from "~/infra/database/schema";
 import { getTableConfig } from "drizzle-orm/pg-core";
 import { botActionsMap } from "~/core/cognitive-swarm/bot-actions";
-import fs from "fs";
-import path from "path";
-import crypto from "crypto";
-import { exec as execCallback, spawn } from "child_process";
+import fs from "node:fs";
+import path from "node:path";
+import crypto from "node:crypto";
+import { exec as execCallback, spawn } from "node:child_process";
 
 function promisify(fn: Function) {
   return function (...args: any[]) {
@@ -9095,7 +9095,7 @@ app.post("/notify-log", async (c: any) => {
   }
 });
 
-import { execSync } from "child_process";
+import { execSync } from "node:child_process";
 
 app.post("/agent/compile-typst", async (c: any) => {
   try {

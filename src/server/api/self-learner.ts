@@ -10,7 +10,7 @@
 import { db } from "~/infra/database/db-pool";
 import { agentTraining, feedbackLog, dpoTrainingData } from "~/infra/database/schema";
 import { eq, sql, desc } from "drizzle-orm";
-import crypto from "crypto";
+import crypto from "node:crypto";
 import { recordIntentOverride } from "~/core/nlp-cognitive/tokenizer";
 
 // ══════════════════════════════════════════════════════════════

@@ -15,8 +15,8 @@ import { evaluateMathExpression, solveCustomAlgorithm } from "~/core/quant-engin
 import { parseTranslationQuery } from "~/core/nlp-cognitive/multilingual-translator";
 import { z } from "zod";
 import { DecodingSettings } from "~/shared/constants";
-import * as fs from "fs";
-import * as path from "path";
+import * as fs from "node:fs";
+import * as path from "node:path";
 import { runHybridOfflineInference } from "~/core/nlp-cognitive/hybrid-ai";
 import { BasalGanglia } from "~/core/nlp-cognitive/basal-ganglia";
 dotenv.config();

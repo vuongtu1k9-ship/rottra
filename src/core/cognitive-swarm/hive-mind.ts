@@ -3,9 +3,9 @@ import { agentMemory } from "~/infra/database/schema";
 import { eq } from "drizzle-orm";
 import { TuLinhFlexibilityEngine, FlexibilityContext } from "~/core/cognitive-swarm/personas/tu-linh-flexibility";
 import { generateTextLocal } from "~/core/nlp-cognitive/ai-sdk";
-import os from "os";
-import fs from "fs";
-import crypto from "crypto";
+import os from "node:os";
+import fs from "node:fs";
+import crypto from "node:crypto";
 
 export function getSystemMetrics() {
   let ram = 48;

@@ -3,7 +3,7 @@ import { db } from "~/infra/database/db-pool";
 import { strategyPreset, vietnameseLexicon, bilingualCorpus } from "~/infra/database/schema";
 import { eq, sql } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
-import fs from "fs";
+import fs from "node:fs";
 
 const rpcApp = new Hono()
   .get("/products", async (c) => c.json({ products: (await db.query.product.findMany()) ?? [], status: "success" }))

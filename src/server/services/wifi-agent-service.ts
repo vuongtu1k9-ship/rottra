@@ -1,5 +1,5 @@
-import { exec as execCallback } from "child_process";
-import util from "util";
+import { exec as execCallback } from "node:child_process";
+import util from "node:util";
 import { Hono } from "hono";
 import { eq } from "drizzle-orm";
 import { db } from "~/infra/database/db-pool";

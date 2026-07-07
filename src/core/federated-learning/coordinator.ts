@@ -4,7 +4,7 @@
  * Runs on Bun runtime.
  */
 
-import { randomUUID } from "crypto";
+import { randomUUID } from "node:crypto";
 import { db } from "~/infra/database/db-pool";
 import { flRound, flGradientUpdate, flModelVersion, flNode, flPrivacyBudget } from "~/infra/database/schema";
 import { eq, and, sql } from "drizzle-orm";

@@ -8,7 +8,7 @@ import { advancedRAG } from "~/core/neural-memory/advanced-rag";
 import { db } from "~/infra/database/db-pool";
 import { agentMemory, product, blockchainLedger, negotiationLog } from "~/infra/database/schema";
 import { eq, desc } from "drizzle-orm";
-import crypto from "crypto";
+import crypto from "node:crypto";
 import { generateProductVideoAd } from "~/server/helpers/video-ad-generator";
 import { skillRegistry, getSkillManual } from "~/core/cognitive-swarm/skills/skill-registry";
 

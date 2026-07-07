@@ -5,7 +5,7 @@ import { bookScholarReasoning } from "./book-scholar";
 import { youtubeLearnerReasoning } from "./youtube-learner";
 import { db } from "~/infra/database/db-pool";
 import { dpoTrainingData } from "~/infra/database/schema";
-import crypto from "crypto";
+import crypto from "node:crypto";
 
 export type CognitiveMode = "TreeOfThoughts" | "AgenticReplanner" | "PrivateBrain" | "BookScholar" | "YoutubeLearner";
 

@@ -1,10 +1,10 @@
 import { db } from "~/infra/database/db-pool";
 import { product, agentMemory, user } from "~/infra/database/schema";
 import { eq, and } from "drizzle-orm";
-import fs from "fs";
-import path from "path";
-import crypto from "crypto";
-import { spawn } from "child_process";
+import fs from "node:fs";
+import path from "node:path";
+import crypto from "node:crypto";
+import { spawn } from "node:child_process";
 import { generateTextLocal } from "~/core/nlp-cognitive/ai-sdk";
 import { z } from "zod";
 

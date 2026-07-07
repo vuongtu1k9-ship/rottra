@@ -1,7 +1,7 @@
 import { db } from "~/infra/database/db-pool";
 import { activity } from "~/infra/database/schema";
 import { auth } from "~/server/auth";
-import crypto from "crypto";
+import crypto from "node:crypto";
 
 // Helper phân tích thiết bị từ User-Agent
 const parseDevice = (userAgent?: string) => {

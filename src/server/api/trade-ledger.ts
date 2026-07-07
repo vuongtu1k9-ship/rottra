@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { db } from "~/infra/database/db-pool";
 import { blockchainLedger, agentMemory, product, user } from "~/infra/database/schema";
 import { eq, desc } from "drizzle-orm";
-import crypto from "crypto";
+import crypto from "node:crypto";
 import { RottraAI } from "~/core/cognitive-swarm/swarm-dispatcher";
 
 export const ledgerApp = new Hono();

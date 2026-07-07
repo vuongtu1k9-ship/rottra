@@ -1,5 +1,5 @@
-import { Worker } from "worker_threads";
-import path from "path";
+import { Worker } from "node:worker_threads";
+import path from "node:path";
 
 export class WorkerPool {
   private size: number;

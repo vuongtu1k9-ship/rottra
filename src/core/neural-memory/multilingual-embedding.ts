@@ -1,6 +1,6 @@
 import * as tf from "@tensorflow/tfjs";
-import * as fs from "fs";
-import * as path from "path";
+import * as fs from "node:fs";
+import * as path from "node:path";
 
 const EMBEDDING_MODEL = "Rottra-Native-DL-v1";
 const EMBEDDING_DIM = 1024;

@@ -4,7 +4,7 @@ import { db } from "~/infra/database/db-pool";
 import { agentMemory, vectorDocument } from "~/infra/database/schema";
 import { eq, sql } from "drizzle-orm";
 import { ALL_DOMAIN_TRAINING_PAIRS } from "~/core/nlp-cognitive/domain-training-data";
-import * as crypto from "crypto";
+import * as crypto from "node:crypto";
 import {
   initMultilingualEmbedding,
   isEmbeddingReady,

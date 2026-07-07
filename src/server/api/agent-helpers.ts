@@ -1,12 +1,12 @@
 import { db, pgClient } from "~/infra/database/db-pool";
 import { activity, agentMemory } from "~/infra/database/schema";
 import { filterMythosFable } from "~/core/cognitive-swarm/hive-mind";
-import crypto from "crypto";
-import os from "os";
+import crypto from "node:crypto";
+import os from "node:os";
 import v8 from "v8";
 import { sql, eq, and } from "drizzle-orm";
-import path from "path";
-import fs from "fs";
+import path from "node:path";
+import fs from "node:fs";
 
 // ==========================================
 // ACTIVITY RING BUFFER

@@ -1,4 +1,4 @@
-import { parseArgs } from "util";
+import { parseArgs } from "node:util";
 
 async function main() {
   const { values, positionals } = parseArgs({

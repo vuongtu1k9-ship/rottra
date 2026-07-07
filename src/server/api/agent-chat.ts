@@ -23,9 +23,9 @@ import {
   getRetrainStatus,
 } from "~/server/api/self-learner";
 import { eq, and, desc, sql } from "drizzle-orm";
-import fs from "fs";
-import path from "path";
-import crypto from "crypto";
+import fs from "node:fs";
+import path from "node:path";
+import crypto from "node:crypto";
 import { applyRbacBoundaries, globalCollatzState } from "~/server/api/agent-router";
 import { matchMultilingualIntent } from "~/core/nlp-cognitive/multilingual-keywords";
 import { parseTranslationQuery } from "~/core/nlp-cognitive/multilingual-translator";

@@ -1,4 +1,4 @@
-import * as path from "path";
+import * as path from "node:path";
 import { checkSemanticCache, writeSemanticCache } from "~/core/neural-memory/semantic-cache";
 
 function cleanTextLocal(text: string): string {

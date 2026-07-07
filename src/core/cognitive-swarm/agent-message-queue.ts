@@ -1,6 +1,6 @@
 import { db } from "~/infra/database/db-pool";
 import { sql } from "drizzle-orm";
-import crypto from "crypto";
+import crypto from "node:crypto";
 
 export interface AgentMessage {
   id: string;

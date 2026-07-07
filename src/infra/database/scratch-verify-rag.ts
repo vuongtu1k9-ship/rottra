@@ -1,5 +1,5 @@
 import { agentApp } from "../../server/api/agent-router";
-import fs from "fs";
+import fs from "node:fs";
 
 async function runTest(query: string, role: string, usePrivateBrain: boolean) {
   const res = await agentApp.request("/chat-expert", {

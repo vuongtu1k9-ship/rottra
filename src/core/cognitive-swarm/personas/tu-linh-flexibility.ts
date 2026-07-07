@@ -1,7 +1,7 @@
 import { db } from "~/infra/database/db-pool";
 import { agentMemory } from "~/infra/database/schema";
-import fs from "fs";
-import path from "path";
+import fs from "node:fs";
+import path from "node:path";
 
 // 1. CHUYỂN HOÁ TRIẾT HỌC SANG ĐỐI TƯỢNG (OOP - INTERFACES & ABSTRACT STRATEGY)
 export interface FlexibilityContext {

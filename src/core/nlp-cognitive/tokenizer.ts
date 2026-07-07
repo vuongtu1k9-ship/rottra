@@ -1,7 +1,7 @@
 // Rottra Agent - Lõi Định Tuyến Ý Định & NLP Engine (Machine Learning Intent Classifier)
 import { db } from "~/infra/database/db-pool";
-import fs from "fs";
-import path from "path";
+import fs from "node:fs";
+import path from "node:path";
 import { agentTraining } from "~/infra/database/schema";
 import { generateTextLocal } from "./ai-sdk";
 import {

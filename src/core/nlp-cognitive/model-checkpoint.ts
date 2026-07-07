@@ -1,8 +1,8 @@
 import { db } from "~/infra/database/db-pool";
 import { sql } from "drizzle-orm";
-import fs from "fs";
-import path from "path";
-import crypto from "crypto";
+import fs from "node:fs";
+import path from "node:path";
+import crypto from "node:crypto";
 
 const CHECKPOINT_TABLE = "model_checkpoint";
 const CHECKPOINT_DIR = path.join(process.cwd(), "finetune", "checkpoints");
