@@ -17,21 +17,66 @@ import {
   customType as pgCustomType,
 } from "drizzle-orm/pg-core";
 
-export const pgTable = pgTableOriginal;
-export const text = pgText;
-export const real = pgReal;
-export const integer = pgInteger;
-export const timestamp = pgTimestamp;
-export const jsonb = pgJsonb;
-export const varchar = pgVarchar;
-export const bigint = pgBigint;
-export const boolean = pgBoolean;
-export const date = pgDate;
-export const vector = (name?: any, config?: any): any => pgText(name);
-export const foreignKey = pgForeignKeyOriginal;
-export const check = pgCheckOriginal;
-export const unique = pgUniqueOriginal;
-export const index = pgIndexOriginal;
+import {
+  sqliteTable as sqTable,
+  text as sqText,
+  integer as sqInteger,
+  real as sqReal,
+  unique as sqUnique,
+  index as sqIndex,
+} from "drizzle-orm/sqlite-core";
+
+export const isSqlite = true;
+
+export const pgTable = (name: string, columns: any, extra?: any) => {
+  const filteredExtra = extra
+    ? (table: any) => {
+        const list = extra(table);
+        return list.filter((item: any) => {
+          return item && typeof item === "object" && !item._isMockFk;
+        });
+      }
+    : undefined;
+  return sqTable(name, columns, filteredExtra);
+};
+
+export const text = (name?: any): any => sqText(name);
+export const real = (name?: any): any => sqReal(name);
+export const integer = (name?: any): any => sqInteger(name);
+export const timestamp = (name?: any, config?: any): any => {
+  const col = name && typeof name === "object" ? sqText(undefined as any) : sqText(name);
+  col.defaultNow = function() {
+    return this.default(sql`CURRENT_TIMESTAMP`);
+  };
+  return col;
+};
+export const jsonb = (name?: any): any => sqText(name, { mode: "json" });
+export const varchar = (name?: any, config?: any): any => sqText(name);
+export const bigint = (name?: any, config?: any): any => sqInteger(name);
+export const boolean = (name?: any): any => sqInteger(name, { mode: "boolean" });
+export const date = (name?: any): any => sqText(name);
+export const vector = (name?: any, config?: any): any => sqText(name, { mode: "json" });
+
+export const foreignKey = (config: any) => {
+  return {
+    _isMockFk: true,
+    onDelete: () => ({ onUpdate: () => ({ _isMockFk: true }) }),
+    onUpdate: () => ({ onDelete: () => ({ _isMockFk: true }) }),
+  };
+};
+
+export const check = (name: string, value: any) => {
+  return { _isMockFk: true };
+};
+
+export const unique = (name?: string) => {
+  return sqUnique(name);
+};
+
+export const index = (name: string): any => {
+  return sqIndex(name);
+};
+
 
 export const activity = pgTable(
   "Activity",
@@ -701,20 +746,7 @@ export const blockchainLedger = pgTable("BlockchainLedger", {
   timestamp: timestamp({ withTimezone: true, mode: "string" }).defaultNow(),
 });
 
-export const halfvec = pgCustomType<{ data: number[]; config: { dimensions: number } }>({
-  dataType(config) {
-    return `halfvec(${config?.dimensions ?? 1024})`;
-  },
-  toDriver(value: number[]) {
-    return JSON.stringify(value);
-  },
-  fromDriver(value: any) {
-    if (typeof value === "string") {
-      return value.slice(1, -1).split(",").map(Number);
-    }
-    return value;
-  },
-});
+export const halfvec = (name: string, config?: any) => sqText(name, { mode: "json" });
 
 // Bảng VectorDocument phục vụ lưu trữ AI Embeddings (RAG)
 export const vectorDocument = pgTable(
@@ -730,7 +762,7 @@ export const vectorDocument = pgTable(
     tenantId: text("tenant_id"), // Multi-tenant isolation ID
     createdAt: timestamp({ withTimezone: true, mode: "string" }).defaultNow(),
   },
-  (table: any) => [index("vector_document_idx").using("hnsw", table.embedding.op("halfvec_cosine_ops"))],
+  (table: any) => [index("vector_document_idx").on(table.id)],
 );
 
 // Bảng lưu trữ nét vẽ AI sản phẩm (AiDrawingPath)

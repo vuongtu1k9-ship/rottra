@@ -21,7 +21,7 @@ export const auth = betterAuth({
     "https://rottra.pages.dev",
   ],
   database: drizzleAdapter(db, {
-    provider: "pg",
+    provider: "sqlite",
     schema,
   }),
   session: {
