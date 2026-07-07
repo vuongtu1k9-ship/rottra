@@ -476,6 +476,9 @@
 - `src/infra/network/ws-signaling.ts` - Tự động cập nhật.
 - `src/server/helpers/system-load-regulator.ts` - Tự động cập nhật.
 - `src/client/views/assembly.tsrx` - Tự động cập nhật.
+- `index.html` - Tự động cập nhật.
+- `src/client/views/dashboard/setting-system.tsrx` - Tự động cập nhật.
+- `src/client/views/form.tsrx` - Tự động cập nhật.
 
 ## Evidence of Completion
 

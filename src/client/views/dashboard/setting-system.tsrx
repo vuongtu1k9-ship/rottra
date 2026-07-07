@@ -17,38 +17,6 @@ export component SettingSystem(props: any) {
   const [webName, setWebName] = createSignal("");
   const [adminEmail, setAdminEmail] = createSignal("");
   const [adminPhone, setAdminPhone] = createSignal("");
-  const getParsedPhone = () => {
-    const val = adminPhone();
-    const codes = [
-      { code: "+84", flag: "🇻🇳" },
-      { code: "+1", flag: "🇺🇸" },
-      { code: "+86", flag: "🇨🇳" },
-      { code: "+81", flag: "🇯🇵" },
-      { code: "+358", flag: "🇫🇮" },
-      { code: "+972", flag: "🇮🇱" },
-    ];
-    for (const c of codes) {
-      if (val.startsWith(c.code)) {
-        return { prefix: c.code, local: val.slice(c.code.length) };
-      }
-    }
-    return { prefix: "+84", local: val };
-  };
-
-  const handlePhonePrefixChange = (prefix: string) => {
-    const parsed = getParsedPhone();
-    let local = parsed.local;
-    if (local.startsWith("0")) local = local.slice(1);
-    setAdminPhone(prefix + local);
-  };
-
-  const handlePhoneLocalChange = (local: string) => {
-    const parsed = getParsedPhone();
-    let cleaned = local;
-    if (cleaned.startsWith("0")) cleaned = cleaned.slice(1);
-    setAdminPhone(parsed.prefix + cleaned);
-  };
-
   const [colors, setColors] = createSignal({
     primary: "#3b82f6",
     background: "#ffffff",
@@ -359,32 +327,16 @@ export component SettingSystem(props: any) {
               <label for="adminPhone" class={`text-sm font-bold ${theme() === "dark" ? "text-gray-300" : "text-gray-700"}`}>
                 {"Số điện thoại quản trị viên"}
               </label>
-              <div class="flex gap-2 w-full">
-                <select
-                  value={getParsedPhone().prefix}
-                  onChange={(e) => handlePhonePrefixChange(e.target.value)}
-                  class={`w-[120px] px-3 py-3 border rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 outline-none transition-all font-bold ${
-                    theme() === "dark" ? "bg-[#0f0f0f] border-gray-700 text-white" : "bg-gray-50 border-gray-200 text-gray-900"
-                  }`}
-                >
-                  <option value="+84">🇻🇳 +84</option>
-                  <option value="+1">🇺🇸 +1</option>
-                  <option value="+86">🇨🇳 +86</option>
-                  <option value="+81">🇯🇵 +81</option>
-                  <option value="+358">🇫🇮 +358</option>
-                  <option value="+972">🇮🇱 +972</option>
-                </select>
-                <input
-                  type="text"
-                  id="adminPhone"
-                  value={getParsedPhone().local}
-                  onInput={(e) => handlePhoneLocalChange(e.target.value)}
-                  class={`flex-1 px-4 py-3 border rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 outline-none transition-all placeholder:text-gray-500 font-medium ${
-                    theme() === "dark" ? "bg-[#0f0f0f] border-gray-700 text-white" : "bg-gray-50 border-gray-200 text-gray-900"
-                  }`}
-                  placeholder="Nhập số điện thoại"
-                />
-              </div>
+              <input
+                type="text"
+                id="adminPhone"
+                value={adminPhone()}
+                onInput={(e) => setAdminPhone(e.target.value)}
+                class={`w-full px-4 py-3 border rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 outline-none transition-all placeholder:text-gray-500 font-medium ${
+                  theme() === "dark" ? "bg-[#0f0f0f] border-gray-700 text-white" : "bg-gray-50 border-gray-200 text-gray-900"
+                }`}
+                placeholder="Nhập số điện thoại quản trị viên"
+              />
             </div>
           </div>
           <div class={`pt-6 border-t flex items-center justify-between ${theme() === "dark" ? "border-white/10" : "border-gray-100"}`}>
