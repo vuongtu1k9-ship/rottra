@@ -1171,32 +1171,6 @@ export const broadcastTradeSync = async () => {
 app.use("*", systemLoadRegulator.getMiddleware());
 app.use("*", telemetryLogger);
 
-// Compression middleware — Brotli/Gzip cho API responses
-app.use("*", async (c, next) => {
-  await next();
-  if (!c.res) return;
-  const accept = c.req.header("accept-encoding") || "";
-  const contentType = c.res.headers.get("content-type") || "";
-  if (!contentType.includes("text/") && !contentType.includes("json") && !contentType.includes("javascript")) return;
-  const clonedRes = c.res.clone();
-  const body = await clonedRes.arrayBuffer();
-  if (body.byteLength < 1024) return;
-  if (accept.includes("br")) {
-    const compressed = zlib.brotliCompressSync(Buffer.from(body));
-    c.res = c.body(compressed, 200, {
-      "content-encoding": "br",
-      "content-length": String(compressed.byteLength),
-      "content-type": contentType,
-    });
-  } else if (accept.includes("gzip")) {
-    const compressed = zlib.gzipSync(Buffer.from(body));
-    c.res = c.body(compressed, 200, {
-      "content-encoding": "gzip",
-      "content-length": String(compressed.byteLength),
-      "content-type": contentType,
-    });
-  }
-});
 
 // Cache-Control headers cho static-like API responses
 app.use("/product", async (c, next) => {
@@ -1216,7 +1190,6 @@ app.use("/agent/*", guestRateLimiter);
 app.use("/agent/*", aiAuthMiddleware);
 
 app.route("/rpc", rpcApp);
-app.route("/agent", agentApp);
 
 // Better Auth Endpoint
 app.all("/auth/*", (c: any) => auth.handler(c.req.raw));
