@@ -274,6 +274,12 @@ export async function fetchCryptoQuote(symbol: string, allowLive = true) {
     const simulated = {
       symbol: sym,
       price: newPrice,
+      change: 0,
+      percentChange: 0,
+      high: null,
+      low: null,
+      open: null,
+      previousClose: null,
       timestamp: now,
     };
     cachedStockQuotes[sym] = simulated;
