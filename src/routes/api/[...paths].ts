@@ -984,14 +984,20 @@ const RATE_LIMIT_WINDOW_MS = 60000;
 const RATE_LIMIT_MAX_REQUESTS = 100;
 
 // Dọn dẹp map định kỳ (tránh memory leak trên PaaS Render)
-setInterval(() => {
-  const cleanupNow = Date.now();
-  for (const [key, val] of rateLimitMap.entries()) {
-    if (cleanupNow - val.startTime > RATE_LIMIT_WINDOW_MS) {
-      rateLimitMap.delete(key);
-    }
+if (!isCloudflare) {
+  try {
+    setInterval(() => {
+      const cleanupNow = Date.now();
+      for (const [key, val] of rateLimitMap.entries()) {
+        if (cleanupNow - val.startTime > RATE_LIMIT_WINDOW_MS) {
+          rateLimitMap.delete(key);
+        }
+      }
+    }, 60000); // Mỗi 60 giây dọn rác 1 lần
+  } catch (e) {
+    console.warn("Failed to start rate limit cleaner interval:", e);
   }
-}, 60000); // Mỗi 60 giây dọn rác 1 lần
+}
 
 rootApp.use("*", async (c, next) => {
   // Lấy IP client (có thể nằm trong headers CF-Connecting-IP, X-Forwarded-For nếu qua Cloudflare)

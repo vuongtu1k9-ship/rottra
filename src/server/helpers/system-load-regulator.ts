@@ -33,6 +33,8 @@ class LoadRegulator {
   // Bắt đầu quét định kỳ mỗi 10 giây
   private startMonitoring() {
     if (typeof process === "undefined") return;
+    const isCloudflare = typeof globalThis.caches !== "undefined" && typeof globalThis.WebSocketPair !== "undefined";
+    if (isCloudflare) return;
 
     this.checkInterval = setInterval(async () => {
       let autoBoostEnabled = false;

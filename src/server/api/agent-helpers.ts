@@ -24,7 +24,6 @@ export class ActivityRingBuffer {
     this.capacity = capacity;
     this.flushThreshold = flushThreshold;
     this.flushIntervalMs = flushIntervalMs;
-    this.startInterval();
   }
 
   private classifySeverity(log: any): string {
@@ -96,6 +95,7 @@ export class ActivityRingBuffer {
   }
 
   public push(log: any) {
+    this.startInterval();
     if (this.buffer.length >= this.capacity) {
       this.buffer.shift();
     }
@@ -108,9 +108,14 @@ export class ActivityRingBuffer {
   }
 
   private startInterval() {
-    this.timer = setInterval(() => {
-      this.flush().catch((err) => console.error("Flush error in interval:", err));
-    }, this.flushIntervalMs);
+    if (this.timer) return;
+    try {
+      this.timer = setInterval(() => {
+        this.flush().catch((err) => console.error("Flush error in interval:", err));
+      }, this.flushIntervalMs);
+    } catch (e) {
+      console.warn("Failed to set interval (likely in serverless environment):", e);
+    }
   }
 
   public async flush() {
