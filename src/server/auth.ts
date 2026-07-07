@@ -5,6 +5,10 @@ import { db } from "~/infra/database/db-pool";
 import * as schema from "~/infra/database/schema";
 import crypto from "node:crypto";
 
+if (!process.env.BETTER_AUTH_SECRET) {
+  process.env.BETTER_AUTH_SECRET = "some-secure-default-secret-key-1234567890-rottra-app-fallback-secret-5719";
+}
+
 export const auth = betterAuth({
   baseURL: process.env.BETTER_AUTH_URL || "http://localhost:5173/api/auth",
   secret: process.env.BETTER_AUTH_SECRET || "some-secure-default-secret-key-1234567890-rottra-app",
