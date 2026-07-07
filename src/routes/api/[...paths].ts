@@ -1183,21 +1183,17 @@ app.use("*", async (c, next) => {
   if (body.byteLength < 1024) return;
   if (accept.includes("br")) {
     const compressed = zlib.brotliCompressSync(Buffer.from(body));
-    c.res = c.body(compressed, {
-      headers: {
-        "content-encoding": "br",
-        "content-length": String(compressed.byteLength),
-        "content-type": contentType,
-      },
+    c.res = c.body(compressed, 200, {
+      "content-encoding": "br",
+      "content-length": String(compressed.byteLength),
+      "content-type": contentType,
     });
   } else if (accept.includes("gzip")) {
     const compressed = zlib.gzipSync(Buffer.from(body));
-    c.res = c.body(compressed, {
-      headers: {
-        "content-encoding": "gzip",
-        "content-length": String(compressed.byteLength),
-        "content-type": contentType,
-      },
+    c.res = c.body(compressed, 200, {
+      "content-encoding": "gzip",
+      "content-length": String(compressed.byteLength),
+      "content-type": contentType,
     });
   }
 });
