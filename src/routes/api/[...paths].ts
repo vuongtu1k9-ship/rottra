@@ -485,7 +485,9 @@ export const getPreciseImageForProduct = async (productName: string, category: s
 
 const globalObj = (typeof process !== "undefined" ? process : globalThis) as any;
 
-if (!globalObj.__dbInitialized) {
+const isCloudflare = typeof globalThis.caches !== "undefined" || (typeof process !== "undefined" && process.env.CF_PAGES === "1");
+
+if (!globalObj.__dbInitialized && !isCloudflare) {
   globalObj.__dbInitialized = true;
 
   (async () => {
@@ -918,7 +920,7 @@ async function initializeAgentBudgetsAndAssets() {
 }
 
 // Chạy gom sản phẩm trùng lặp và khởi tạo tài sản khi khởi động
-if (!globalObj.__dbInitializedProductMerge) {
+if (!globalObj.__dbInitializedProductMerge && !isCloudflare) {
   globalObj.__dbInitializedProductMerge = true;
   (async () => {
     await mergeDuplicateProducts();
