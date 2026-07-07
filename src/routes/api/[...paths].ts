@@ -38,7 +38,8 @@ function promisify(fn: Function) {
     });
   };
 }
-import puppeteer from "puppeteer";
+const req = import.meta.require;
+const puppeteer = req ? req("puppeteer") : null;
 import {
   SEMANTIC_ANCHORS,
   initNlpEngine,
@@ -6819,6 +6820,9 @@ app.post("/admin/product/:id/image", verifyAuth, async (c: any) => {
     </html>
   `;
 
+  if (!puppeteer) {
+    throw new Error("Puppeteer is not supported in this serverless environment (Cloudflare Workers). Banner generation is disabled.");
+  }
   try {
     const browser = await puppeteer.launch({
       headless: true,

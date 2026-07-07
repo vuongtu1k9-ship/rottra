@@ -408,8 +408,12 @@ export class GenerateImageAction extends BotActionExecutor {
       </html>
     `;
 
-    const puppeteer = await import("puppeteer");
-    const browser = await puppeteer.default.launch({
+    const req = import.meta.require;
+    if (!req) {
+      throw new Error("Puppeteer is not supported in this environment (Serverless/Cloudflare Workers).");
+    }
+    const puppeteer = req("puppeteer");
+    const browser = await puppeteer.launch({
       headless: true,
       args: [
         "--no-sandbox",

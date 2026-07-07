@@ -1,4 +1,7 @@
-import puppeteer, { Browser, Page } from "puppeteer";
+import type { Browser, Page } from "puppeteer";
+
+const req = import.meta.require;
+const puppeteer = req ? req("puppeteer") : null;
 
 export class AgentScraper {
   private browser: Browser | null = null;
@@ -7,6 +10,9 @@ export class AgentScraper {
   private static readonly BASE_DELAY_MS = 2_000;
 
   async launchAgentBrowser() {
+    if (!puppeteer) {
+      throw new Error("[AGENT SCRAPER] Puppeteer is not supported in this environment (Serverless/Cloudflare Workers).");
+    }
     if (!this.browser) {
       console.log("[AGENT SCRAPER] Launching headless browser...");
       this.browser = await puppeteer.launch({
