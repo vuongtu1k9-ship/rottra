@@ -1,8 +1,6 @@
 import "dotenv/config";
 import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
-import { Database } from "bun:sqlite";
-import { drizzle as drizzleSqlite } from "drizzle-orm/bun-sqlite";
 import * as schema from "./schema";
 import nativeProcess from "node:process";
 import { dbContext } from "./als";
@@ -25,6 +23,14 @@ function initDb() {
     }
     const dbPath = process.env.SQLITE_DB_PATH || "rottra.db";
     console.log(`[DB INIT] 🔌 Connecting to SQLite database at ${dbPath}...`);
+    
+    const req = import.meta.require;
+    if (!req) {
+      throw new Error("Sqlite is only supported in Bun/local environment.");
+    }
+    const { Database } = req("bun:sqlite");
+    const { drizzle: drizzleSqlite } = req("drizzle-orm/bun-sqlite");
+
     const sqliteClient = new Database(dbPath);
     sqliteClient.exec("PRAGMA journal_mode = WAL;");
     const dbInstance = drizzleSqlite(sqliteClient, { schema });
@@ -150,7 +156,7 @@ export const db = new Proxy({} as any, {
             sqliteQuery = sqliteQuery.replace(/double precision/gi, "REAL");
             sqliteQuery = sqliteQuery.replace(/\$(\d+)/g, "?$1");
 
-            const stmt = (activeClient as Database).prepare(sqliteQuery);
+            const stmt = (activeClient as any).prepare(sqliteQuery);
             const isSelect = /^\s*select/i.test(sqliteQuery);
             if (isSelect) {
               const rows = stmt.all(...bindParams);
@@ -210,7 +216,7 @@ export const pgClient = new Proxy((() => {}) as any, {
         sqliteQuery = sqliteQuery.replace(/double precision/gi, "REAL");
         sqliteQuery = sqliteQuery.replace(/\$(\d+)/g, "?$1");
 
-        const stmt = (activeClient as Database).prepare(sqliteQuery);
+        const stmt = (activeClient as any).prepare(sqliteQuery);
         const isSelect = /^\s*select/i.test(sqliteQuery);
         if (isSelect) {
           return stmt.all(...values);
@@ -235,7 +241,7 @@ export const pgClient = new Proxy((() => {}) as any, {
           sqliteQuery = sqliteQuery.replace(/double precision/gi, "REAL");
           sqliteQuery = sqliteQuery.replace(/\$(\d+)/g, "?$1");
 
-          const stmt = (activeClient as Database).prepare(sqliteQuery);
+          const stmt = (activeClient as any).prepare(sqliteQuery);
           const isSelect = /^\s*select/i.test(sqliteQuery);
           const bindParams = params || [];
 
