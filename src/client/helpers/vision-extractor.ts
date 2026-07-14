@@ -58,7 +58,7 @@ export async function extractImageFeatures(imageUrlOrFile: string | File): Promi
       const hueBins = new Array(32).fill(0);
       const chromaBins = new Array(16).fill(0);
       const lightnessBins = new Array(16).fill(0);
-      
+
       let validPixels = 0;
 
       for (let i = 0; i < imgData.length; i += 4) {
@@ -86,13 +86,9 @@ export async function extractImageFeatures(imageUrlOrFile: string | File): Promi
       }
 
       // Normalize bins
-      const normalize = (arr: number[]) => arr.map(v => (validPixels > 0 ? v / validPixels : 0));
-      
-      const features = [
-        ...normalize(hueBins),
-        ...normalize(chromaBins),
-        ...normalize(lightnessBins)
-      ];
+      const normalize = (arr: number[]) => arr.map((v) => (validPixels > 0 ? v / validPixels : 0));
+
+      const features = [...normalize(hueBins), ...normalize(chromaBins), ...normalize(lightnessBins)];
 
       resolve(features); // exactly 64 floats
     };

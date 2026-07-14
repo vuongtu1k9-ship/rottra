@@ -1,3 +1,4 @@
+import { Deterministic } from "~/shared/utils/rng";
 import { db } from "../../src/infra/database/db-pool";
 import { user } from "../../src/infra/database/schema";
 import { eq } from "drizzle-orm";
@@ -10,7 +11,7 @@ async function main() {
   
   // Shuffle
   for (let i = files.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
+    const j = Math.floor(Deterministic.random() * (i + 1));
     [files[i], files[j]] = [files[j], files[i]];
   }
   

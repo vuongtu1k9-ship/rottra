@@ -21,6 +21,7 @@ import {
   bellAlert,
   bellSlash,
   bellSnooze,
+  videoCamera,
 } from "solid-heroicons/outline";
 import { isServer } from "solid-js/web";
 import { authClient } from "~/client/utils/auth-client";
@@ -264,7 +265,7 @@ export component Header(props: any) {
               setAgentAvatar(avatarUrl);
               localStorage.setItem("rottra_agent_avatar", avatarUrl);
             }
-            
+
             // Dynamically update favicon based on avatar or initials
             if (typeof window !== "undefined") {
               const favicon = document.getElementById("favicon") as HTMLLinkElement;
@@ -439,10 +440,10 @@ export component Header(props: any) {
         class={`text-xl font-extrabold tracking-tighter hover:text-blue-600 transition-colors flex items-center gap-2 shrink-0 ${
           theme() === "dark" ? "text-white" : "text-gray-900"
         }`}>
-        <UserAvatar 
-          name={agentName() || "Trợ Lý Cao Cấp Rottra"} 
-          image={agentAvatar() || null} 
-          class="w-8 h-8 text-sm shadow-sm shrink-0" 
+        <UserAvatar
+          name={agentName() || "Trợ Lý Cao Cấp Rottra"}
+          image={agentAvatar() || null}
+          class="w-8 h-8 text-sm shadow-sm shrink-0"
         />
         <span class="hidden sm:inline">{t("Rottra")}</span>
       </A>

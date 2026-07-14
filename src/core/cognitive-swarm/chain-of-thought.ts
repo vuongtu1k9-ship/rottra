@@ -1,3 +1,4 @@
+import { Secure } from "~/shared/utils/rng";
 /**
  * Chain-of-Thought (CoT) Reasoning Engine
  * Hệ thống suy luận theo chuỗi tư duy
@@ -19,6 +20,25 @@
 import { detectDomain, getRelevantKnowledge } from "./cross-domain-learning";
 import { analyzeEmotion, type EmotionResult } from "./emotion-recognition";
 import { generateTextLocal } from "../nlp-cognitive/ai-sdk";
+
+// ===== TELEMETRY =====
+let telemetryWs: WebSocket | null = null;
+function broadcastTelemetry(payload: any) {
+  try {
+    if (!telemetryWs || telemetryWs.readyState === WebSocket.CLOSED) {
+      telemetryWs = new WebSocket("ws://localhost:8080/?room=global");
+    }
+    if (telemetryWs.readyState === WebSocket.OPEN) {
+      telemetryWs.send(JSON.stringify(payload));
+    } else if (telemetryWs.readyState === WebSocket.CONNECTING) {
+      telemetryWs.addEventListener("open", () => {
+        telemetryWs?.send(JSON.stringify(payload));
+      }, { once: true });
+    }
+  } catch (e) {
+    console.error("[Telemetry] Failed to broadcast:", e);
+  }
+}
 
 // ===== TYPES =====
 
@@ -337,7 +357,7 @@ export function createReasoningChain(
   }
 
   return {
-    id: `chain_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+    id: `chain_${Date.now()}_${Secure.uuid().slice(2, 6)}`,
     question,
     strategy,
     steps,
@@ -379,6 +399,18 @@ export async function executeReasoningChain(chain: ReasoningChain, context: Reas
       await executeStep(step, context);
 
       step.status = "completed";
+
+      // LẤY DỮ LIỆU THỰC TẾ: Broadcast telemetry cho Vector Viewer
+      const currentOverallConfidence = calculateOverallConfidence(updated);
+      broadcastTelemetry({
+        type: "vector_tracking",
+        id: updated.id,
+        loss: 1 - currentOverallConfidence, // Càng tự tin, Loss càng giảm về 0 (Tâm)
+        angle: (step.step * Math.PI * 2) / updated.steps.length, // Xoay vòng theo số bước
+        label: step.thought.length > 30 ? step.thought.slice(0, 30) + '...' : step.thought,
+        status: "learning"
+      });
+
     } catch (error) {
       step.status = "failed";
       step.reasoning += ` [Error: ${error}]`;
@@ -391,6 +423,16 @@ export async function executeReasoningChain(chain: ReasoningChain, context: Reas
   updated.evidenceCount = countEvidence(updated);
   updated.alternatives = generateAlternatives(updated);
   updated.metadata.endTime = Date.now();
+
+  // Broadcast final converged state
+  broadcastTelemetry({
+    type: "vector_tracking",
+    id: updated.id,
+    loss: Math.max(0.01, 1 - updated.confidence), // Đảm bảo không đè hẳn lên 0 nếu confidence không phải 100%
+    angle: Math.PI * 2,
+    label: `Hội tụ (${(updated.confidence * 100).toFixed(0)}%)`,
+    status: "converged"
+  });
 
   return updated;
 }

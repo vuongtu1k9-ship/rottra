@@ -11,7 +11,7 @@ const fetchUsers = async () => {
   return data.users || [];
 };
 
-export const ManageUsers = (props: any) => {
+export component ManageUsers(props: any) {
   const [usersData, { refetch }] = createResource(fetchUsers);
 
   const [selectedUsers, setSelectedUsers] = createSignal<any[]>([]);
@@ -32,7 +32,7 @@ export const ManageUsers = (props: any) => {
       setSelectedUsers(usersData() || []);
     }
   };
-  return <div class="p-6 space-y-6 animate-in fade-in duration-500">
+  <tsx><div class="p-6 space-y-6 animate-in fade-in duration-500">
     <header class="flex justify-between items-center bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
       <div class="flex items-center gap-6">
         <div>
@@ -132,5 +132,5 @@ export const ManageUsers = (props: any) => {
                   </>),
             ))}
     </div>
-  </div>;
+  </div></tsx>
 };

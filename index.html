@@ -68,7 +68,7 @@
     content="Rotta Platform - Sàn thương mại điện tử địa phương cao cấp. Mua sắm nông sản sạch và sản phẩm thủ công chất lượng cao." />
   <link rel="manifest" href="/manifest.json" />
   <meta name="theme-color" content="#2563eb" />
-  <link id="favicon" rel="icon" type="image/avif" href="/images/RottraAI_avatar.avif" />
+  <link id="favicon" rel="icon" type="image/png" href="/favicon.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
@@ -82,6 +82,7 @@
   </noscript>
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+  <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
   <title>Rottra</title>
   <script>
     (function () {
@@ -104,9 +105,9 @@
           if (cachedAvatar.endsWith(".svg")) {
             faviconLink.type = "image/svg+xml";
           } else if (cachedAvatar.endsWith(".png")) {
-            faviconLink.type = "image/png";
+            faviconLink.type = "image/avif";
           } else {
-            faviconLink.type = "image/jpeg";
+            faviconLink.type = "image/avif";
           }
         }
       }
@@ -152,13 +153,13 @@
   <script type="module" src="/src/client/index.tsrx"></script>
   <script>
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.getRegistrations().then(function(registrations) {
+      navigator.serviceWorker.getRegistrations().then(function (registrations) {
         for (let registration of registrations) {
           registration.unregister();
         }
       });
       if (window.caches) {
-        caches.keys().then(function(names) {
+        caches.keys().then(function (names) {
           for (let name of names) caches.delete(name);
         });
       }

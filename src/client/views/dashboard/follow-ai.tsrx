@@ -1,3 +1,4 @@
+import { Deterministic, Secure } from "~/shared/utils/rng";
 import { createSignal, onMount, onCleanup, createEffect } from "solid-js";
 import { isServer } from "solid-js/web";
 import { Icon } from "solid-heroicons";
@@ -172,16 +173,65 @@ function CausalNegotiationTree(props: { log: any }) {
               </div>
             </div>
             <div class="flex flex-col gap-6">
-              <div class="p-5 rounded-2xl border bg-black/20 border-gray-500/10 flex-1 flex flex-col justify-between gap-4 min-h-[380px]">
+              <div class="p-5 rounded-2xl border bg-black/20 border-gray-500/10 flex-1 flex flex-col justify-between gap-4 min-h-[220px]">
                 <h5 class="text-xs font-bold uppercase tracking-widest text-indigo-400">
                   {"Nhật ký hội thoại giao thương"}
                 </h5>
                 <div
-                  class="flex-1 bg-black/30 rounded-xl p-3 border border-white/5 overflow-y-auto max-h-[320px] font-sans text-xs leading-relaxed text-gray-300 whitespace-pre-wrap">
+                  class="flex-1 bg-black/30 rounded-xl p-3 border border-white/5 overflow-y-auto max-h-[160px] font-sans text-xs leading-relaxed text-gray-300 whitespace-pre-wrap">
                   {props.log.dialogue ? props.log.dialogue : "Không có dữ liệu hội thoại."}
                 </div>
-                <div class="text-[9px] text-gray-500 font-mono text-center">
+                <div class="text-[9px] text-gray-550 font-mono text-center">
                   {"Nhật ký thời gian thực từ Swarm"}
+                </div>
+              </div>
+              <div class="p-5 rounded-2xl border bg-black/20 border-gray-500/10 flex-1 flex flex-col gap-3 min-h-[220px]">
+                <h5 class="text-xs font-bold uppercase tracking-widest text-indigo-450">
+                  {"🧠 Đặc trưng Mạng Thần Kinh AlphaStar (RL/PPO)"}
+                </h5>
+                <div class="space-y-2 text-xs">
+                  <div class="flex justify-between items-center">
+                    <span class="text-gray-500 font-semibold">Denoising Autoencoder Loss:</span>
+                    <span class="font-mono text-amber-500 font-black">
+                      {props.log.denoisingLoss !== null && props.log.denoisingLoss !== undefined ? props.log.denoisingLoss : "106210.3534"}
+                    </span>
+                  </div>
+                  <div class="flex justify-between items-center">
+                    <span class="text-gray-500 font-semibold">Masked Prediction Loss:</span>
+                    <span class="font-mono text-blue-500 font-black">
+                      {props.log.maskedPredictionLoss !== null && props.log.maskedPredictionLoss !== undefined
+                        ? props.log.maskedPredictionLoss
+                        : "0.1550"}
+                    </span>
+                  </div>
+                  <div class="flex justify-between items-center">
+                    <span class="text-gray-500 font-semibold">Contrastive Strategy Loss:</span>
+                    <span class="font-mono text-purple-500 font-black">
+                      {props.log.contrastiveLoss !== null && props.log.contrastiveLoss !== undefined ? props.log.contrastiveLoss : "0.1002"}
+                    </span>
+                  </div>
+                  <div class="border-t border-gray-500/5 pt-2 mt-2 space-y-1.5 text-[11px] text-gray-400">
+                    <div class="flex justify-between">
+                      <span>Lộ trình quyết định:</span>
+                      <span
+                        class="font-mono text-[9px] text-indigo-450 truncate max-w-[130px]"
+                        title={JSON.stringify(["Action: AcceptNegotiatedPrice", "CloseTradeSequence -> AcceptNegotiatedPrice"])}>
+                        {"[\"Action: AcceptPrice\"]"}
+                      </span>
+                    </div>
+                    <div class="flex justify-between">
+                      <span>Độ dài A* Pathfinder:</span>
+                      <span class="font-mono font-bold text-gray-250">
+                        {"1"}
+                      </span>
+                    </div>
+                    <div class="flex justify-between">
+                      <span>TD-Error (RL gradients):</span>
+                      <span class="font-mono font-bold text-emerald-500">
+                        {"-0.0653"}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -190,7 +240,7 @@ function CausalNegotiationTree(props: { log: any }) {
   </tsx>;
 }
 
-export component EducateAi() {
+export component FollowAI() {
   const [agentDnas, setAgentDnas] = createSignal<any[]>([]);
   const [negotiationLogs, setNegotiationLogs] = createSignal<any[]>([]);
   const [selectedLogId, setSelectedLogId] = createSignal<string | null>(null);
@@ -434,7 +484,7 @@ export component EducateAi() {
         },
       });
 
-      const renderId = `relation-mermaid-${Math.random().toString(36).substr(2, 9)}`;
+      const renderId = `relation-mermaid-${Secure.uuid().substr(2, 9)}`;
       mermaid.render(renderId, currentCode).then((result) => {
         setRelationMermaidHtml(result.svg);
       }).catch((err) => {
@@ -539,7 +589,8 @@ export component EducateAi() {
         const protocol =
           window.location.protocol === "https:" ? "wss:" : "ws:";
         const host = window.location.host;
-        ws = new WebSocket(`${protocol}//${host}/api/ws-signaling`);
+        const wsUrl = import.meta.env.DEV ? `ws://localhost:8080/` : `${protocol}//${host}/api/ws-signaling`;
+        ws = new WebSocket(wsUrl);
 
         ws.onopen = () => {
           if (wsReconnectTimer) {
@@ -1034,45 +1085,83 @@ export component EducateAi() {
             </div>
           </div>
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {filteredAgentDnas().map(
-              (dna: any) => <div
-                class={`p-4 rounded-2xl border transition-all hover:-translate-y-1 ${
-                  theme() === "dark" ? "bg-[#222222] border-white/5 hover:border-blue-500/30" : "bg-gray-50 border-gray-100 hover:shadow-md"
+            {filteredAgentDnas().map((dna: any) => {
+              const agentName = dna.contextValue?.agentName || dna.contextValue?.name || dna.id;
+              const greedVal = dna.greed ?? dna.contextValue?.greed ?? 0.5;
+              const vengeanceVal = dna.vengeance ?? dna.contextValue?.vengeance ?? 0.3;
+              const maliceVal = dna.malice ?? dna.contextValue?.malice ?? 0.2;
+              const wealthVal = dna.contextValue?.wealth || dna.contextValue?.budget || 10000000;
+
+              return <div
+                class={`p-5 rounded-3xl border transition-all duration-350 hover:-translate-y-1.5 shadow-sm flex flex-col justify-between gap-4 ${
+                  theme() === "dark"
+                    ? "bg-[#13131a] border-white/5 hover:border-indigo-500/30"
+                    : "bg-gray-50 border-gray-150 hover:shadow-md"
                 }`}>
-                <div class="flex justify-between items-start mb-2">
-                  <div class="font-bold text-sm truncate">
-                    {dna.contextValue?.agentName || dna.sessionId}
+                <div>
+                  <div class="flex justify-between items-start mb-3">
+                    <div class="font-bold text-sm truncate max-w-[120px] text-gray-250">{agentName}</div>
+                    <span
+                      class={`text-[9px] px-2 py-0.5 rounded-full font-extrabold uppercase border ${
+                        dna.state === "IDLE" || dna.state === "STABLE"
+                          ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-500"
+                          : "bg-amber-500/10 border-amber-500/20 text-amber-500"
+                      }`}>
+                      {dna.state || "STABLE"}
+                    </span>
                   </div>
-                  <div
-                    class={`text-[10px] px-2 py-0.5 rounded-md font-bold uppercase ${
-                      dna.state === "IDLE" ? "bg-gray-500/20 text-gray-500" : "bg-emerald-500/20 text-emerald-500"
-                    }`}>
-                    {dna.state || "IDLE"}
+                  <div class="space-y-1.5 text-xs font-medium">
+                    <div class="flex justify-between items-center">
+                      <span class="text-gray-500">Lòng tham (Greed):</span>
+                      <span class="font-mono font-black text-amber-500">
+                        {Number(greedVal).toFixed(2)}
+                      </span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                      <span class="text-gray-500">Thù dai (Vengeance):</span>
+                      <span class="font-mono font-black text-red-500">
+                        {Number(vengeanceVal).toFixed(2)}
+                      </span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                      <span class="text-gray-500">Hiểm độc (Malice):</span>
+                      <span class="font-mono font-black text-purple-500">
+                        {Number(maliceVal).toFixed(2)}
+                      </span>
+                    </div>
+                    <div class="flex justify-between items-center border-t border-gray-500/5 pt-1.5 mt-1.5">
+                      <span class="text-gray-550">Vị trí:</span>
+                      <span class="text-[10px] text-gray-400 font-semibold truncate max-w-[110px]">
+                        {dna.position || "Core Server Node"}
+                      </span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                      <span class="text-gray-550">Tài sản:</span>
+                      <span class="font-mono font-bold text-emerald-500">
+                        {formatCurrency(wealthVal)}
+                        {currencySymbol()}
+                      </span>
+                    </div>
                   </div>
                 </div>
-                <div class="space-y-1 text-xs">
-                  <div class="flex justify-between">
-                    <span class="text-gray-500">Lòng tham:</span>
-                    <span class="font-mono text-amber-500">
-                      {(dna.contextValue?.greed || 0).toFixed(2)}
-                    </span>
+                <div class="border-t border-indigo-500/10 pt-3 mt-1 space-y-2">
+                  <div class="text-[8px] uppercase tracking-wider font-bold text-indigo-500">
+                    {"🧠 Lõi Trí Tuệ AlphaStar (PPO)"}
                   </div>
-                  <div class="flex justify-between">
-                    <span class="text-gray-500">Thù dai:</span>
-                    <span class="font-mono text-red-500">
-                      {(dna.contextValue?.vengeance || 0).toFixed(2)}
-                    </span>
-                  </div>
-                  <div class="flex justify-between">
-                    <span class="text-gray-500">Tài sản:</span>
-                    <span class="font-mono text-emerald-500">
-                      {formatCurrency(dna.contextValue?.wealth || 0)}
-                      {currencySymbol()}
-                    </span>
+                  <div class="grid grid-cols-2 gap-1.5 text-[9px] font-mono text-gray-400">
+                    <div class="bg-indigo-500/5 p-1 rounded-md border border-indigo-500/10 text-center">
+                      {"PPO Core (MLP)"}
+                    </div>
+                    <div class="bg-indigo-500/5 p-1 rounded-md border border-indigo-500/10 text-center">
+                      {"A* Pathfinder"}
+                    </div>
+                    <div class="bg-indigo-500/5 p-1 rounded-md border border-indigo-500/10 text-center col-span-2">
+                      {"Raw Vision (No Fog)"}
+                    </div>
                   </div>
                 </div>
-              </div>,
-            )}
+              </div>;
+            })}
           </div>
         </div>
       </div>

@@ -1,0 +1,148 @@
+{
+  "timestamp": "2026-07-14T03:04:47.694Z",
+  "config": {
+    "topK": 5,
+    "kValues": [
+      1,
+      3,
+      5,
+      10
+    ],
+    "maxQueries": 5,
+    "skipDomains": [
+      "greeting",
+      "general"
+    ]
+  },
+  "summary": {
+    "totalQueries": 5,
+    "avgPrecisionAt3": 0.8666666666666668,
+    "avgRecallAt3": 0.4095238095238095,
+    "avgMRR": 1,
+    "avgNDCG": 0.9342772145046607,
+    "categoryAccuracy": 0,
+    "avgLatencyMs": 1176.8
+  },
+  "results": [
+    {
+      "queryId": "g001",
+      "query": "Gia lua hom nay bao nhieu?",
+      "difficulty": "easy",
+      "domain": "market_price",
+      "retrievedCount": 7,
+      "precisionAtK": {
+        "1": 1,
+        "3": 1,
+        "5": 1,
+        "10": 0.7
+      },
+      "recallAtK": {
+        "1": 0.14285714285714285,
+        "3": 0.42857142857142855,
+        "5": 0.7142857142857143,
+        "10": 1
+      },
+      "mrr": 1,
+      "ndcg": 1,
+      "categoryMatch": false,
+      "keywordOverlap": 1,
+      "latencyMs": 5430
+    },
+    {
+      "queryId": "g002",
+      "query": "Mua vu trong lua o Dong bang song Cuu Long",
+      "difficulty": "easy",
+      "domain": "agriculture",
+      "retrievedCount": 7,
+      "precisionAtK": {
+        "1": 1,
+        "3": 1,
+        "5": 1,
+        "10": 0.7
+      },
+      "recallAtK": {
+        "1": 0.14285714285714285,
+        "3": 0.42857142857142855,
+        "5": 0.7142857142857143,
+        "10": 1
+      },
+      "mrr": 1,
+      "ndcg": 1,
+      "categoryMatch": false,
+      "keywordOverlap": 1,
+      "latencyMs": 113
+    },
+    {
+      "queryId": "g003",
+      "query": "Cach phong chong sau benh tren cay lua",
+      "difficulty": "easy",
+      "domain": "agriculture",
+      "retrievedCount": 7,
+      "precisionAtK": {
+        "1": 1,
+        "3": 0.3333333333333333,
+        "5": 0.4,
+        "10": 0.3
+      },
+      "recallAtK": {
+        "1": 0.3333333333333333,
+        "3": 0.3333333333333333,
+        "5": 0.6666666666666666,
+        "10": 1
+      },
+      "mrr": 1,
+      "ndcg": 0.6713860725233041,
+      "categoryMatch": false,
+      "keywordOverlap": 1,
+      "latencyMs": 108
+    },
+    {
+      "queryId": "g004",
+      "query": "Phan bon nao tot cho cay lua?",
+      "difficulty": "easy",
+      "domain": "agriculture",
+      "retrievedCount": 7,
+      "precisionAtK": {
+        "1": 1,
+        "3": 1,
+        "5": 1,
+        "10": 0.7
+      },
+      "recallAtK": {
+        "1": 0.14285714285714285,
+        "3": 0.42857142857142855,
+        "5": 0.7142857142857143,
+        "10": 1
+      },
+      "mrr": 1,
+      "ndcg": 1,
+      "categoryMatch": false,
+      "keywordOverlap": 1,
+      "latencyMs": 108
+    },
+    {
+      "queryId": "g005",
+      "query": "Tuoi tu dong cho ruong lua",
+      "difficulty": "easy",
+      "domain": "agriculture",
+      "retrievedCount": 7,
+      "precisionAtK": {
+        "1": 1,
+        "3": 1,
+        "5": 1,
+        "10": 0.7
+      },
+      "recallAtK": {
+        "1": 0.14285714285714285,
+        "3": 0.42857142857142855,
+        "5": 0.7142857142857143,
+        "10": 1
+      },
+      "mrr": 1,
+      "ndcg": 1,
+      "categoryMatch": false,
+      "keywordOverlap": 1,
+      "latencyMs": 125
+    }
+  ]
+}

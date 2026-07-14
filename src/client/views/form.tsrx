@@ -17,6 +17,7 @@ import { isServer } from "solid-js/web";
 import { extractImageFeatures } from "~/client/helpers/vision-extractor";
 import { theme } from "~/client/stores/theme-store";
 import { enhanceImage } from "~/client/utils/image-enhancer";
+import { toasts } from "../stores/toast-store";
 
 export const Form = (props: any) => {
   const [loading, setLoading] = createSignal(false);
@@ -419,7 +420,7 @@ export const Form = (props: any) => {
       if (props.showMedia) {
         const key = props.mediaKey || "avatar";
         const mediaVal = () => props.showMedia && (key === "media" ? allMedia()[0] : (key === "avatar" ? avatarMedia() : allMedia()[0]));
-        
+
         if (mediaVal()?.link && props.collection === "products") {
           try {
             console.log("Extracting OKLCH Vision Features...");
@@ -644,8 +645,8 @@ export const Form = (props: any) => {
                         class={`px-2 py-0.5 border rounded-lg text-[10px] font-black uppercase cursor-pointer outline-none transition-all focus:ring-2 focus:ring-blue-500/20 ${
                           theme() === "dark" ? "bg-white/5 border-white/10 text-white" : "bg-gray-50 border-gray-200 text-gray-700"
                         }`}>
-                        <option value="g">g</option>
-                        <option value="kg">kg</option>
+                        <option value="g" class={theme() === "dark" ? "bg-gray-900" : ""}>g</option>
+                        <option value="kg" class={theme() === "dark" ? "bg-gray-900" : ""}>kg</option>
                       </select>}
                     {field.name === "price" &&
                       <select
@@ -654,11 +655,11 @@ export const Form = (props: any) => {
                         class={`px-2 py-0.5 border rounded-lg text-[10px] font-black uppercase cursor-pointer outline-none transition-all focus:ring-2 focus:ring-blue-500/20 ${
                           theme() === "dark" ? "bg-white/5 border-white/10 text-white" : "bg-gray-50 border-gray-200 text-gray-700"
                         }`}>
-                        <option value="₫">₫</option>
-                        <option value="$">$</option>
-                        <option value="¥">¥</option>
-                        <option value="€">€</option>
-                        <option value="₪">₪</option>
+                        <option value="₫" class={theme() === "dark" ? "bg-gray-900" : ""}>₫</option>
+                        <option value="$" class={theme() === "dark" ? "bg-gray-900" : ""}>$</option>
+                        <option value="¥" class={theme() === "dark" ? "bg-gray-900" : ""}>¥</option>
+                        <option value="€" class={theme() === "dark" ? "bg-gray-900" : ""}>€</option>
+                        <option value="₪" class={theme() === "dark" ? "bg-gray-900" : ""}>₪</option>
                       </select>}
                   </span>
                   {field.required
@@ -877,7 +878,7 @@ export const Form = (props: any) => {
                                         const initialVal = props.initialData?.[field.name] || "";
                                         let matchedPrefix = "+84";
                                         let restOfPhone = initialVal;
-                                        
+
                                         const codes = [
                                           { code: "+84", flag: "🇻🇳", label: "Việt Nam (+84)" },
                                           { code: "+1", flag: "🇺🇸", label: "Mỹ (+1)" },
@@ -898,42 +899,40 @@ export const Form = (props: any) => {
                                         const [prefix, setPrefix] = createSignal(matchedPrefix);
                                         const [localVal, setLocalVal] = createSignal(restOfPhone);
 
-                                        return (
-                                          <div class="flex gap-2 w-full">
-                                            <input
-                                              type="hidden"
-                                              name={field.name}
-                                              value={prefix() + (localVal().startsWith("0") ? localVal().slice(1) : localVal())}
-                                            />
-                                            <select
-                                              value={prefix()}
-                                              onChange={(e) => setPrefix(e.target.value)}
-                                              class={`w-[130px] px-3 py-4 border rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-bold shadow-inner ${
-                                                theme() === "dark"
-                                                  ? "bg-[#1e1e1e] border-white/10 text-white"
-                                                  : "bg-gray-50/50 border-gray-200 text-gray-700"
-                                              }`}
-                                            >
-                                              {codes.map((c) => (
-                                                <option value={c.code}>
-                                                  {c.flag} {c.code}
-                                                </option>
-                                              ))}
-                                            </select>
-                                            <input
-                                              type="tel"
-                                              required={field.required}
-                                              value={localVal()}
-                                              onInput={(e) => setLocalVal(e.target.value)}
-                                              placeholder={field.placeholder || "Nhập số điện thoại..."}
-                                              class={`flex-1 px-5 py-4 border rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-medium shadow-inner ${
-                                                theme() === "dark"
-                                                  ? "bg-[#1e1e1e] border-white/10 text-white placeholder-gray-600"
-                                                  : "bg-gray-50/50 border-gray-200 text-gray-700 placeholder:text-gray-300"
-                                              }`}
-                                            />
-                                          </div>
-                                        );
+                                        return <div class="flex gap-2 w-full">
+                                          <input
+                                            type="hidden"
+                                            name={field.name}
+                                            value={prefix() + (localVal().startsWith("0") ? localVal().slice(1) : localVal())}
+                                          />
+                                          <select
+                                            value={prefix()}
+                                            onChange={(e) => setPrefix(e.target.value)}
+                                            class={`w-[130px] px-3 py-4 border rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-bold shadow-inner ${
+                                              theme() === "dark"
+                                                ? "bg-[#1e1e1e] border-white/10 text-white"
+                                                : "bg-gray-50/50 border-gray-200 text-gray-700"
+                                            }`}>
+                                            {codes.map(
+                                              (c) => <option value={c.code}>
+                                                {c.flag}
+                                                {c.code}
+                                              </option>,
+                                            )}
+                                          </select>
+                                          <input
+                                            type="tel"
+                                            required={field.required}
+                                            value={localVal()}
+                                            onInput={(e) => setLocalVal(e.target.value)}
+                                            placeholder={field.placeholder || "Nhập số điện thoại..."}
+                                            class={`flex-1 px-5 py-4 border rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-medium shadow-inner ${
+                                              theme() === "dark"
+                                                ? "bg-[#1e1e1e] border-white/10 text-white placeholder-gray-600"
+                                                : "bg-gray-50/50 border-gray-200 text-gray-700 placeholder:text-gray-300"
+                                            }`}
+                                          />
+                                        </div>;
                                       })()
                                     : <input
                                         type={field.type || "text"}

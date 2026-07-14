@@ -184,10 +184,13 @@ export const buildKnowledgeGraph = async (forceBuild = false, query?: string) =>
     let memoryQuery: any = db.select().from(agentMemory).where(eq(agentMemory.contextKey, "user_training"));
     if (query) {
       const qClean = query.toLowerCase();
-      const words = qClean.split(/\s+/).filter(w => w.length > 2);
+      const words = qClean.split(/\s+/).filter((w) => w.length > 2);
       if (words.length > 0) {
-        const conditions = words.map(w => sql`LOWER(${agentMemory.contextValue}) LIKE ${'%' + w + '%'}`);
-        memoryQuery = db.select().from(agentMemory).where(and(eq(agentMemory.contextKey, "user_training"), or(...conditions)));
+        const conditions = words.map((w) => sql`LOWER(${agentMemory.contextValue}::text) LIKE ${"%" + w + "%"}`);
+        memoryQuery = db
+          .select()
+          .from(agentMemory)
+          .where(and(eq(agentMemory.contextKey, "user_training"), or(...conditions)));
       }
     }
     const memories = await memoryQuery;
@@ -226,10 +229,15 @@ export const buildKnowledgeGraph = async (forceBuild = false, query?: string) =>
     let docsQuery: any = db.select().from(vectorDocument);
     if (query) {
       const qClean = query.toLowerCase();
-      const words = qClean.split(/\s+/).filter(w => w.length > 2);
+      const words = qClean.split(/\s+/).filter((w) => w.length > 2);
       if (words.length > 0) {
-        const conditions = words.map(w => sql`LOWER(${vectorDocument.title}) LIKE ${'%' + w + '%'} OR LOWER(${vectorDocument.content}) LIKE ${'%' + w + '%'}`);
-        docsQuery = db.select().from(vectorDocument).where(or(...conditions));
+        const conditions = words.map(
+          (w) => sql`LOWER(${vectorDocument.title}) LIKE ${"%" + w + "%"} OR LOWER(${vectorDocument.content}) LIKE ${"%" + w + "%"}`,
+        );
+        docsQuery = db
+          .select()
+          .from(vectorDocument)
+          .where(or(...conditions));
       }
     }
     const docs = await docsQuery;
@@ -535,6 +543,10 @@ export const retrieveGraphRAG = async (query: string, maxHops = 2): Promise<Grap
   const retrievedNodeIds = new Set(retrievedNodes.map((n) => n.id));
   const retrievedEdges = edges.filter((e) => retrievedNodeIds.has(e.source) && retrievedNodeIds.has(e.target));
 
+  const sanitizeId = (id: string): string => {
+    return id.trim().replace(/[^a-zA-Z0-9_]/g, "_");
+  };
+
   // 4. Generate Mermaid diagram code block with premium styles
   let mermaidCode = "";
   if (retrievedNodes.length > 0) {
@@ -548,11 +560,11 @@ export const retrieveGraphRAG = async (query: string, maxHops = 2): Promise<Grap
       if (node.type === "Neurobiology") typeIcon = "🧠";
       if (node.type === "Variable/Metric") typeIcon = "📊";
 
-      mermaidCode += `  ${node.id}["${typeIcon} ${label} (${node.type})"]\n`;
+      mermaidCode += `  ${sanitizeId(node.id)}["${typeIcon} ${label} (${node.type})"]\n`;
     });
 
     retrievedEdges.forEach((edge) => {
-      mermaidCode += `  ${edge.source} -->|${edge.relation}| ${edge.target}\n`;
+      mermaidCode += `  ${sanitizeId(edge.source)} -->|${edge.relation}| ${sanitizeId(edge.target)}\n`;
     });
 
     // Color theme classes matching custom palette
@@ -563,17 +575,17 @@ export const retrieveGraphRAG = async (query: string, maxHops = 2): Promise<Grap
   classDef formula fill:#f9e2af,stroke:#f8bd96,stroke-width:2px,color:#11111b,font-weight:bold;
 `;
 
-    const concepts = retrievedNodes.filter((n) => n.type === "Concept").map((n) => n.id);
+    const concepts = retrievedNodes.filter((n) => n.type === "Concept").map((n) => sanitizeId(n.id));
     if (concepts.length > 0) {
       mermaidCode += `  class ${concepts.join(",")} concept;\n`;
     }
     const entities = retrievedNodes
       .filter((n) => n.type === "Person/Entity" || n.type === "Entity" || n.type === "Project/Entity")
-      .map((n) => n.id);
+      .map((n) => sanitizeId(n.id));
     if (entities.length > 0) {
       mermaidCode += `  class ${entities.join(",")} entity;\n`;
     }
-    const formulas = retrievedNodes.filter((n) => n.type === "Formula").map((n) => n.id);
+    const formulas = retrievedNodes.filter((n) => n.type === "Formula").map((n) => sanitizeId(n.id));
     if (formulas.length > 0) {
       mermaidCode += `  class ${formulas.join(",")} formula;\n`;
     }

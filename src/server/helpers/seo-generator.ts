@@ -1,6 +1,10 @@
+import { Deterministic } from "~/shared/utils/rng";
 import { db } from "~/infra/database/db-pool";
+import { createLogger } from "~/shared/logger";
 import { seoCache, negotiationLog } from "~/infra/database/schema";
 import { eq, and, sql } from "drizzle-orm";
+
+const log = createLogger("helpers/seo-generator");
 
 export interface MarketSeoData {
   key: string;
@@ -139,6 +143,7 @@ export async function getOrGenerateMarketPage(productSlug: string, locationSlug:
   volume = Math.round(volume * (1 + (hash % 10) / 10));
 
   // AI semantic content generation disabled, using local template engine only
+  let aiContent = "";
 
   // Fallback to local template generator if AI fails or key is missing (Rule-based rewriting & Sentence Bank)
   if (!aiContent) {
@@ -160,7 +165,7 @@ export async function getOrGenerateMarketPage(productSlug: string, locationSlug:
       `Thương lái thu mua cần tập trung kiểm định hàm lượng tạp chất và độ ẩm đầu vào. Đối với bà con nông dân, đây là thời điểm tốt để xuất bán 70% sản lượng, phần còn lại có thể trữ chờ thời điểm tăng giá tiếp theo.`,
     ];
 
-    const pickRandom = (arr: string[]) => arr[Math.floor(Math.random() * arr.length)];
+    const pickRandom = (arr: string[]) => arr[Math.floor(Deterministic.random() * arr.length)];
 
     aiContent = `## Phân tích Thị trường ${productName} tại ${locationName} mới nhất
 
@@ -188,7 +193,7 @@ ${pickRandom(farmerAdvice)}
       tradeVolume: volume,
     });
   } catch (dbErr) {
-    console.error("[SEO Engine] Cache write failed", dbErr);
+    log.error("[SEO Engine] Cache write failed", dbErr);
   }
 
   return {

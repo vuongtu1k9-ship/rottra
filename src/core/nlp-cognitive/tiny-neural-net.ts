@@ -1,3 +1,4 @@
+import { Deterministic } from "~/shared/utils/rng";
 /**
  * Tiny Neural Network from scratch - ULTRA FAST CONVERGENCE
  * Built for active learning & self-correction in Rottra AI
@@ -7,7 +8,7 @@
 // Ma trận ngẫu nhiên với Xavier Initialization
 function xavierMatrix(rows: number, cols: number, inputs: number): number[][] {
   const limit = Math.sqrt(6 / (inputs + cols)); // Normalized Xavier Init
-  return Array.from({ length: rows }, () => Array.from({ length: cols }, () => (Math.random() * 2 - 1) * limit));
+  return Array.from({ length: rows }, () => Array.from({ length: cols }, () => (Deterministic.random() * 2 - 1) * limit));
 }
 
 // Ma trận Zero

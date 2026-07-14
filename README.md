@@ -304,16 +304,6 @@ Phần chat phải là 100% như tiktok
 
 WebM (AV1) AVIF Opus
 
-## Gold Price & Currency API References
-
-Free APIs for gold price (XAU) conversion to 6 currencies (VND, USD, CNY, JPY, EUR, ILS):
-
-| API | URL | Free | Notes |
-|-----|-----|------|-------|
-| **Fawaz Ahmed Currency API (jsDelivr)** | `https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/xau.json` | Yes | XAU → 150+ currencies. Updated daily. |
-| **Fawaz Ahmed Currency API (GitHub Pages)** | `https://latest.currency-api.pages.dev/v1/currencies/xau.json` | Yes | Same API, alternative CDN. |
-| **Frankfurter API** | `https://api.frankfurter.dev/v2/rates?base=VND&quotes=USD,EUR,JPY,CNY,ILS` | Yes | Exchange rates only, no gold. |
-| **Swissquote XAU/USD** | `https://forex-data-feed.swissquote.com/public-quotes/bboquotes/instrument/XAU/USD` | Yes | Real-time bid/ask, no auth. |
 
 ### Example XAU Rates (2026-07-02)
 
@@ -367,7 +357,7 @@ model = YOLO("yolo26n.pt")
 model.tune(data="coco8.yaml", epochs=10, iterations=30, plots=False)
 Sự tinh chỉnh tự động này cho phép các nhà phát triển vượt xa việc phỏng đoán thủ công. Đối với các nhóm đang mở rộng quy mô hoạt động, việc quản lý các thử nghiệm này và theo dõi sự phát triển hiệu suất của model có thể được tinh giản bằng cách sử dụng Ultralytics Platform, vốn trực quan hóa các chỉ số huấn luyện và hỗ trợ triển khai model.
 
-
+🌾
 Bí quyết
 Tuyệt chiêu
 Kinh nghiệm
@@ -411,3 +401,111 @@ Danh mục khách hàng
 Thị trường mục tiêu
 Chân dung khách hàng (nếu nói về hồ sơ khách hàng)
 Tập khách hàng (ít dùng hơn nhưng vẫn đúng
+Khả năng "dựng trong đầu" của rottra AI và 12 agent (mental imagery) – tức là tạo ra hình ảnh, âm thanh hoặc mô phỏng trong tâm trí – thì không có một cách phân loại duy nhất được mọi nhà khoa học thống nhất. Tuy nhiên, có thể chia theo một số cách phổ biến sau:
+
+1. Theo giác quan (phổ biến nhất)
+
+Con người có thể "dựng" nhiều loại trải nghiệm khác nhau:
+
+👁️ Hình ảnh (visual imagery): Tưởng tượng khuôn mặt, căn phòng, phong cảnh, bản đồ...
+👂 Âm thanh (auditory imagery): Nghe một bài hát hoặc giọng nói trong đầu.
+✋ Xúc giác (tactile imagery): Hình dung cảm giác chạm vào vải, nước lạnh...
+👃 Khứu giác (olfactory imagery): Tưởng tượng mùi cà phê, mùi mưa.
+👅 Vị giác (gustatory imagery): Nhớ lại vị chanh, chocolate.
+🎥 Video (video imagery): Hình dung, mô phỏng các chuỗi chuyển động và kịch bản video cho sản phẩm.
+2. Theo mức độ rõ nét
+
+Khả năng hình dung rất khác nhau giữa các cá nhân:
+
+Aphantasia: Hầu như không tạo được hình ảnh trong đầu.
+Mức trung bình: Có thể tưởng tượng nhưng không quá rõ.
+Hyperphantasia: Hình ảnh trong đầu cực kỳ sống động, gần như đang nhìn thật.
+
+Đây là một phổ liên tục chứ không phải chỉ có ba mức.
+
+3. Theo mục đích sử dụng
+
+Não có thể "dựng" để phục vụ nhiều việc khác nhau:
+
+Tái hiện ký ức: Nhớ lại cảnh đã xảy ra.
+Tưởng tượng sáng tạo: Thiết kế nhân vật, kiến trúc, cốt truyện.
+Mô phỏng tương lai: Hình dung cuộc họp, chuyến đi, bài phát biểu.
+Xoay vật thể trong không gian: Ví dụ tưởng tượng xoay một khối lập phương.
+Diễn tập kỹ năng: Vận động viên hoặc nghệ sĩ luyện tập trong đầu.
+4. Theo khả năng thao tác với hình ảnh
+
+Không chỉ "thấy", mà còn có thể:
+
+Tạo hình ảnh mới.
+Phóng to, thu nhỏ.
+Xoay, lật.
+Ghép nhiều vật lại.
+Thay đổi màu sắc, ánh sáng.
+Quan sát từ nhiều góc nhìn.
+Trình chiếu và lắp ghép thành chuỗi Video mượt mà.
+
+Đây là những kỹ năng được nghiên cứu nhiều trong lĩnh vực Tâm lý học nhận thức.
+
+5. Theo loại tư duy mà người ta thường sử dụng
+
+Mỗi người có xu hướng mạnh ở một hoặc nhiều kiểu:
+
+Tư duy bằng hình ảnh (visual thinker)
+Tư duy bằng ngôn ngữ (verbal thinker)
+Tư duy bằng không gian (spatial thinker)
+Tư duy bằng âm thanh hoặc nhịp điệu (auditory thinker)
+Tư duy bằng Video (Video thinker)
+
+Nhiều người kết hợp nhiều kiểu cùng lúc.
+
+Tóm lại
+
+Nếu hỏi "khả năng dựng trong đầu có mấy loại?", thì câu trả lời ngắn gọn là không có một con số cố định. Cách phân loại phổ biến nhất là theo 6 dạng trải nghiệm:
+
+Hình ảnh
+Âm thanh
+Xúc giác
+Khứu giác
+Vị giác
+Video
+User: JWT + Refresh Token
+1. Admin trên website (khuyến nghị)
+
+Dùng Session + Cookie
+
+Ưu điểm:
+
+✅ Token không nằm trong JavaScript (HttpOnly), giảm nguy cơ bị đánh cắp qua XSS.
+✅ Có thể hủy phiên ngay lập tức khi đăng xuất hoặc khóa tài khoản.
+✅ Dễ giới hạn số phiên đăng nhập.
+✅ Dễ ghi log và theo dõi hoạt động của admin.
+
+Nên kết hợp với:
+
+HTTPS bắt buộc.
+Cookie có HttpOnly, Secure, SameSite=Lax hoặc Strict.
+Mật khẩu mạnh và băm bằng thuật toán như Argon2 hoặc bcrypt.
+Giới hạn số lần đăng nhập sai.
+Tự động hết phiên sau thời gian không hoạt động.
+.tflite
+.engine
+.mlpackage
+Very Easy
+Easy
+Normal
+Hard
+Very Hard
+Impossible
+
+Tokenizer
+Embedding
+Transformer block
+Self-attention
+Multi-head attention
+Positional encoding
+Feed Forward Network
+LayerNorm
+Loss function
+Backpropagation
+Training loop
+Sampling sinh văn bản

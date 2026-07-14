@@ -1,3 +1,4 @@
+import { Deterministic } from "~/shared/utils/rng";
 import { db } from "./db";
 import { product } from "./schema";
 import { eq } from "drizzle-orm";
@@ -18,7 +19,7 @@ const caDaoTech = ["Khoa học kỹ thuật đưa nông sản vươn xa. Thiết
 
 const caDaoEco = ["Đất lành chim đậu. Giữ lấy màu xanh, nuôi nguồn nhựa sống.", "Nước chảy đá mòn. Rừng vàng biển bạc, đất phì nhiêu.", "Môi trường xanh sạch, mùa màng bội thu."];
 
-const getRandomCaDao = (arr: string[]) => arr[Math.floor(Math.random() * arr.length)];
+const getRandomCaDao = (arr: string[]) => arr[Math.floor(Deterministic.random() * arr.length)];
 
 const CATEGORIES = [
   { name: "Cây trồng", group: caDaoCrops },

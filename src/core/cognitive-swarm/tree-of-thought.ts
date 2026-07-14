@@ -1,3 +1,4 @@
+import { Secure } from "~/shared/utils/rng";
 /**
  * Tree-of-Thought (ToT) Reasoning Engine
  * Mở rộng từ Chain-of-Thought với khả năng phân nhánh
@@ -94,7 +95,7 @@ export function createThoughtTree(question: string, config?: Partial<ToTConfig>)
   };
 
   return {
-    id: `tot_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+    id: `tot_${Date.now()}_${Secure.uuid().slice(2, 6)}`,
     root,
     bestPath: [],
     allPaths: [],

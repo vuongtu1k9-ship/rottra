@@ -96,7 +96,7 @@ export class GraphSDMHybrid {
 
     // Also load extra training data if available
     try {
-      const fs = await import("node:fs");
+      const fs = require("node:fs");
       const extraPath = join(MODEL_DIR, "extra_training_data.jsonl");
       if (fs.existsSync(extraPath)) {
         const lines = fs.readFileSync(extraPath, "utf-8").split("\n").filter(Boolean);

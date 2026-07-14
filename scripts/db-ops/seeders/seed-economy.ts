@@ -1,3 +1,4 @@
+import { Deterministic } from "~/shared/utils/rng";
 import { db } from "./db";
 import { user, farm, cropSeason, sensorData, product, order, orderItem, researchProject, projectTask, agentMemory } from "./schema";
 import { sql, eq, inArray } from "drizzle-orm";
@@ -15,8 +16,8 @@ async function main() {
       name: "Trợ Lý Cao Cấp Rottra",
       email: "agent@Rottra.com",
       emailVerified: true,
-      createdAt: new Date().toISOString() as any,
-      updatedAt: new Date().toISOString() as any,
+      createdAt: new Date(),
+      updatedAt: new Date(),
       role: "agent",
       username: "agent_Rottra",
     })
@@ -44,8 +45,8 @@ async function main() {
     name: char.name,
     email: char.email,
     emailVerified: true,
-    createdAt: new Date().toISOString() as any,
-    updatedAt: new Date().toISOString() as any,
+    createdAt: new Date(),
+    updatedAt: new Date(),
     role: "user" as const,
     username: char.username,
     image: char.image,
@@ -104,7 +105,7 @@ async function main() {
 
   const caDaoEco = ["Đất lành chim đậu. Giữ lấy màu xanh, nuôi nguồn nhựa sống.", "Nước chảy đá mòn. Rừng vàng biển bạc, đất phì nhiêu.", "Môi trường xanh sạch, mùa màng bội thu."];
 
-  const getRandomCaDao = (arr: string[]) => arr[Math.floor(Math.random() * arr.length)];
+  const getRandomCaDao = (arr: string[]) => arr[Math.floor(Deterministic.random() * arr.length)];
 
   // Categories mapping
   const CATEGORIES = [
@@ -170,7 +171,7 @@ async function main() {
     const malice = dna.malice ?? 0.5;
     const catBonus = category.includes("Nông sản") || price > 500000 ? 0.3 : 0;
     // Agent có greed cao sẽ tranh giành những món hàng có basePrice đắt tiền
-    return greed * 0.4 + malice * 0.1 + catBonus + Math.random() * 0.5;
+    return greed * 0.4 + malice * 0.1 + catBonus + Deterministic.random() * 0.5;
   };
 
   const allAgentIds = [
@@ -231,19 +232,19 @@ async function main() {
       description: `[CA DAO TỤC NGỮ]: "${quote}"\n\nDòng sản phẩm cao cấp giúp gia tăng năng suất chuỗi nông nghiệp Rottra. Đạt chuẩn chất lượng ISO 9001.`,
       quantity: 100 + (i % 50),
       heavy: tmpl.heavy,
-      media: [(tmpl.name.toLowerCase().includes("coffee") ? "/coffee.jpg" :
+      media: [{ link: (tmpl.name.toLowerCase().includes("coffee") ? "/coffee.jpg" :
           tmpl.name.toLowerCase().includes("tea") ? "/tea.jpg" :
           tmpl.name.toLowerCase().includes("durian") ? "/durian.jpg" :
           tmpl.name.toLowerCase().includes("mango") ? "/mango.jpg" :
           tmpl.name.toLowerCase().includes("rice") || tmpl.name.toLowerCase().includes("st25") ? "/rice.jpg" :
-          "/vegetable.jpg")],
+          "/vegetable.jpg") }],
       status: true,
       expired: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
       coordinates: { lat: 21.6243 + Math.sin(i) * 0.005, lng: 105.2645 + Math.cos(i) * 0.005 },
       targetPrice: price,
-      costPrice: Math.round(price * (0.6 + Math.random() * 0.15)),
-      velocity: parseFloat((1.0 + Math.random() * 49.0).toFixed(2)),
-      kalmanVariance: parseFloat((0.05 + Math.random() * 1.95).toFixed(3)),
+      costPrice: Math.round(price * (0.6 + Deterministic.random() * 0.15)),
+      velocity: parseFloat((1.0 + Deterministic.random() * 49.0).toFixed(2)),
+      kalmanVariance: parseFloat((0.05 + Deterministic.random() * 1.95).toFixed(3)),
       storageCost: parseFloat((tmpl.heavy / 100.0).toFixed(2)),
     });
 
@@ -319,13 +320,13 @@ async function main() {
     const dateOffset = new Date(now.getTime() - (6000 - i) * 60 * 60 * 1000); // lùi về quá khứ 1 giờ cho mỗi bản ghi
 
     if (sensorType === "temperature") {
-      value = 24 + 5 * Math.sin(timeRatio * Math.PI * 40) + (Math.random() * 2 - 1); // Biến thiên quanh 24°C
+      value = 24 + 5 * Math.sin(timeRatio * Math.PI * 40) + (Deterministic.random() * 2 - 1); // Biến thiên quanh 24°C
     } else if (sensorType === "humidity") {
-      value = 75 + 10 * Math.cos(timeRatio * Math.PI * 40) + (Math.random() * 4 - 2); // Biến thiên quanh 75%
+      value = 75 + 10 * Math.cos(timeRatio * Math.PI * 40) + (Deterministic.random() * 4 - 2); // Biến thiên quanh 75%
     } else if (sensorType === "soil_moisture") {
-      value = 60 + 8 * Math.sin(timeRatio * Math.PI * 20) + (Math.random() * 2 - 1); // Biến thiên quanh 60%
+      value = 60 + 8 * Math.sin(timeRatio * Math.PI * 20) + (Deterministic.random() * 2 - 1); // Biến thiên quanh 60%
     } else {
-      value = 6.2 + 0.5 * Math.cos(timeRatio * Math.PI * 10) + (Math.random() * 0.2 - 0.1); // pH quanh 6.2
+      value = 6.2 + 0.5 * Math.cos(timeRatio * Math.PI * 10) + (Deterministic.random() * 0.2 - 0.1); // pH quanh 6.2
     }
 
     batches.push({

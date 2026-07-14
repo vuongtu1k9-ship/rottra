@@ -1,3 +1,4 @@
+import { Deterministic } from "~/shared/utils/rng";
 export interface Individual {
   genes: number[];
   fitness: number;
@@ -17,12 +18,7 @@ export class GAPopulation {
 
 let current_pop: GAPopulation | null = null;
 
-export function ga_init(
-  pop_size: number,
-  gene_length: number,
-  mutation_rate: number,
-  crossover_rate: number
-): GAPopulation | null {
+export function ga_init(pop_size: number, gene_length: number, mutation_rate: number, crossover_rate: number): GAPopulation | null {
   const pop = new GAPopulation();
   pop.pop_size = pop_size;
   pop.gene_length = gene_length;
@@ -35,7 +31,7 @@ export function ga_init(
   for (let i = 0; i < pop_size; i++) {
     const genes: number[] = [];
     for (let j = 0; j < gene_length; j++) {
-      genes.push(Math.random());
+      genes.push(Deterministic.random());
     }
     pop.population.push({
       genes,
@@ -67,9 +63,9 @@ export function ga_set_fitness(index: number, fitness: number): void {
 }
 
 export function tournament_select(pop: GAPopulation, tournament_size: number): number {
-  let best = Math.floor(Math.random() * pop.pop_size);
+  let best = Math.floor(Deterministic.random() * pop.pop_size);
   for (let i = 1; i < tournament_size; i++) {
-    const candidate = Math.floor(Math.random() * pop.pop_size);
+    const candidate = Math.floor(Deterministic.random() * pop.pop_size);
     if (pop.population[candidate].fitness > pop.population[best].fitness) {
       best = candidate;
     }
@@ -83,11 +79,11 @@ export function crossover(
   child1: Individual,
   child2: Individual,
   crossover_rate: number,
-  gene_length: number
+  gene_length: number,
 ): void {
-  if (Math.random() < crossover_rate) {
+  if (Deterministic.random() < crossover_rate) {
     for (let i = 0; i < gene_length; i++) {
-      if (Math.random() < 0.5) {
+      if (Deterministic.random() < 0.5) {
         child1.genes[i] = parent1.genes[i];
         child2.genes[i] = parent2.genes[i];
       } else {
@@ -103,9 +99,9 @@ export function crossover(
 
 export function mutate(individual: Individual, mutation_rate: number, gene_length: number): void {
   for (let i = 0; i < gene_length; i++) {
-    if (Math.random() < mutation_rate) {
-      const u1 = Math.random();
-      const u2 = Math.random();
+    if (Deterministic.random() < mutation_rate) {
+      const u1 = Deterministic.random();
+      const u2 = Deterministic.random();
       const z = Math.sqrt(-2.0 * Math.log(u1 + 1e-10)) * Math.cos(2.0 * Math.PI * u2);
       individual.genes[i] += z * 0.1;
 
@@ -139,7 +135,7 @@ export function ga_evolve(): void {
   elitism(pop, new_pop);
 
   const elite_count = 2;
-  
+
   for (let i = elite_count; i < pop_size; i += 2) {
     const p1 = tournament_select(pop, 3);
     const p2 = tournament_select(pop, 3);

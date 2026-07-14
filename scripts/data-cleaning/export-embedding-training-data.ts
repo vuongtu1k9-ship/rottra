@@ -1,3 +1,4 @@
+import { Deterministic } from "~/shared/utils/rng";
 /**
  * 🧠 ROTTRA — EMBEDDING FINE-TUNE DATA PIPELINE
  *
@@ -66,7 +67,7 @@ function jaccardSimilarity(a: string[], b: string[]): number {
 function shuffleArray<T>(arr: T[]): T[] {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
+    const j = Math.floor(Deterministic.random() * (i + 1));
     [a[i], a[j]] = [a[j], a[i]];
   }
   return a;
@@ -146,8 +147,8 @@ async function exportVectorDocumentPairs(): Promise<TrainingTriplet[]> {
     const query = title;
     const positive = content;
 
-    let negIdx = Math.floor(Math.random() * rows.length);
-    while (negIdx === i && rows.length > 1) negIdx = Math.floor(Math.random() * rows.length);
+    let negIdx = Math.floor(Deterministic.random() * rows.length);
+    while (negIdx === i && rows.length > 1) negIdx = Math.floor(Deterministic.random() * rows.length);
     const negative = stripMarkdown(rows[negIdx].content || rows[negIdx].title || "");
 
     triplets.push({
@@ -193,7 +194,7 @@ async function exportChatMessagePairs(): Promise<TrainingTriplet[]> {
       const positive = stripMarkdown(msgs.assistant[i].content);
       if (!query || !positive) continue;
 
-      const negIdx = Math.floor(Math.random() * assistantMsgs.length);
+      const negIdx = Math.floor(Deterministic.random() * assistantMsgs.length);
       const negative = stripMarkdown(assistantMsgs[negIdx].content);
 
       triplets.push({ query, positive, negative, source: "chatMessage" });
@@ -241,8 +242,8 @@ async function exportProductPairs(): Promise<TrainingTriplet[]> {
     const query = `${name} ${cat}`.trim();
     const positive = desc || name;
 
-    let negIdx = Math.floor(Math.random() * rows.length);
-    while (negIdx === i && rows.length > 1) negIdx = Math.floor(Math.random() * rows.length);
+    let negIdx = Math.floor(Deterministic.random() * rows.length);
+    while (negIdx === i && rows.length > 1) negIdx = Math.floor(Deterministic.random() * rows.length);
     const neg = rows[negIdx];
     const negative = stripMarkdown(neg.description || neg.name || "");
 
@@ -315,8 +316,8 @@ function exportKnowledgeBasePairs(): TrainingTriplet[] {
     const query = item.title;
     const positive = item.text;
 
-    let negIdx = Math.floor(Math.random() * allItems.length);
-    while (negIdx === i && allItems.length > 1) negIdx = Math.floor(Math.random() * allItems.length);
+    let negIdx = Math.floor(Deterministic.random() * allItems.length);
+    while (negIdx === i && allItems.length > 1) negIdx = Math.floor(Deterministic.random() * allItems.length);
     const negative = allItems[negIdx].text;
 
     triplets.push({ query, positive, negative, source: "knowledgeBase", category: item.cat });

@@ -1,3 +1,4 @@
+import { Deterministic } from "~/shared/utils/rng";
 import { db } from "~/infra/database/db-pool";
 import { sql } from "drizzle-orm";
 import fs from "node:fs";
@@ -172,7 +173,7 @@ export async function autoRetrain(
     weights = lastCheckpoint.weights.weights;
   } else {
     INTENTS.forEach((i) => {
-      weights[i] = new Array(vocabulary.length).fill(0).map(() => (Math.random() - 0.5) * 0.01);
+      weights[i] = new Array(vocabulary.length).fill(0).map(() => (Deterministic.random() - 0.5) * 0.01);
     });
   }
 

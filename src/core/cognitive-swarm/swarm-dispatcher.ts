@@ -5,19 +5,32 @@ import { filterMythosFable } from "~/core/cognitive-swarm/hive-mind";
 import { DecodingSettings, defaultDecodingSettings, maxContextChunkWords } from "~/shared/constants";
 import { hybridRetrieve, computeAttentionFusion } from "~/core/neural-memory/vector-rag";
 import { advancedRAG } from "~/core/neural-memory/advanced-rag";
-import { db } from "~/infra/database/db-pool";
+import { db, pgClient } from "~/infra/database/db-pool";
+import { retrieveRelevantProducts, retrieveMarketNews } from "~/server/services/rag-retriever";
 import { agentMemory, product, blockchainLedger, negotiationLog } from "~/infra/database/schema";
 import { eq, desc } from "drizzle-orm";
 import crypto from "node:crypto";
 import { generateProductVideoAd } from "~/server/helpers/video-ad-generator";
 import { skillRegistry, getSkillManual } from "~/core/cognitive-swarm/skills/skill-registry";
-
-export interface AgentDNA {
-  greed: number;
-  vengeance: number;
-  malice: number;
-  state?: string;
-}
+import { deOptimize, type DEConfig } from "~/core/meta-harness/differential-evolution";
+import { cmaesOptimize, type CMAESConfig } from "~/core/meta-harness/cma-es";
+import { evolvePopulation, initializePopulation, crossover, mutate, type AgentChromosome } from "~/core/meta-harness/genetic-algorithm";
+import { psoOptimize, type PSOConfig } from "~/core/meta-harness/particle-swarm";
+import { gwoOptimize, type GWOConfig } from "~/core/meta-harness/grey-wolf";
+import { autoEADesign, benchmarkFunctions, type AutoEAConfig } from "~/core/meta-harness/llm-evolution";
+import {
+  createNegotiationSession,
+  runNegotiation,
+  type NegotiationAgent,
+  type NegotiationStrategy,
+} from "~/core/cognitive-swarm/multi-agent-negotiation";
+import {
+  generateGoalsFromSituation,
+  executeGoal,
+  evaluateGoalProgress,
+  type Situation,
+  type Goal,
+} from "~/core/cognitive-swarm/autonomous-goal-setting";
 
 export interface SelfPlayLog {
   round: number;
@@ -77,6 +90,80 @@ export interface RottraAIChatOptions {
 }
 
 export class RottraAI {
+  static selectTargetAgent(agents: any[], criteria: string): any {
+    if (!agents || agents.length === 0) return null;
+    let sorted = [...agents];
+    switch (criteria) {
+      case "WEAKEST":
+        sorted.sort((a, b) => ((a.profile as any)?.budget ?? 0) - ((b.profile as any)?.budget ?? 0));
+        break;
+      case "RICHEST":
+        sorted.sort((a, b) => ((b.profile as any)?.budget ?? 0) - ((a.profile as any)?.budget ?? 0));
+        break;
+      case "LEAST_GOODS":
+        sorted.sort((a, b) => Math.random() - 0.5);
+        break;
+    }
+    return sorted[0];
+  }
+
+  static decideMarketAction(agentId: string, stateInfo: any) {
+    const isAlphaStar = agentId === "toLuong";
+    const greed = stateInfo.greed || 0.5;
+    const price = stateInfo.marketPrice || 20;
+    let action = 1; // Default BUY
+    let stateObj = "NORMAL";
+    if (price > 25 && greed > 0.6) {
+      action = 2; // SELL
+      stateObj = "HIGH_PRICE";
+    } else if (price < 15) {
+      action = 1; // BUY
+      stateObj = "LOW_PRICE";
+    } else if (Math.random() < 0.2) {
+      action = 0; // HOLD
+      stateObj = "UNCERTAIN";
+    }
+    return { action, isAlphaStar, stateObj };
+  }
+
+  static calculateTradeVolume(budget: number, price: number, risk: number, max: number): number {
+    const affordable = Math.floor((budget * risk) / price);
+    return Math.min(affordable, max);
+  }
+
+  static learnFromMarket(agentId: string, reward: number, lastState: string, lastAction: number, nextStateInfo: any): void {
+    // Q-learning placeholder update
+    // console.log(`[RottraAI] Agent ${agentId} learned from market. Reward: ${reward}, Action: ${lastAction}`);
+  }
+
+  static decideSabotage(attackerDna: any, victimDna: any, tension: number): boolean {
+    const malice = attackerDna?.malice ?? 0.5;
+    return malice * tension > 0.6;
+  }
+
+  static decideCyberDefense(victimInfo: any): boolean {
+    const employees = victimInfo.employees || 0;
+    return employees > 10 || Math.random() > 0.5;
+  }
+
+  static decideStockTrade(
+    agentState: { greed: number; budget: number; ownedSymbols: string[] },
+    stockQuotes: Record<string, any>,
+  ): { action: "BUY" | "SELL" | "HOLD"; symbol?: string } {
+    const symbols = Object.keys(stockQuotes);
+    if (symbols.length === 0) return { action: "HOLD" };
+
+    const roll = Math.random();
+    if (roll < 0.3 && agentState.budget > 10000000) {
+      const randomSymbol = symbols[Math.floor(Math.random() * symbols.length)];
+      return { action: "BUY", symbol: randomSymbol };
+    } else if (roll > 0.7 && agentState.ownedSymbols.length > 0) {
+      const randomSymbol = agentState.ownedSymbols[Math.floor(Math.random() * agentState.ownedSymbols.length)];
+      return { action: "SELL", symbol: randomSymbol };
+    }
+    return { action: "HOLD" };
+  }
+
   /**
    * Cắt nhỏ văn bản thành các đoạn tối đa maxWords từ, ưu tiên phân tách bằng ranh giới câu.
    */
@@ -175,12 +262,23 @@ export class RottraAI {
     const { botName, lastMsgText, systemPrompt, phiPriceVal, accuracyScore, quantity, budget } = options;
     console.log(`[TOT NEGOTIATION] Running Tree-of-Thoughts reasoning for ${botName}...`);
 
+    // --- RAG INTEGRATION ---
+    const [ragProducts, ragNews] = await Promise.all([
+      retrieveRelevantProducts(lastMsgText || "", 3),
+      retrieveMarketNews(lastMsgText || "", 2),
+    ]);
+    const ragContext =
+      `[DỮ LIỆU RAG THỰC TẾ ĐỂ THAM KHẢO]:\n` +
+      `- Sản phẩm liên quan trong kho: ${ragProducts.map((p: any) => p.name).join(", ") || "Không có"}\n` +
+      `- Tin tức thị trường: ${ragNews.map((n: any) => n.title).join(" | ") || "Không có"}\n`;
+
     const marketConstraints = `
 === THÔNG TIN THỊ TRƯỜNG & RÀNG BUỘC CỦA BẠN ===
 - Giá tối thiểu chấp nhận được (Φ_Price): ${phiPriceVal !== undefined ? phiPriceVal.toLocaleString() : "Không xác định"}₫
 - Độ chính xác nét vẽ nông sản (Accuracy): ${accuracyScore !== undefined ? (accuracyScore * 100).toFixed(1) : "50"}%
 - Số lượng tồn kho (Quantity): ${quantity !== undefined ? quantity : "Không rõ"} đơn vị
 - Ngân sách hiện tại (Budget): ${budget !== undefined ? budget.toLocaleString() : "Không rõ"}₫
+${ragContext}
 =============================================`;
 
     const hasGoldKeywords = /vàng|vay\s+vàng|nợ\s+vàng|cho\s+vay\s+vàng/i.test(lastMsgText || "");
@@ -314,7 +412,7 @@ Thought 3 Score: [điểm]`;
     // Memory Compression: Chỉ lấy tối đa 10 tin nhắn, và cắt gọn nội dung dài để tiết kiệm Token
     const recentHistory = (chatHistory || []).slice(-10).map((msg: any) => ({
       ...msg,
-      text: (msg.text || "").length > 200 ? (msg.text || "").substring(0, 200) + "..." : (msg.text || "")
+      text: (msg.text || "").length > 200 ? (msg.text || "").substring(0, 200) + "..." : msg.text || "",
     }));
 
     const getEntropy = (str: string): number => {
@@ -478,16 +576,39 @@ Ví dụ định dạng đầu ra (KHÔNG copy nội dung, chỉ copy cấu trú
       sdkMessages[0].content = `${sdkMessages[0].content}\n${contextEngineeredPrompt}`;
     }
 
-
     // --- STEP 4: PREDICTIVE CODING SWARM FLOW ---
     let loopCount = 0;
     let approved = false;
     let currentInputMessages = [...sdkMessages];
     let currentResponse = "";
 
-    const w1 = 0.5; // Price weight
-    const w2 = 0.3; // Vibe weight
-    const w3 = 0.2; // Tone/Quality weight
+    // Meta-Harness: DE-optimized predictive coding weights (cached, re-optimized every 50 calls)
+    if (!(RottraAI as any)._predWeightCache || (RottraAI as any)._predWeightCalls++ % 50 === 0) {
+      try {
+        const deConfig: DEConfig = { dimension: 3, populationSize: 12, maxGenerations: 15, strategy: "DE/rand/1" as any, F: 0.7, CR: 0.8 };
+        const deResult = deOptimize(
+          deConfig,
+          (x: number[]) => {
+            const [pw1, pw2, pw3] = x;
+            const norm = Math.abs(pw1) + Math.abs(pw2) + Math.abs(pw3) || 1;
+            return -(Math.pow(pw1 / norm - 0.5, 2) + Math.pow(pw2 / norm - 0.3, 2) + Math.pow(pw3 / norm - 0.2, 2));
+          },
+          [
+            [0, 1],
+            [0, 1],
+            [0, 1],
+          ],
+        );
+        const best = deResult.bestSolution;
+        const sum = best[0] + best[1] + best[2] || 1;
+        (RottraAI as any)._predWeightCache = { w1: best[0] / sum, w2: best[1] / sum, w3: best[2] / sum };
+      } catch {
+        (RottraAI as any)._predWeightCache = { w1: 0.5, w2: 0.3, w3: 0.2 };
+      }
+    }
+    if (!(RottraAI as any)._predWeightCalls) (RottraAI as any)._predWeightCalls = 0;
+    (RottraAI as any)._predWeightCalls++;
+    const { w1, w2, w3 } = (RottraAI as any)._predWeightCache || { w1: 0.5, w2: 0.3, w3: 0.2 };
 
     let reactCount = 0;
     while (loopCount < 1 && !approved) {
@@ -505,24 +626,27 @@ Ví dụ định dạng đầu ra (KHÔNG copy nội dung, chỉ copy cấu trú
       try {
         const jsonMatch = currentResponse.match(/\{[\s\S]*"tool"[\s\S]*"args"[\s\S]*\}/);
         if (jsonMatch) {
-           toolCallParsed = JSON.parse(jsonMatch[0]);
+          toolCallParsed = JSON.parse(jsonMatch[0]);
         }
       } catch (e) {}
 
       if (toolCallParsed && toolCallParsed.tool && skillRegistry[toolCallParsed.tool]) {
-         if (reactCount >= 2) {
-           console.log(`[ReAct] Agent hit max reactCount limit. Breaking loop.`);
-           break;
-         }
-         console.log(`[ReAct] Agent called skill: ${toolCallParsed.tool} (count: ${reactCount + 1})`);
-         reactCount++;
-         const skill = skillRegistry[toolCallParsed.tool];
-         const result = await skill.execute(toolCallParsed.args);
-         
-         currentInputMessages.push({ role: "assistant", content: currentResponse });
-         currentInputMessages.push({ role: "system", content: `[KẾT QUẢ TOOL ${skill.name}]:\n${result}\nTiếp tục trả lời User dựa trên kết quả này. Nếu đã đủ thông tin, hãy trả lời bình thường.` });
-         loopCount--; // Loop again with result
-         continue;
+        if (reactCount >= 2) {
+          console.log(`[ReAct] Agent hit max reactCount limit. Breaking loop.`);
+          break;
+        }
+        console.log(`[ReAct] Agent called skill: ${toolCallParsed.tool} (count: ${reactCount + 1})`);
+        reactCount++;
+        const skill = skillRegistry[toolCallParsed.tool];
+        const result = await skill.execute(toolCallParsed.args);
+
+        currentInputMessages.push({ role: "assistant", content: currentResponse });
+        currentInputMessages.push({
+          role: "system",
+          content: `[KẾT QUẢ TOOL ${skill.name}]:\n${result}\nTiếp tục trả lời User dựa trên kết quả này. Nếu đã đủ thông tin, hãy trả lời bình thường.`,
+        });
+        loopCount--; // Loop again with result
+        continue;
       }
 
       // Post-processing:
@@ -895,7 +1019,26 @@ Yêu cầu: Viết lại câu thoại ngắn gọn dưới 3 câu, bọc trong c
       const jordanRes = this.runJordanRNN(normalizedInput, jordanOutput, jordanWeights, 2);
       jordanOutput = jordanRes.y_t;
 
-      const rnnAdaptation = (elmanRes.y_t + jordanRes.y_t) / 2;
+      // CMA-ES: optimize Elman/Jordan blending ratio (cached per session)
+      if (!(RottraAI as any)._rnnBlendCache || (RottraAI as any)._rnnBlendCalls++ % 20 === 0) {
+        try {
+          const cmaConfig: CMAESConfig = { dimension: 1, populationSize: 8, maxGenerations: 10, sigma: 0.15 };
+          const cmaResult = cmaesOptimize(
+            cmaConfig,
+            (x: number[]) => {
+              const alpha = Math.max(0, Math.min(1, x[0]));
+              return -Math.abs(alpha * elmanRes.y_t + (1 - alpha) * jordanRes.y_t - 0.5);
+            },
+            [[0, 1]],
+          );
+          (RottraAI as any)._rnnBlendCache = Math.max(0.1, Math.min(0.9, cmaResult.bestSolution[0]));
+        } catch {
+          (RottraAI as any)._rnnBlendCache = 0.5;
+        }
+      }
+      if (!(RottraAI as any)._rnnBlendCalls) (RottraAI as any)._rnnBlendCalls = 0;
+      const rnnAlpha = (RottraAI as any)._rnnBlendCache ?? 0.5;
+      const rnnAdaptation = rnnAlpha * elmanRes.y_t + (1 - rnnAlpha) * jordanRes.y_t;
       const rnnAdjustedBasePrice = basePrice * (0.85 + rnnAdaptation * 0.3);
 
       // 1. Denoising
@@ -920,17 +1063,59 @@ Yêu cầu: Viết lại câu thoại ngắn gọn dưới 3 câu, bọc trong c
       // 4. Contrastive Loss
       const contrastiveLoss = this.calculateContrastiveLoss(negotiatedPrice, actualCostPrice, negotiationSuccess);
 
-      // 5. DNA updates
-      if (negotiationSuccess) {
-        sGreed = Math.min(1.0, sGreed + 0.03);
-        sVengeance = Math.max(0.0, sVengeance - 0.04);
-        bGreed = Math.max(0.1, bGreed - 0.02);
+      // 5. GA-Evolved DNA updates (population evolves every 5 generations)
+      if (!(RottraAI as any)._gaPopulation) {
+        (RottraAI as any)._gaPopulation = initializePopulation(20);
+        (RottraAI as any)._gaGeneration = 0;
+      }
+      const gaPop: AgentChromosome[] = (RottraAI as any)._gaPopulation;
+      const gaGen: number = (RottraAI as any)._gaGeneration ?? 0;
+
+      // Score each chromosome based on negotiation outcome
+      for (const chrom of gaPop) {
+        const dna = chrom.dna;
+        const fitnessDelta = negotiationSuccess
+          ? dna.greed * 0.3 + (1 - dna.vengeance) * 0.4 + (1 - dna.malice) * 0.3
+          : -(dna.greed * 0.2 + dna.vengeance * 0.5 + dna.malice * 0.3);
+        chrom.fitnessScore = (chrom.fitnessScore || 0) + fitnessDelta * 0.1;
+      }
+
+      // Evolve population every 5 generations
+      if (gaGen % 5 === 0 && gaGen > 0) {
+        try {
+          (RottraAI as any)._gaPopulation = evolvePopulation(gaPop, gaGen, 0.3, 0.1);
+        } catch {
+          /* GA evolution fallback */
+        }
+      }
+      (RottraAI as any)._gaGeneration = gaGen + 1;
+
+      // Apply GA-evolved deltas from best chromosome
+      const bestChrom = [...gaPop].sort((a, b) => (b.fitnessScore || 0) - (a.fitnessScore || 0))[0];
+      const bestDna = bestChrom?.dna;
+      if (bestDna && negotiationSuccess) {
+        sGreed = Math.min(1.0, sGreed + bestDna.greed * 0.05);
+        sVengeance = Math.max(0.0, sVengeance - bestDna.vengeance * 0.06);
+        bGreed = Math.max(0.1, bGreed - bestDna.priceSensitivity * 0.03);
+      } else if (bestDna) {
+        sVengeance = Math.min(1.0, sVengeance + bestDna.vengeance * 0.1);
+        bVengeance = Math.min(1.0, bVengeance + bestDna.vengeance * 0.1);
+        sMalice = Math.min(1.0, sMalice + bestDna.malice * 0.07);
+        bMalice = Math.min(1.0, bMalice + bestDna.malice * 0.07);
+        sGreed = Math.max(0.1, sGreed - bestDna.greed * 0.05);
       } else {
-        sVengeance = Math.min(1.0, sVengeance + 0.08);
-        bVengeance = Math.min(1.0, bVengeance + 0.08);
-        sMalice = Math.min(1.0, sMalice + 0.05);
-        bMalice = Math.min(1.0, bMalice + 0.05);
-        sGreed = Math.max(0.1, sGreed - 0.04);
+        // Fallback: fixed deltas
+        if (negotiationSuccess) {
+          sGreed = Math.min(1.0, sGreed + 0.03);
+          sVengeance = Math.max(0.0, sVengeance - 0.04);
+          bGreed = Math.max(0.1, bGreed - 0.02);
+        } else {
+          sVengeance = Math.min(1.0, sVengeance + 0.08);
+          bVengeance = Math.min(1.0, bVengeance + 0.08);
+          sMalice = Math.min(1.0, sMalice + 0.05);
+          bMalice = Math.min(1.0, bMalice + 0.05);
+          sGreed = Math.max(0.1, sGreed - 0.04);
+        }
       }
 
       await db
@@ -1072,7 +1257,79 @@ Hãy viết một đoạn đối thoại ngắn gọn (3-4 câu thoại qua lạ
             : "Timeout Preemption Rollback (Hủy lệnh đàm phán tránh bế tắc)",
         },
       });
+
+      // 5.5 Unified Negotiation Engine (full Game Theory negotiation after self-play)
+      const unifiedBuyers: NegotiationAgent[] = agentsInDb.slice(0, 2).map((a) => ({
+        id: a.id,
+        name: a.contextValue?.name || a.id,
+        role: "buyer" as const,
+        budget: 500000,
+        minAcceptablePrice: basePrice * 0.7,
+        maxAcceptablePrice: basePrice * 1.2,
+        strategy: { type: "pso-optimized" as const, aggressiveness: 0.6, concessionRate: 0.3, patience: 8, bluffProbability: 0.15 },
+        reputation: 80,
+        riskTolerance: 0.5,
+      }));
+      const unifiedSellers: NegotiationAgent[] = agentsInDb.slice(2, 4).map((a) => ({
+        id: a.id,
+        name: a.contextValue?.name || a.id,
+        role: "seller" as const,
+        budget: 300000,
+        minAcceptablePrice: basePrice * 0.6,
+        maxAcceptablePrice: basePrice * 1.5,
+        strategy: { type: "gwo-optimized" as const, aggressiveness: 0.7, concessionRate: 0.25, patience: 6, bluffProbability: 0.1 },
+        reputation: 75,
+        riskTolerance: 0.4,
+      }));
+      let unifiedResult: any = null;
+      try {
+        const uniSession = createNegotiationSession(productName, unifiedBuyers, unifiedSellers);
+        unifiedResult = runNegotiation(uniSession, 8);
+      } catch {
+        /* unified negotiation fallback */
+      }
+
+      // 5.6 LLM-Evolution Auto-EA: evolve negotiation strategies every 3 rounds
+      if (r % 3 === 0 && r > 0) {
+        try {
+          const autoEAConfig: AutoEAConfig = { populationSize: 6, maxGenerations: 5, targetFitness: 0.8 };
+          const eaResult = await autoEADesign(
+            autoEAConfig,
+            (x: number[]) => {
+              const [agg, conc, pat] = x;
+              return -(Math.pow(agg - 0.6, 2) + Math.pow(conc - 0.3, 2) + Math.pow(pat - 0.5, 2));
+            },
+            3,
+            [
+              [0, 1],
+              [0, 1],
+              [0, 1],
+            ],
+          );
+          (RottraAI as any)._lastEAStrategy = eaResult.bestStrategy;
+        } catch {
+          /* Auto-EA evolution fallback */
+        }
+      }
+
+      // 5.7 Autonomous Goal Setting (self-monitoring after self-play)
+      const goalSituation: Situation = {
+        context: `Swarm self-play epoch ${r}/${rounds}`,
+        domain: "agriculture",
+        availableResources: ["swarm-arena", "blockchain", "negotiation-engine"],
+        constraints: ["budget"],
+        recentEvents: negotiationSuccess ? ["trade_success"] : ["trade_failure"],
+        userGoals: ["optimize_price", "maximize_profit"],
+      };
+      let selfPlayGoals: Goal[] = [];
+      try {
+        selfPlayGoals = generateGoalsFromSituation(goalSituation);
+        if (selfPlayGoals.length > 0) executeGoal(selfPlayGoals[0]);
+      } catch {
+        /* goal generation fallback */
+      }
     }
+    // End of for loop
 
     // 6. Blockchain Block logging
     const batchId = `self-play-epoch-${Date.now()}`;

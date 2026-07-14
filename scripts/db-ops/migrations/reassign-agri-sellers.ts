@@ -1,3 +1,4 @@
+import { Deterministic } from "~/shared/utils/rng";
 import { db } from "./db";
 import { user, product } from "./schema";
 import { eq } from "drizzle-orm";
@@ -70,7 +71,7 @@ async function main() {
     const catBonus = category.includes("Nông sản") ? 0.2 : 0;
     
     // Match Score = greed (thích hàng giá trị/nhiều) + sự đa dạng + yếu tố ngẫu nhiên
-    return greed * 0.4 + malice * 0.1 + catBonus + Math.random() * 0.5;
+    return greed * 0.4 + malice * 0.1 + catBonus + Deterministic.random() * 0.5;
   };
 
   let updatedCount = 0;

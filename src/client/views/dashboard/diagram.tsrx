@@ -1,6 +1,8 @@
-import { createSignal, onMount, createEffect, onCleanup } from "solid-js";
+import { Deterministic, Secure } from "~/shared/utils/rng";
+import { createSignal, onMount, createEffect, onCleanup, Show } from "solid-js";
 import { isServer } from "solid-js/web";
 import { theme } from "~/client/stores/theme-store";
+import { InteractiveFlow } from "~/client/components/interactive-flow.tsrx";
 
 export component DiagramView(props: any) {
   let containerRef: HTMLDivElement | undefined;
@@ -251,6 +253,11 @@ export component DiagramView(props: any) {
     class ANN,Rerank highlight;
     class MoE final;`,
     },
+    swarm_interactive_flow: {
+      name: "Bản đồ Swarm Flow Tương tác",
+      desc: "Luồng định tuyến và phối hợp thời gian thực giữa các thiết bị Swarm Drone, Trạm Cảm biến và Máy bơm nước.",
+      code: "",
+    },
   };
 
   const [activeTab, setActiveTab] = createSignal("agent_coordination_groups");
@@ -259,6 +266,10 @@ export component DiagramView(props: any) {
   // When tab changes, update code
   createEffect(() => {
     const tab = activeTab();
+    if (tab === "swarm_interactive_flow") {
+      resetZoom();
+      return;
+    }
     if (tab === "master_rottra") {
       setCode(DIAGRAMS.master_rottra.code); // Show loading
       if (!isServer) {
@@ -280,6 +291,12 @@ export component DiagramView(props: any) {
 
   createEffect(() => {
     if (isServer) return;
+    const tab = activeTab();
+    if (tab === "swarm_interactive_flow") {
+      setMermaidHtml("");
+      setError(null);
+      return;
+    }
     const currentCode = code();
     const currentTheme = theme(); // Listen to theme changes
 
@@ -294,7 +311,7 @@ export component DiagramView(props: any) {
         },
       });
 
-      const renderId = `mermaid-svg-${Math.random().toString(36).substr(2, 9)}`;
+      const renderId = `mermaid-svg-${Secure.uuid().substr(2, 9)}`;
 
       mermaid.render(renderId, currentCode).then((result) => {
         setMermaidHtml(result.svg);
@@ -430,76 +447,79 @@ export component DiagramView(props: any) {
       {/* Canvas Display Viewport */}
       <div class="flex flex-col gap-6 p-6 min-h-[600px] relative">
         <div class="flex flex-col gap-3 flex-1 h-full">
-          <div class="flex justify-between items-center px-1">
-            <label class={`text-xs font-extrabold uppercase tracking-widest ${theme() === "dark" ? "text-gray-400" : "text-gray-500"}`}>
-              {"Vùng hiển thị Canvas (Kéo để di chuyển, Cuộn để Zoom)"}
-            </label>
-
-            <div class="flex items-center gap-2">
-              <button
-                onClick={toggleLock}
-                class={`text-xs px-4 py-1.5 rounded-full font-bold transition-all duration-300 flex items-center gap-1.5 active:scale-95 shadow-sm ${
-                  isLocked()
-                    ? "bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20"
-                    : "bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/20"
-                }`}>
-                <span class={`h-1.5 w-1.5 rounded-full ${isLocked() ? "bg-red-400" : "bg-green-400"}`} />
-                {isLocked() ? "Đã Khóa Zoom" : "Mở Khóa Zoom"}
-              </button>
-
-              <button
-                onClick={resetZoom}
-                class={`text-xs px-4 py-1.5 rounded-full font-bold transition-all duration-300 active:scale-95 border ${
-                  theme() === "dark"
-                    ? "bg-white/5 hover:bg-white/10 text-gray-300 border-white/5"
-                    : "bg-gray-100 hover:bg-gray-200 text-gray-700 border-gray-200"
-                }`}>
-                {"Reset View"}
-              </button>
-            </div>
-          </div>
-
-          {/* Interactive Graph Box */}
-          <div
-            class={`flex-1 w-full border rounded-3xl p-6 flex items-center justify-center overflow-hidden relative min-h-[500px] transition-all duration-300 ${
-              theme() === "dark"
-                ? "bg-gradient-to-b from-[#161622] to-[#11111b] border-white/5 shadow-inner"
-                : "bg-gradient-to-b from-gray-50 to-white border-gray-200/80 shadow-inner"
-            }`}
-            onWheel={handleWheel}
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseLeave}>
-            if (error()) {
-              <div
-                class="absolute inset-0 flex flex-col items-center justify-center bg-red-950/20 backdrop-blur-md z-10 text-red-500 p-6 text-center animate-in fade-in duration-300">
-                <div class="p-4 bg-red-500/10 rounded-full mb-3 border border-red-500/20">
-                  <svg class="w-8 h-8 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                    />
-                  </svg>
+          <Show
+            when={activeTab() === "swarm_interactive_flow"}
+            fallback={<>
+              <div class="flex justify-between items-center px-1">
+                <label class={`text-xs font-extrabold uppercase tracking-widest ${theme() === "dark" ? "text-gray-400" : "text-gray-500"}`}>
+                  {"Vùng hiển thị Canvas (Kéo để di chuyển, Cuộn để Zoom)"}
+                </label>
+                <div class="flex items-center gap-2">
+                  <button
+                    onClick={toggleLock}
+                    class={`text-xs px-4 py-1.5 rounded-full font-bold transition-all duration-300 flex items-center gap-1.5 active:scale-95 shadow-sm ${
+                      isLocked()
+                        ? "bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20"
+                        : "bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/20"
+                    }`}>
+                    <span class={`h-1.5 w-1.5 rounded-full ${isLocked() ? "bg-red-400" : "bg-green-400"}`} />
+                    {isLocked() ? "Đã Khóa Zoom" : "Mở Khóa Zoom"}
+                  </button>
+                  <button
+                    onClick={resetZoom}
+                    class={`text-xs px-4 py-1.5 rounded-full font-bold transition-all duration-300 active:scale-95 border ${
+                      theme() === "dark"
+                        ? "bg-white/5 hover:bg-white/10 text-gray-300 border-white/5"
+                        : "bg-gray-100 hover:bg-gray-200 text-gray-700 border-gray-200"
+                    }`}>
+                    {"Reset View"}
+                  </button>
                 </div>
-                <span class="font-extrabold text-sm tracking-wide">{error()}</span>
               </div>
-            }
-
-            <div
-              ref={containerRef}
-              class="w-full h-full flex items-center justify-center min-h-[450px] mermaid-container select-none transition-transform duration-75 ease-out"
-              style={{
-                opacity: error() ? "0.15" : "1",
-                transform: `translate(${position().x}px, ${position().y}px) scale(${scale()})`,
-                cursor: isDragging ? "grabbing" : "grab",
-                "transform-origin": "center center",
-              }}
-              innerHTML={mermaidHtml()}
-            />
-          </div>
+              {}
+              <div
+                class={`flex-1 w-full border rounded-3xl p-6 flex items-center justify-center overflow-hidden relative min-h-[500px] transition-all duration-300 ${
+                  theme() === "dark"
+                    ? "bg-gradient-to-b from-[#161622] to-[#11111b] border-white/5 shadow-inner"
+                    : "bg-gradient-to-b from-gray-50 to-white border-gray-200/80 shadow-inner"
+                }`}
+                onWheel={handleWheel}
+                onMouseDown={handleMouseDown}
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={handleMouseLeave}>
+                if (error())
+                {<div
+                  class="absolute inset-0 flex flex-col items-center justify-center bg-red-950/20 backdrop-blur-md z-10 text-red-500 p-6 text-center animate-in fade-in duration-300">
+                  <div class="p-4 bg-red-500/10 rounded-full mb-3 border border-red-500/20">
+                    <svg class="w-8 h-8 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                      />
+                    </svg>
+                  </div>
+                  <span class="font-extrabold text-sm tracking-wide">
+                    {error()}
+                  </span>
+                </div>}
+                <div
+                  ref={containerRef}
+                  class="w-full h-full flex items-center justify-center min-h-[450px] mermaid-container select-none transition-transform duration-75 ease-out"
+                  style={{
+                    opacity: error() ? "0.15" : "1",
+                    transform: `translate(${position().x}px, ${position().y}px) scale(${scale()})`,
+                    cursor: isDragging ? "grabbing" : "grab",
+                    "transform-origin": "center center",
+                  }}
+                  innerHTML={mermaidHtml()}
+                />
+              </div>
+            </>}>
+            <InteractiveFlow />
+          </Show>
         </div>
       </div>
     </div>

@@ -1,3 +1,4 @@
+import { Deterministic } from "~/shared/utils/rng";
 /**
  * 🧠 ROTTRA — LOCAL TRAINER
  * Runs local model training on farm nodes.
@@ -70,11 +71,11 @@ export class LocalTrainer {
       gradients.push(...noisyGradients);
 
       // Simulate loss reduction
-      loss *= 0.85 + Math.random() * 0.1;
+      loss *= 0.85 + Deterministic.random() * 0.1;
     }
 
     // Compute metrics
-    const accuracy = Math.min(0.95, 0.5 + (1 - loss) * 0.5 + Math.random() * 0.1);
+    const accuracy = Math.min(0.95, 0.5 + (1 - loss) * 0.5 + Deterministic.random() * 0.1);
 
     console.log(`[LocalTrainer] Node ${this.nodeId}: Training complete. Loss: ${loss.toFixed(4)}, Accuracy: ${accuracy.toFixed(4)}`);
 
@@ -100,7 +101,7 @@ export class LocalTrainer {
       // Simulate gradient for weights
       const weightGrad = new Float32Array(layer.weights.length);
       for (let i = 0; i < weightGrad.length; i++) {
-        weightGrad[i] = (Math.random() - 0.5) * 0.01;
+        weightGrad[i] = (Deterministic.random() - 0.5) * 0.01;
       }
       gradients.push(weightGrad);
 
@@ -108,7 +109,7 @@ export class LocalTrainer {
       if (layer.bias) {
         const biasGrad = new Float32Array(layer.bias.length);
         for (let i = 0; i < biasGrad.length; i++) {
-          biasGrad[i] = (Math.random() - 0.5) * 0.01;
+          biasGrad[i] = (Deterministic.random() - 0.5) * 0.01;
         }
         gradients.push(biasGrad);
       }
@@ -145,8 +146,8 @@ export class LocalTrainer {
       const noisyGrad = new Float32Array(clippedGrad.length);
       for (let i = 0; i < noisyGrad.length; i++) {
         // Box-Muller transform for Gaussian noise
-        const u1 = Math.random();
-        const u2 = Math.random();
+        const u1 = Deterministic.random();
+        const u2 = Deterministic.random();
         const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
         noisyGrad[i] = clippedGrad[i] + z * noiseMultiplier * clipNorm;
       }
@@ -193,7 +194,7 @@ export class LocalTrainer {
     const weights = new Float32Array(size);
     const std = Math.sqrt(2 / size);
     for (let i = 0; i < size; i++) {
-      weights[i] = (Math.random() - 0.5) * 2 * std;
+      weights[i] = (Deterministic.random() - 0.5) * 2 * std;
     }
     return weights;
   }

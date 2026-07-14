@@ -1,3 +1,4 @@
+import { Deterministic } from "~/shared/utils/rng";
 /**
  * Cross-Domain Learning Engine
  * Học từ nhiều lĩnh vực, transfer knowledge giữa domains
@@ -304,9 +305,9 @@ export function findAnalogies(sourceDomain: string, targetDomain: string): Trans
   for (const pattern of source.patterns) {
     if (pattern.transferable) {
       analogies.push({
-        sourceConcept: pattern.template,
-        targetConcept: `[${targetDomain}] ${pattern.template}`,
-        mapping: `Pattern có thể transfer: ${pattern.template}`,
+        sourceConcept: `Pattern: ${pattern.template}`,
+        targetConcept: `Pattern: ${pattern.template}`,
+        mapping: `Cấu trúc này có thể transfer sang ${targetDomain}.`,
         strength: pattern.confidence * 0.8,
       });
     }
@@ -485,12 +486,16 @@ export function generateCrossDomainInsight(query: string): string | null {
 
   if (otherDomains.length === 0) return null;
 
-  const targetDomain = otherDomains[Math.floor(Math.random() * otherDomains.length)];
+  const targetDomain = otherDomains[Math.floor(Deterministic.random() * otherDomains.length)];
   const transfer = findAnalogies(domain.domain, targetDomain);
 
   if (transfer.analogies.length > 0) {
     const analogy = transfer.analogies[0];
-    return `💡 Insight: ${analogy.sourceConcept} trong ${domain.domain} có thể tương tự ${analogy.targetConcept} trong ${targetDomain}. ${analogy.mapping}`;
+    if (analogy.sourceConcept.startsWith("Pattern: ")) {
+      const template = analogy.sourceConcept.replace("Pattern: ", "");
+      return `💡 Insight: Cấu trúc "${template}" từ lĩnh vực ${domain.domain} có thể áp dụng tương tự sang lĩnh vực ${targetDomain}.`;
+    }
+    return `💡 Insight: Khái niệm "${analogy.sourceConcept}" trong ${domain.domain} có thể tương đồng với "${analogy.targetConcept}" trong ${targetDomain}.`;
   }
 
   return null;

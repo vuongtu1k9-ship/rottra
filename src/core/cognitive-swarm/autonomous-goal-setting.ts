@@ -1,3 +1,4 @@
+import { Secure } from "~/shared/utils/rng";
 /**
  * Autonomous Goal Setting Engine
  * Tự đặt mục tiêu, lên kế hoạch, thực thi
@@ -237,7 +238,7 @@ function createGoal(
   steps: ActionStep[],
 ): Goal {
   return {
-    id: `goal_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+    id: `goal_${Date.now()}_${Secure.uuid().slice(2, 6)}`,
     title,
     description,
     domain,

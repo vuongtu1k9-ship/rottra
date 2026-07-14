@@ -17,66 +17,28 @@ import {
   customType as pgCustomType,
 } from "drizzle-orm/pg-core";
 
-import {
-  sqliteTable as sqTable,
-  text as sqText,
-  integer as sqInteger,
-  real as sqReal,
-  unique as sqUnique,
-  index as sqIndex,
-} from "drizzle-orm/sqlite-core";
+export const isSqlite = false;
 
-export const isSqlite = true;
-
-export const pgTable = (name: string, columns: any, extra?: any) => {
-  const filteredExtra = extra
-    ? (table: any) => {
-        const list = extra(table);
-        return list.filter((item: any) => {
-          return item && typeof item === "object" && !item._isMockFk;
-        });
-      }
-    : undefined;
-  return sqTable(name, columns, filteredExtra);
-};
-
-export const text = (name?: any): any => sqText(name);
-export const real = (name?: any): any => sqReal(name);
-export const integer = (name?: any): any => sqInteger(name);
-export const timestamp = (name?: any, config?: any): any => {
-  const col = name && typeof name === "object" ? sqText(undefined as any) : sqText(name);
-  col.defaultNow = function() {
-    return this.default(sql`CURRENT_TIMESTAMP`);
-  };
-  return col;
-};
-export const jsonb = (name?: any): any => sqText(name, { mode: "json" });
-export const varchar = (name?: any, config?: any): any => sqText(name);
-export const bigint = (name?: any, config?: any): any => sqInteger(name);
-export const boolean = (name?: any): any => sqInteger(name, { mode: "boolean" });
-export const date = (name?: any): any => sqText(name);
-export const vector = (name?: any, config?: any): any => sqText(name, { mode: "json" });
-
-export const foreignKey = (config: any) => {
-  return {
-    _isMockFk: true,
-    onDelete: () => ({ onUpdate: () => ({ _isMockFk: true }) }),
-    onUpdate: () => ({ onDelete: () => ({ _isMockFk: true }) }),
-  };
-};
-
-export const check = (name: string, value: any) => {
-  return { _isMockFk: true };
-};
-
-export const unique = (name?: string) => {
-  return sqUnique(name);
-};
-
-export const index = (name: string): any => {
-  return sqIndex(name);
-};
-
+export const pgTable = pgTableOriginal;
+export const text = pgText;
+export const real = pgReal;
+export const integer = pgInteger;
+export const timestamp = pgTimestamp;
+export const jsonb = pgJsonb;
+export const varchar = pgVarchar;
+export const bigint = pgBigint;
+export const boolean = pgBoolean;
+export const date = pgDate;
+export const foreignKey = pgForeignKeyOriginal;
+export const check = pgCheckOriginal;
+export const unique = pgUniqueOriginal;
+export const index = pgIndexOriginal;
+export const vector = (name?: any, config?: any): any =>
+  pgCustomType({
+    dataType() {
+      return "vector";
+    },
+  })(name);
 
 export const activity = pgTable(
   "Activity",
@@ -200,6 +162,7 @@ export const product = pgTable(
     velocity: real("velocity").default(1.0),
     kalmanVariance: real("kalman_variance").default(0.1),
     storageCost: real("storage_cost").default(0.0),
+    embedding: jsonb("embedding"), // RAG embeddings
     addAt: timestamp({ withTimezone: true, mode: "string" }).defaultNow(),
     editAt: timestamp({ withTimezone: true, mode: "string" }).defaultNow(),
   },
@@ -746,7 +709,7 @@ export const blockchainLedger = pgTable("BlockchainLedger", {
   timestamp: timestamp({ withTimezone: true, mode: "string" }).defaultNow(),
 });
 
-export const halfvec = (name: string, config?: any) => sqText(name, { mode: "json" });
+export const halfvec = (name: string, config?: any) => jsonb(name);
 
 // Bảng VectorDocument phục vụ lưu trữ AI Embeddings (RAG)
 export const vectorDocument = pgTable(
@@ -852,14 +815,11 @@ export const rlQTable = pgTable(
 );
 
 // Bảng lưu trữ cấu hình mạng nơ-ron (Weights) cho AI
-export const aiModels = pgTable(
-  "AiModels",
-  {
-    id: text().primaryKey().notNull(), // UUID hoặc Tên model (vd: 'rl_product_recommender')
-    weightsJson: text().notNull(), // Chuỗi JSON chứa toàn bộ weights và cấu trúc của mạng
-    lastUpdated: timestamp({ withTimezone: true, mode: "string" }).defaultNow(),
-  }
-);
+export const aiModels = pgTable("AiModels", {
+  id: text().primaryKey().notNull(), // UUID hoặc Tên model (vd: 'rl_product_recommender')
+  weightsJson: text().notNull(), // Chuỗi JSON chứa toàn bộ weights và cấu trúc của mạng
+  lastUpdated: timestamp({ withTimezone: true, mode: "string" }).defaultNow(),
+});
 
 // Re-export federated learning tables
 export { flRound, flGradientUpdate, flModelVersion, flNode, flPrivacyBudget } from "./fl-schema-additions";

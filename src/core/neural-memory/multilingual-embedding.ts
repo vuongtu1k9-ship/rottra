@@ -49,7 +49,8 @@ function buildModel(): any {
 export async function initMultilingualEmbedding(): Promise<boolean> {
   if (embedderReady) return true;
 
-  const isCloudflare = typeof (globalThis as any).caches !== "undefined" || (typeof process !== "undefined" && process.env && process.env.CF_PAGES === "1");
+  const isCloudflare =
+    typeof (globalThis as any).caches !== "undefined" || (typeof process !== "undefined" && process.env && process.env.CF_PAGES === "1");
   if (isCloudflare) {
     console.log("[EMBEDDING] Cloudflare Pages environment detected. Bypassing TensorFlow model and running in TF-IDF fallback mode.");
     return false;
@@ -61,14 +62,23 @@ export async function initMultilingualEmbedding(): Promise<boolean> {
 
     if (fs.existsSync(path.join(MODEL_DIR, "model.json"))) {
       console.log(`📦 Loading custom trained DL model from ${MODEL_DIR}...`);
-      model = await tf.loadLayersModel(MODEL_PATH);
+      try {
+        model = await tf.loadLayersModel(MODEL_PATH);
+      } catch (loadErr: any) {
+        console.warn(`[EMBEDDING] Failed to load model (tfjs-node missing?). Using fresh model. Error: ${loadErr.message}`);
+        model = buildModel();
+      }
     } else {
       console.log(`⚠️ Custom model not found at ${MODEL_DIR}. Building a fresh untrained model...`);
       model = buildModel();
       // Ensure dir exists
       if (!fs.existsSync(MODEL_DIR)) fs.mkdirSync(MODEL_DIR, { recursive: true });
-      await model.save(MODEL_PATH);
-      console.log(`  Initialized random weights. Run fine-tune-embedding.ts to train it!`);
+      try {
+        await model.save(MODEL_PATH);
+        console.log(`  Initialized random weights. Run fine-tune-embedding.ts to train it!`);
+      } catch (saveErr: any) {
+        console.warn(`[EMBEDDING] Cannot save model to disk (tfjs-node missing?). Running entirely in memory.`);
+      }
     }
 
     embedderReady = true;

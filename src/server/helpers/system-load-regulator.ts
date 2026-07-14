@@ -1,9 +1,12 @@
+import { createLogger } from "~/shared/logger";
 import { Context, Next } from "hono";
 import { db } from "~/infra/database/db-pool";
 import { systemSetting } from "~/infra/database/schema";
 import { eq } from "drizzle-orm";
 import { fuzzyMatchCache } from "./product-search";
 import { productSearchCache, imageGenerationCache } from "~/core/neural-memory/zero-alloc-lru";
+
+const log = createLogger("helpers/system-load-regulator");
 
 export type LoadState = "LOW_TRAFFIC" | "HIGH_TRAFFIC";
 
@@ -33,7 +36,7 @@ class LoadRegulator {
   // Bắt đầu quét định kỳ mỗi 10 giây
   private startMonitoring() {
     if (typeof process === "undefined") return;
-    const isCloudflare = typeof globalThis.caches !== "undefined" && typeof globalThis.WebSocketPair !== "undefined";
+    const isCloudflare = typeof (globalThis as any).caches !== "undefined" && typeof (globalThis as any).WebSocketPair !== "undefined";
     if (isCloudflare) return;
 
     this.checkInterval = setInterval(async () => {
@@ -49,7 +52,7 @@ class LoadRegulator {
 
       if (!autoBoostEnabled) {
         if (this.currentMode === "HIGH_TRAFFIC") {
-          console.log("[Load Regulator] Chế độ autoBoost bị tắt. Khôi phục về LOW_TRAFFIC.");
+          log.info("[Load Regulator] Chế độ autoBoost bị tắt. Khôi phục về LOW_TRAFFIC.");
           this.currentMode = "LOW_TRAFFIC";
           this.restoreTtls();
         }
@@ -76,7 +79,7 @@ class LoadRegulator {
 
       if (this.currentMode === "HIGH_TRAFFIC") {
         const ramMb = (rss / 1024 / 1024).toFixed(2);
-        console.warn(`[Load Regulator] CẢNH BÁO CAO TẢI: Kích hoạt HIGH_TRAFFIC! (Req/s: ${reqPerSec}, RSS: ${ramMb} MB).`);
+        log.warn(`[Load Regulator] CẢNH BÁO CAO TẢI: Kích hoạt HIGH_TRAFFIC! (Req/s: ${reqPerSec}, RSS: ${ramMb} MB).`);
 
         // 1. Tối ưu hóa TTL của Cache: Kéo dài thời gian sống của cache lên gấp 5 lần để hạn chế truy vấn DB
         this.boostTtls();
@@ -88,13 +91,13 @@ class LoadRegulator {
         if (global && typeof (global as any).gc === "function") {
           try {
             (global as any).gc();
-            console.log("[Load Regulator] Đã gọi Garbage Collector để dọn dẹp RAM.");
+            log.info("[Load Regulator] Đã gọi Garbage Collector để dọn dẹp RAM.");
           } catch (e) {
             // bypass
           }
         }
       } else if (previousMode === "HIGH_TRAFFIC" && this.currentMode === "LOW_TRAFFIC") {
-        console.log("[Load Regulator] Hệ thống ổn định trở lại. Quay về LOW_TRAFFIC.");
+        log.info("[Load Regulator] Hệ thống ổn định trở lại. Quay về LOW_TRAFFIC.");
         this.restoreTtls();
       }
     }, 10000);
@@ -106,16 +109,20 @@ class LoadRegulator {
       (fuzzyMatchCache as any).setTtlMs(3000 * 1000);
       // Tăng TTL từ 180s lên 900s
       (productSearchCache as any).setTtlMs(900 * 1000);
-      console.log("[Load Regulator] Đã tăng TTL của cache gấp 5 lần.");
-    } catch (e) {}
+      log.info("[Load Regulator] Đã tăng TTL của cache gấp 5 lần.");
+    } catch (_err) {
+      /* non-critical */
+    }
   }
 
   private restoreTtls() {
     try {
       (fuzzyMatchCache as any).setTtlMs(600 * 1000);
       (productSearchCache as any).setTtlMs(180 * 1000);
-      console.log("[Load Regulator] Đã khôi phục TTL cache về mặc định.");
-    } catch (e) {}
+      log.info("[Load Regulator] Đã khôi phục TTL cache về mặc định.");
+    } catch (_err) {
+      /* non-critical */
+    }
   }
 
   private evictCaches() {
@@ -123,9 +130,9 @@ class LoadRegulator {
       fuzzyMatchCache.clear();
       productSearchCache.clear();
       imageGenerationCache.clear();
-      console.log("[Load Regulator] Đã dọn dẹp sạch các Cache Maps để giải phóng bộ nhớ.");
+      log.info("[Load Regulator] Đã dọn dẹp sạch các Cache Maps để giải phóng bộ nhớ.");
     } catch (err: any) {
-      console.error("[Load Regulator] Lỗi dọn dẹp cache:", err.message);
+      log.error("[Load Regulator] Lỗi dọn dẹp cache:", err.message);
     }
   }
 

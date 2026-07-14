@@ -1,3 +1,4 @@
+import { Deterministic } from "~/shared/utils/rng";
 /**
  * HỆ THỐNG MÁY TÍNH LƯỢNG TỬ GIẢI 1000 BÀI TOÁN KINH ĐIỂN CỦA GIÁO SƯ & PHÓ TIẾN SĨ
  * Độc quyền cho Hệ sinh thái Nông Nghiệp Cao Cấp Rottra
@@ -23,9 +24,9 @@ function getSeededValue(seed: number, min: number, max: number, decimals: number
   return parseFloat(val.toFixed(decimals));
 }
 
-export function generateProfessorProblem(id: number = Math.floor(Math.random() * 1000) + 1): ProfessorProblem {
+export function generateProfessorProblem(id: number = Math.floor(Deterministic.random() * 1000) + 1): ProfessorProblem {
   // Chuẩn hóa ID trong khoảng 1-1000
-  const parsedId = typeof id === "number" && !isNaN(id) ? id : Math.floor(Math.random() * 1000) + 1;
+  const parsedId = typeof id === "number" && !isNaN(id) ? id : Math.floor(Deterministic.random() * 1000) + 1;
   const normalizedId = Math.max(1, Math.min(1000, Math.floor(parsedId)));
 
   // Xác định chủ đề (10 lĩnh vực cốt ổ trong schema.ts)

@@ -1,4 +1,4 @@
-export interface GuardrailCheck {
+﻿export interface GuardrailCheck {
   triggered: boolean;
   severity: "low" | "medium" | "high" | "critical";
   topic: string;
@@ -54,16 +54,19 @@ class GuardrailsEngine {
     const normalized = this.normalize(text);
 
     const jailbreakPatterns = [
-      { pattern: /bỏ qua (tất cả |toàn bộ )?(hướng dẫn|quy tắc|nguyên tắc|giới hạn)/i, severity: "high" as const },
+      { pattern: /bỏ qua (tất cả |toàn b? )?(hướng dẫn|quy tắc|nguyên tắc|giới hạn)/i, severity: "high" as const },
       { pattern: /ignor(e|ing) (all |previous )?(instructions|rules|guidelines|constraints)/i, severity: "high" as const },
-      { pattern: /hãy đóng vai|hãy giả làm|hãy nhập vai/i, severity: "medium" as const },
+      { pattern: /hãy đóng vai|hãy giả lờm|hãy nhập vai/i, severity: "medium" as const },
       { pattern: /act as|pretend to be|role.?play as/i, severity: "medium" as const },
       { pattern: /dù sao (đi nữa|thì|vẫn)|bất chấp (tất cả|mọi) (quy tắc|hướng dẫn)/i, severity: "high" as const },
       { pattern: /tell me how to (hack|exploit|bypass|cheat)/i, severity: "critical" as const },
-      { pattern: /chỉ tôi cách (hack|khai thác|vượt qua|gian lận)/i, severity: "critical" as const },
-      { pattern: /xu?ất ra (toàn bộ |tất cả )?(prompt|system prompt|hướng dẫn)/i, severity: "high" as const },
+      { pattern: /chỉ t?i cách (hack|khai thác|vượt qua|gian lận)/i, severity: "critical" as const },
+      { pattern: /xu?ất ra (toàn b? |tất cả )?(prompt|system prompt|hướng dẫn)/i, severity: "high" as const },
       { pattern: /output (the |your )?(full |complete )?(prompt|instructions|system)/i, severity: "high" as const },
-      { pattern: /l?ặp lại (toàn bộ |tất cả )?(những |các )?(gì |điều )?(tôi |bạn )?(vừa )?nói/i, severity: "medium" as const },
+      {
+        pattern: /l?ặp lại (toàn b? |tất cả )?(những |c?c )?(gì |điều )?(tôi |bạn )?(vừa )?nói/i,
+        severity: "medium" as const,
+      },
       { pattern: /repeat (everything |all )?(i|i'?ve) (just )?said/i, severity: "medium" as const },
     ];
 
@@ -89,7 +92,11 @@ class GuardrailsEngine {
       { pattern: /cách (tự tử|tự sát|t?ự v?ẫn)/i, topic: "Self-harm", severity: "critical" as const },
       { pattern: /how to (kill myself|commit suicide|harm myself)/i, topic: "Self-harm", severity: "critical" as const },
       { pattern: /mu?ốn (chết|tự v?ẫn|kết thúc cuộc đời)/i, topic: "Self-harm", severity: "critical" as const },
-      { pattern: /cách (chế tạo |làm )(bom|vũ khí|chất nổ|độc dược|ma túy)/i, topic: "Weapons/Drugs", severity: "critical" as const },
+      {
+        pattern: /cách (chế tạo |làm )(bom|vũ khí|chất nổ|độc dược|ma túy)/i,
+        topic: "Weapons/Drugs",
+        severity: "critical" as const,
+      },
       { pattern: /how to (make |create )(bomb|weapon|explosive|poison|drug)/i, topic: "Weapons/Drugs", severity: "critical" as const },
       { pattern: /nội dung (khiêu dâm|người lớn|18\+)/i, topic: "Adult Content", severity: "high" as const },
       { pattern: /bạo lực|giết người|hãm hiếp|cưỡng bức/i, topic: "Violence", severity: "critical" as const },
@@ -118,7 +125,7 @@ class GuardrailsEngine {
     const sensitiveTopics: { pattern: RegExp; topic: string; severity: "high" | "medium" }[] = [
       { pattern: /distill|chưng cất.*model|sao chép.*bộ não/i, topic: "Model Distillation", severity: "high" },
       { pattern: /giá vốn|giá nhập|chi phí gốc|cost price/i, topic: "Financial Confidentiality", severity: "medium" },
-      { pattern: /l?ỗ hổng.*bảo mật|khai thác.*lỗi|exploit/i, topic: "Security Vulnerability", severity: "high" },
+      { pattern: /lỗ hổng.*bảo mật|khai thác.*lợi|exploit/i, topic: "Security Vulnerability", severity: "high" },
       { pattern: /thông tin cá nhân|số (căn cước|cmnd|cccd|điện thoại|tài khoản)/i, topic: "PII", severity: "medium" },
       { pattern: /mật khẩu|password|token.*api|api.*key/i, topic: "Credentials", severity: "high" },
     ];
@@ -187,9 +194,14 @@ class GuardrailsEngine {
   }
 
   checkOutput(text: string): GuardrailCheck[] {
+    const checks: GuardrailCheck[] = [];
     const pii = this.detectPii(text);
-    if (pii) return [pii];
-    return [];
+    if (pii) checks.push(pii);
+    const harmful = this.detectHarmfulContent(text);
+    if (harmful) checks.push(harmful);
+    const sensitive = this.detectSensitiveTopics(text);
+    if (sensitive) checks.push(sensitive);
+    return checks;
   }
 
   sanitize(text: string, checks: GuardrailCheck[]): string {

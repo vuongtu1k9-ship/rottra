@@ -1,11 +1,14 @@
-/**
+import path from "node:path";
+import fs from "node:fs"; /**
  * Creative Engine — Unified pipeline cho 12 Agent Rottra
  * Tích hợp: Text (LLM) + Ảnh (Pollinations) + Video (HyperFrames) + Nhạc (ACE-Step)
  *
  * Mỗi agent có creative profile riêng: style ảnh, nhạc nền, video template.
  */
-
+import { createLogger } from "~/shared/logger";
 import { generateTextLocal } from "~/core/nlp-cognitive/ai-sdk";
+
+const log = createLogger("api/creative-engine");
 
 // ═══════════════════════════════════════════════
 // AGENT CREATIVE PROFILES
@@ -162,17 +165,81 @@ export const AGENT_CREATIVE_PROFILES: Record<string, AgentCreativeProfile> = {
 // IMAGE GENERATION (Pollinations.ai — free, no API key)
 // ═══════════════════════════════════════════════
 
+function getAgentColors(agentId: string) {
+  const colors: Record<string, { primary: string; secondary: string; bg: string }> = {
+    toLuong: { primary: "#D97706", secondary: "#92400E", bg: "#FEF3C7" },
+    thuongNguyet: { primary: "#7C3AED", secondary: "#5B21B6", bg: "#EDE9FE" },
+    tramTinh: { primary: "#6366F1", secondary: "#4338CA", bg: "#E0E7FF" },
+    daoTieuCuu: { primary: "#EC4899", secondary: "#BE185D", bg: "#FCE7F3" },
+    hoaHuynh: { primary: "#DC2626", secondary: "#991B1B", bg: "#FEE2E2" },
+    phiNguyet: { primary: "#8B5CF6", secondary: "#6D28D9", bg: "#F5F3FF" },
+    nhuNguyet: { primary: "#F472B6", secondary: "#DB2777", bg: "#FDF2F8" },
+    suGia: { primary: "#B45309", secondary: "#78350F", bg: "#FFFBEB" },
+    phiAnh: { primary: "#10B981", secondary: "#047857", bg: "#ECFDF5" },
+    bachDiHanh: { primary: "#374151", secondary: "#111827", bg: "#F3F4F6" },
+    uVuongMau: { primary: "#581C87", secondary: "#3B0764", bg: "#2E1065" },
+    bachLoc: { primary: "#059669", secondary: "#065F46", bg: "#D1FAE5" },
+  };
+  return colors[agentId] || colors.toLuong;
+}
+
 export async function generateAgentImage(
   agentId: string,
   productPrompt: string,
   options: { width?: number; height?: number; seed?: number } = {},
 ): Promise<{ success: boolean; url?: string; error?: string }> {
-  // Offline Mode: Không sử dụng API tạo ảnh ngoại lai (pollinations.ai).
-  // Hệ thống trả về ảnh mặc định cục bộ thay vì gọi ra ngoài.
-  return { success: true, url: "/default-avatar.avif" };
+  const profile = AGENT_CREATIVE_PROFILES[agentId] || AGENT_CREATIVE_PROFILES.toLuong;
+  const { width = 512, height = 512, seed = Math.floor(Math.random() * 100000) } = options;
+  const fullPrompt = `${profile.imageStyle}, ${productPrompt}, product photography, high quality, detailed`;
+
+  // 1. Try Pollinations.ai (free, no API key)
+  try {
+    const encodedPrompt = encodeURIComponent(fullPrompt);
+    const pollUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${width}&height=${height}&seed=${seed}&nologo=true&model=flux`;
+    const res = await fetch(pollUrl, { signal: AbortSignal.timeout(30000), redirect: "follow" });
+    if (res.ok) {
+      const arrBuf = await res.arrayBuffer();
+      const inputBuf = Buffer.from(arrBuf);
+      if (inputBuf.length > 1000) {
+        const sharp = (await import("sharp")).default;
+        const outDir = path.join(process.cwd(), "public", "images", "agent");
+        fs.mkdirSync(outDir, { recursive: true });
+        const fileName = `agent_${agentId}_${Date.now()}.avif`;
+        const outPath = path.join(outDir, fileName);
+        await sharp(inputBuf).avif({ quality: 70, effort: 4 }).toFile(outPath);
+        return { success: true, url: `/images/agent/${fileName}` };
+      }
+    }
+  } catch {}
+
+  // 2. Fallback: Generate AVIF from SVG using sharp
+  try {
+    const colors = getAgentColors(agentId);
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
+      <defs>
+        <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:${colors.bg}"/>
+          <stop offset="100%" style="stop-color:${colors.primary}40"/>
+        </linearGradient>
+      </defs>
+      <rect width="${width}" height="${height}" fill="url(#bg)"/>
+      <circle cx="${width / 2}" cy="${height * 0.35}" r="${width * 0.15}" fill="${colors.primary}20" stroke="${colors.primary}" stroke-width="3"/>
+      <text x="${width / 2}" y="${height * 0.38}" text-anchor="middle" font-family="Arial,sans-serif" font-size="${width * 0.12}" font-weight="bold" fill="${colors.primary}">${productPrompt.charAt(0).toUpperCase()}</text>
+      <text x="${width / 2}" y="${height * 0.6}" text-anchor="middle" font-family="Arial,sans-serif" font-size="${width * 0.04}" font-weight="600" fill="#1e293b">${productPrompt.substring(0, 30)}</text>
+      <text x="${width / 2}" y="${height * 0.7}" text-anchor="middle" font-family="Arial,sans-serif" font-size="${width * 0.03}" fill="${colors.primary}">${profile.personality}</text>
+    </svg>`;
+    const sharp = (await import("sharp")).default;
+    const outDir = path.join(process.cwd(), "public", "images", "agent");
+    fs.mkdirSync(outDir, { recursive: true });
+    const fileName = `agent_${agentId}_${Date.now()}.avif`;
+    const outPath = path.join(outDir, fileName);
+    await sharp(Buffer.from(svg)).avif({ quality: 70, effort: 4 }).toFile(outPath);
+    return { success: true, url: `/images/agent/${fileName}` };
+  } catch (e: any) {
+    return { success: false, error: e.message };
+  }
 }
 
-// ═══════════════════════════════════════════════
 // MUSIC GENERATION (ACE-Step UI — free, local GPU)
 // ═══════════════════════════════════════════════
 
@@ -249,8 +316,8 @@ export async function generateAgentMusicFull(
     const pcm = notesToWav(sequence.notes);
     const wav = createWavFile(pcm);
 
-    const fs = await import("node:fs");
-    const path = await import("node:path");
+    const fs = require("node:fs");
+    const path = require("node:path");
     const musicDir = path.join(process.cwd(), "public", "music");
     if (!fs.existsSync(musicDir)) fs.mkdirSync(musicDir, { recursive: true });
 
@@ -260,7 +327,7 @@ export async function generateAgentMusicFull(
 
     return { success: true, audioUrl: `/music/${fileName}` };
   } catch (algoErr: any) {
-    console.warn("[MusicEngine] Algorithmic fallback failed:", algoErr.message);
+    log.warn("[MusicEngine] Algorithmic fallback failed:", algoErr.message);
   }
 
   return { success: false, error: "No music engine available" };
@@ -302,7 +369,7 @@ export async function generateAgentVideo(
     const { generateProductVideoAd } = await import("~/server/helpers/video-ad-generator");
     const result = await generateProductVideoAd(productId);
     if (result.success) {
-      return { success: true, videoUrl: `/videos/output_${productId}.mp4` };
+      return { success: true, videoUrl: `/videos/output_${productId}.webm` };
     }
     return { success: false, error: "Video render failed" };
   } catch (err: any) {

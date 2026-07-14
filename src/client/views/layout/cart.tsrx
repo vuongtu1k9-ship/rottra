@@ -118,16 +118,17 @@ export component Cart(props: any) {
               <div id={"cart-item-" + (item._id || item.id)} class="relative group">
                 <div onClick={() => setSelectedDetail(item)} class="cursor-pointer">
                   <ProductCard item={item}>
-                    if (isItemOutOfStock(item))
-                    {<div
-                      class="mt-2 bg-amber-50 border border-amber-200 text-amber-700 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 animate-pulse">
-                      <span>
-                        {"⚠️"}
-                      </span>
-                      <span>
-                        {"Sản phẩm hết hàng (Đặt trước)"}
-                      </span>
-                    </div>}
+                    {isItemOutOfStock(item)
+                      ? <div
+                          class="mt-2 bg-amber-50 border border-amber-200 text-amber-700 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 animate-pulse">
+                          <span>
+                            {"⚠️"}
+                          </span>
+                          <span>
+                            {"Sản phẩm hết hàng (Đặt trước)"}
+                          </span>
+                        </div>
+                      : null}
                   </ProductCard>
                 </div>
                 <div

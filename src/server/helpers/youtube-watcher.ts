@@ -1,3 +1,4 @@
+import { createLogger } from "~/shared/logger";
 import Parser from "rss-parser";
 import { YoutubeTranscript } from "youtube-transcript";
 import { db } from "~/infra/database/db-pool";
@@ -5,6 +6,8 @@ import { vectorDocument } from "~/infra/database/schema";
 import { eq } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import { generateTextLocal } from "~/core/nlp-cognitive/ai-sdk";
+
+const log = createLogger("helpers/youtube-watcher");
 
 const CHANNEL_ID = "UCmQYoc5Z4l2aEBBVRXbEkwA"; // Trí tuệ Nhân sinh
 const RSS_URL = `https://www.youtube.com/feeds/videos.xml?channel_id=${CHANNEL_ID}`;
@@ -75,11 +78,11 @@ function chunkText(text: string, chunkSize: number = 800, overlapSize: number = 
 }
 
 export async function checkAndIngestYoutube() {
-  console.log("📺 [YouTube Watcher] Đang kiểm tra video mới từ kênh Trí tuệ Nhân sinh...");
+  log.info("📺 [YouTube Watcher] Đang kiểm tra video mới từ kênh Trí tuệ Nhân sinh...");
   try {
     const feed = await parser.parseURL(RSS_URL);
     if (!feed.items || feed.items.length === 0) {
-      console.log("📺 [YouTube Watcher] Không tìm thấy video nào trong RSS feed.");
+      log.info("📺 [YouTube Watcher] Không tìm thấy video nào trong RSS feed.");
       return;
     }
 
@@ -101,7 +104,7 @@ export async function checkAndIngestYoutube() {
         continue; // Đã nạp rồi, bỏ qua
       }
 
-      console.log(`📺 [YouTube Watcher] Phát hiện video mới: ${video.title}. Bắt đầu nạp...`);
+      log.info(`📺 [YouTube Watcher] Phát hiện video mới: ${video.title}. Bắt đầu nạp...`);
 
       let fullText = "";
       try {
@@ -114,12 +117,12 @@ export async function checkAndIngestYoutube() {
           .replace(/\s+/g, " ");
       } catch (err) {
         // [PHẢN HỒI Ý KIẾN CỦA SẾP]: Nếu video KHÔNG CÓ transcript (bị tắt, hoặc lỗi), ta sẽ dùng Mô tả của video làm fallback!
-        console.warn(`⚠️ [YouTube Watcher] Video không có Transcript (hoặc lỗi). Fallback sang đọc Description (Mô tả).`);
+        log.warn(`⚠️ [YouTube Watcher] Video không có Transcript (hoặc lỗi). Fallback sang đọc Description (Mô tả).`);
         fullText = video.contentSnippet || video.content || "";
       }
 
       if (!fullText || fullText.trim().length < 50) {
-        console.log(`📺 [YouTube Watcher] Nội dung quá ngắn, bỏ qua video này.`);
+        log.info(`📺 [YouTube Watcher] Nội dung quá ngắn, bỏ qua video này.`);
         continue;
       }
 
@@ -153,7 +156,7 @@ Chỉ trả về một đối tượng JSON hợp lệ duy nhất, không giải
             }
           }
         } catch (err) {
-          console.error("⚠️ [YouTube Watcher] Lỗi khi trích xuất metadata cho RAG:", err);
+          log.error("⚠️ [YouTube Watcher] Lỗi khi trích xuất metadata cho RAG:", err);
         }
 
         await db.insert(vectorDocument).values({
@@ -166,13 +169,13 @@ Chỉ trả về một đối tượng JSON hợp lệ duy nhất, không giải
         });
       }
 
-      console.log(`✅ [YouTube Watcher] Đã nạp thành công video "${video.title}" vào Não bộ Rottra (${chunks.length} mảng ký ức).`);
+      log.info(`✅ [YouTube Watcher] Đã nạp thành công video "${video.title}" vào Não bộ Rottra (${chunks.length} mảng ký ức).`);
     }
   } catch (error: any) {
     if (error.message?.includes("Status code 404") || error.message?.includes("Status code 500")) {
-      console.warn("⚠️ [YouTube Watcher] YouTube RSS tạm thời từ chối kết nối (404/500). Hệ thống sẽ tự động thử lại ở chu kỳ sau.");
+      log.warn("⚠️ [YouTube Watcher] YouTube RSS tạm thời từ chối kết nối (404/500). Hệ thống sẽ tự động thử lại ở chu kỳ sau.");
     } else {
-      console.error("❌ [YouTube Watcher] Lỗi khi chạy nạp video:", error);
+      log.error("❌ [YouTube Watcher] Lỗi khi chạy nạp video:", error);
     }
   }
 }

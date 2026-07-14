@@ -1,9 +1,41 @@
-import { Hono } from "hono";
+﻿import { Hono } from "hono";
+import { createLogger } from "~/shared/logger";
 import { db } from "~/infra/database/db-pool";
 import { blockchainLedger, agentMemory, product, user } from "~/infra/database/schema";
 import { eq, desc } from "drizzle-orm";
 import crypto from "node:crypto";
 import { RottraAI } from "~/core/cognitive-swarm/swarm-dispatcher";
+import {
+  createNegotiationSession,
+  runNegotiation,
+  englishAuction,
+  dutchAuction,
+  vickreyAuction,
+  findNashEquilibrium,
+  mixedStrategyNash,
+  createAgriculturalAgents,
+  simulateMarket,
+  type NegotiationAgent,
+  type AuctionConfig,
+} from "~/core/cognitive-swarm/multi-agent-negotiation";
+import {
+  generateGoalsFromSituation,
+  executeGoal,
+  evaluateGoalProgress,
+  replanGoal,
+  saveGoals,
+  loadGoals,
+  type Situation,
+  type Goal,
+} from "~/core/cognitive-swarm/autonomous-goal-setting";
+import {
+  detectDomain,
+  getRelevantKnowledge,
+  generateCrossDomainInsight,
+  transferKnowledge,
+} from "~/core/cognitive-swarm/cross-domain-learning";
+
+const log = createLogger("api/trade-ledger");
 
 export const ledgerApp = new Hono();
 
@@ -52,8 +84,8 @@ ledgerApp.post("/record", async (c: any) => {
       block: { id: blockId, currentHash, previousHash },
     });
   } catch (error: any) {
-    console.error("[LEDGER ERROR]", error);
-    return c.json({ success: false, error: error.message }, 500);
+    log.error("[LEDGER ERROR]", error);
+    return c.json({ success: false, error: "Internal server error" }, 500);
   }
 });
 
@@ -105,7 +137,7 @@ ledgerApp.get("/trace/:batchId", async (c: any) => {
       chain: blocks,
     });
   } catch (error: any) {
-    return c.json({ success: false, error: error.message }, 500);
+    return c.json({ success: false, error: "Internal server error" }, 500);
   }
 });
 
@@ -123,7 +155,149 @@ ledgerApp.post("/self-play", async (c: any) => {
       results: result.results,
     });
   } catch (error: any) {
-    console.error("[SELF-PLAY SIMULATION ERROR]", error);
-    return c.json({ success: false, error: error.message }, 500);
+    log.error("[SELF-PLAY SIMULATION ERROR]", error);
+    return c.json({ success: false, error: "Internal server error" }, 500);
+  }
+});
+
+// 4. Multi-Agent Negotiation Engine (Game Theory + Nash Equilibrium)
+ledgerApp.post("/negotiate", async (c: any) => {
+  try {
+    const { product: prodName, maxRounds = 10, strategy = "cooperative" } = await c.req.json();
+    if (!prodName) return c.json({ success: false, error: "Thiếu tên sản phẩm (product)." }, 400);
+    const agents = createAgriculturalAgents();
+    const buyers = agents.filter((a) => a.role === "buyer");
+    const sellers = agents.filter((a) => a.role === "seller");
+    const session = createNegotiationSession(prodName, buyers.slice(0, 1), sellers.slice(0, 1));
+    const result = runNegotiation(session, maxRounds);
+
+    const payoffMatrix = [
+      [3, 0],
+      [2, 1],
+    ];
+    const nash = findNashEquilibrium(payoffMatrix);
+    const mixedNash = mixedStrategyNash(
+      [
+        [3, 0],
+        [0, 2],
+      ],
+      [
+        [2, 0],
+        [0, 3],
+      ],
+    );
+
+    return c.json({
+      success: true,
+      sessionId: result.id,
+      status: result.status,
+      finalPrice: result.finalPrice,
+      rounds: result.rounds.length,
+      nashEquilibrium: nash,
+      mixedStrategyNash: mixedNash,
+    });
+  } catch (error: any) {
+    log.error("[NEGOTIATE ERROR]", error);
+    return c.json({ success: false, error: "Internal server error" }, 500);
+  }
+});
+
+// 5. Auction Mechanisms (English, Dutch, Vickrey)
+ledgerApp.post("/auction", async (c: any) => {
+  try {
+    const { type = "english", reservePrice = 50000, minBidIncrement = 1000, maxRounds = 20 } = await c.req.json();
+    const agents = createAgriculturalAgents();
+    const config: AuctionConfig = { type: type as any, reservePrice, minBidIncrement, maxRounds };
+    let result;
+    switch (type) {
+      case "dutch":
+        result = dutchAuction(config, agents);
+        break;
+      case "vickrey":
+        result = vickreyAuction(config, agents);
+        break;
+      default:
+        result = englishAuction(config, agents);
+        break;
+    }
+    return c.json({ success: true, auctionType: type, ...result });
+  } catch (error: any) {
+    log.error("[AUCTION ERROR]", error);
+    return c.json({ success: false, error: "Internal server error" }, 500);
+  }
+});
+
+// 6. Autonomous Goal Setting
+ledgerApp.post("/goals", async (c: any) => {
+  try {
+    const { action, userId = "system", situation, goalId } = await c.req.json();
+    switch (action) {
+      case "generate": {
+        const sit: Situation = situation || {
+          context: "Agricultural e-commerce",
+          domain: "agriculture",
+          availableResources: ["database", "AI"],
+          constraints: [],
+          recentEvents: [],
+          userGoals: [],
+        };
+        const goals = generateGoalsFromSituation(sit, loadGoals(userId));
+        saveGoals(userId, goals);
+        return c.json({ success: true, goals, count: goals.length });
+      }
+      case "execute": {
+        const goals = loadGoals(userId);
+        const goal = goals.find((g: Goal) => g.id === goalId);
+        if (!goal) return c.json({ success: false, error: "Goal not found" }, 404);
+        const executed = executeGoal(goal);
+        return c.json({ success: true, goal: executed });
+      }
+      case "status": {
+        const goals = loadGoals(userId);
+        const progress = evaluateGoalProgress(goals);
+        return c.json({ success: true, ...progress, goals });
+      }
+      default:
+        return c.json({ success: false, error: "Invalid action. Use: generate, execute, status" }, 400);
+    }
+  } catch (error: any) {
+    log.error("[GOALS ERROR]", error);
+    return c.json({ success: false, error: "Internal server error" }, 500);
+  }
+});
+
+// 7. Cross-Domain Learning
+ledgerApp.post("/cross-domain", async (c: any) => {
+  try {
+    const { action, query, sourceDomain, targetDomain } = await c.req.json();
+    switch (action) {
+      case "detect": {
+        const result = detectDomain(query || "");
+        return c.json({ success: true, ...result });
+      }
+      case "knowledge": {
+        const knowledge = getRelevantKnowledge(query || "");
+        return c.json({ success: true, knowledge });
+      }
+      case "transfer": {
+        if (!sourceDomain || !targetDomain) return c.json({ success: false, error: "Thiếu sourceDomain/targetDomain" }, 400);
+        const transferResult = transferKnowledge(query || "", sourceDomain, targetDomain);
+        return c.json({ success: true, transfer: transferResult });
+      }
+      case "insight": {
+        const insight = generateCrossDomainInsight(query || "");
+        return c.json({ success: true, insight });
+      }
+      case "market-simulate": {
+        const agents = createAgriculturalAgents();
+        const simResult = simulateMarket(agents, 50);
+        return c.json({ success: true, ...simResult });
+      }
+      default:
+        return c.json({ success: false, error: "Invalid action. Use: detect, knowledge, transfer, insight, market-simulate" }, 400);
+    }
+  } catch (error: any) {
+    log.error("[CROSS-DOMAIN ERROR]", error);
+    return c.json({ success: false, error: "Internal server error" }, 500);
   }
 });

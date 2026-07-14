@@ -1,4 +1,7 @@
-import { search as ddgSearch, SafeSearchType } from "duck-duck-scrape";
+﻿import { search as ddgSearch, SafeSearchType } from "duck-duck-scrape";
+import { createLogger } from "~/shared/logger";
+
+const log = createLogger("helpers/web-search");
 
 interface WebSearchResult {
   title: string;
@@ -56,13 +59,13 @@ export async function searchWeb(
           summary += `\n\n--- Nội dung chi tiết từ ${results[0].title} ---\n${cleaned}`;
         }
       } catch (fetchErr) {
-        console.warn("[WebSearch] Failed to fetch content from", topUrl, fetchErr);
+        log.warn("[WebSearch] Failed to fetch content from", topUrl, fetchErr);
       }
     }
 
     return { query, results, summary };
   } catch (err) {
-    console.error("[WebSearch] DuckDuckGo search failed:", err);
+    log.error("[WebSearch] DuckDuckGo search failed:", err);
     return { query, results: [], summary: "" };
   }
 }

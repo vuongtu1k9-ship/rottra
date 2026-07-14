@@ -6,8 +6,8 @@ import { generateProductSVG, generateMusicSequence, notesToWav, createWavFile, g
 export const mediaApp = new Hono();
 
 const imageSchema = z.object({
-  agentId: z.string({ required_error: "Missing agentId" }),
-  productName: z.string({ required_error: "Missing productName" }),
+  agentId: z.string(),
+  productName: z.string(),
   price: z.string().optional(),
 });
 
@@ -24,7 +24,7 @@ mediaApp.post("/image", zValidator("json", imageSchema), async (c) => {
 });
 
 const musicSchema = z.object({
-  agentId: z.string({ required_error: "Missing agentId" }),
+  agentId: z.string(),
   mood: z.string().optional(),
   bars: z.number().optional(),
 });
@@ -48,7 +48,7 @@ mediaApp.post("/music", zValidator("json", musicSchema), async (c) => {
 });
 
 const bothSchema = z.object({
-  agentId: z.string({ required_error: "Missing agentId" }),
+  agentId: z.string(),
   productName: z.string().optional(),
   price: z.string().optional(),
   replyText: z.string().optional(),
@@ -60,17 +60,15 @@ mediaApp.post("/both", zValidator("json", bothSchema), async (c) => {
     const { agentId, productName, price, replyText } = c.req.valid("json");
 
     const result = getLocalAgentMedia(agentId, productName || "Sản phẩm", price || "Liên hệ", replyText || "");
-    const pcm = notesToWav(result.music.notes);
-    const wav = createWavFile(pcm);
 
     return c.json({
       success: true,
       mood: result.mood,
       svg: result.svgImage,
-      musicNotes: result.music.notes.length,
-      bpm: result.music.bpm,
-      key: result.music.key,
-      wavBase64: wav.toString("base64"),
+      musicNotes: result.musicSeq.notes.length,
+      bpm: result.musicSeq.bpm,
+      key: result.musicSeq.key,
+      wavBase64: result.wavBase64,
     });
   } catch (err: any) {
     return c.json({ success: false, error: err.message }, 500);

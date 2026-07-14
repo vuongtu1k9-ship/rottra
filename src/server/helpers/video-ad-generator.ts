@@ -1,4 +1,6 @@
+import { Deterministic } from "~/shared/utils/rng";
 import { db } from "~/infra/database/db-pool";
+import { createLogger } from "~/shared/logger";
 import { product, agentMemory, user } from "~/infra/database/schema";
 import { eq, and } from "drizzle-orm";
 import fs from "node:fs";
@@ -7,6 +9,8 @@ import crypto from "node:crypto";
 import { spawn } from "node:child_process";
 import { generateTextLocal } from "~/core/nlp-cognitive/ai-sdk";
 import { z } from "zod";
+
+const log = createLogger("helpers/video-ad-generator");
 
 export const getProductImageUrlLocal = (media: any[], prefixType: "http" | "file" = "http") => {
   let url = prefixType === "http" ? "/images/no-image.avif" : "/images/no-image.avif";
@@ -41,7 +45,7 @@ export async function generateProductVideoAd(productId: string): Promise<{ succe
     });
 
     if (!dbProduct) {
-      console.error(`❌ [Video Gen] Product not found in database: ${productId}`);
+      log.error(`❌ [Video Gen] Product not found in database: ${productId}`);
       return { success: false, ttsScript: "" };
     }
 
@@ -193,9 +197,9 @@ Hãy đưa ra các thông số thiết kế video phù hợp nhất với tâm t
 
           if (state === "AGGRESSIVE" || malice > 0.8) {
             const redColors = ["#FF3366", "#f24e1e", "#e53e3e"];
-            themeColor = redColors[Math.floor(Math.random() * redColors.length)];
+            themeColor = redColors[Math.floor(Deterministic.random() * redColors.length)];
             layoutStyle = "reversed";
-            entryStyle = Math.random() > 0.5 ? "left" : "right";
+            entryStyle = Deterministic.random() > 0.5 ? "left" : "right";
             floatSpeed = 4.5;
             rotationAngle = 12;
 
@@ -205,12 +209,12 @@ Hãy đưa ra các thông số thiết kế video phù hợp nhất với tâm t
               "Dừng lại 3 giây! Tranh giành ngay siêu phẩm này!",
               "Deal hủy diệt, giật ngay kẻo hết sạch!",
             ];
-            selectedHook = aggressiveHooks[Math.floor(Math.random() * aggressiveHooks.length)];
+            selectedHook = aggressiveHooks[Math.floor(Deterministic.random() * aggressiveHooks.length)];
             selectedCta = "Múc ngay kẻo lỡ!";
             selectedAdjective = adjectives[0];
           } else if (state === "GREEDY" || greed > 0.8) {
             const goldColors = ["#fbbf24", "#ff8a00", "#d97706"];
-            themeColor = goldColors[Math.floor(Math.random() * goldColors.length)];
+            themeColor = goldColors[Math.floor(Deterministic.random() * goldColors.length)];
             layoutStyle = "normal";
             entryStyle = "right";
             floatSpeed = 3.5;
@@ -222,12 +226,12 @@ Hãy đưa ra các thông số thiết kế video phù hợp nhất với tâm t
               "Mua 1 được 10, hời chưa từng thấy!",
               "Rẻ vô địch toàn sàn thương mại!",
             ];
-            selectedHook = greedyHooks[Math.floor(Math.random() * greedyHooks.length)];
+            selectedHook = greedyHooks[Math.floor(Deterministic.random() * greedyHooks.length)];
             selectedCta = "Bấm mua ngay lập tức!";
             selectedAdjective = "giá siêu hời";
           } else if (state === "CALM" || malice < 0.6) {
             const calmColors = ["#0acf83", "#1abcfe", "#06b6d4"];
-            themeColor = calmColors[Math.floor(Math.random() * calmColors.length)];
+            themeColor = calmColors[Math.floor(Deterministic.random() * calmColors.length)];
             layoutStyle = "normal";
             entryStyle = "center";
             floatSpeed = 1.6;
@@ -239,7 +243,7 @@ Hãy đưa ra các thông số thiết kế video phù hợp nhất với tâm t
               "Một chút an lành, ngọt lành gửi trao đến bạn...",
               "Lựa chọn xanh cho cuộc sống thảnh thơi...",
             ];
-            selectedHook = calmHooks[Math.floor(Math.random() * calmHooks.length)];
+            selectedHook = calmHooks[Math.floor(Deterministic.random() * calmHooks.length)];
             selectedCta = "Trải nghiệm an lành ngay.";
             selectedAdjective = "an toàn sạch 100%";
           } else {
@@ -250,7 +254,7 @@ Hãy đưa ra các thông số thiết kế video phù hợp nhất với tâm t
             rotationAngle = 4;
             selectedHook = "Trời ơi tin được không!";
             selectedCta = "Bấm vào giỏ hàng ngay nào!";
-            selectedAdjective = adjectives[Math.floor(Math.random() * adjectives.length)];
+            selectedAdjective = adjectives[Math.floor(Deterministic.random() * adjectives.length)];
           }
         } else {
           let hash = 0;
@@ -374,7 +378,9 @@ Hãy đưa ra các thông số thiết kế video phù hợp nhất với tâm t
             if (fs.existsSync(variablesPath)) {
               fs.unlinkSync(variablesPath);
             }
-          } catch (err) {}
+          } catch (_err) {
+            /* non-critical */
+          }
 
           if (code === 0) {
             fs.appendFileSync(logPath, "\n=== KẾT XUẤT THÀNH CÔNG! ĐÃ HOÀN THÀNH VIDEO ADS ===\n");
@@ -382,7 +388,9 @@ Hãy đưa ra các thông số thiết kế video phù hợp nhất với tâm t
               if (fs.existsSync(logPath)) {
                 fs.unlinkSync(logPath);
               }
-            } catch (err) {}
+            } catch (_err) {
+              /* non-critical */
+            }
             resolve();
           } else {
             fs.appendFileSync(logPath, `\n❌ Kết xuất thất bại với mã lỗi: ${code}\n`);
@@ -397,7 +405,7 @@ Hãy đưa ra các thông số thiết kế video phù hợp nhất với tâm t
       return { success: false, ttsScript: "" };
     }
   } catch (err: any) {
-    console.error(`❌ [Video Gen Error] ${err.message}`);
+    log.error(`❌ [Video Gen Error] ${err.message}`);
     return { success: false, ttsScript: "" };
   }
 }

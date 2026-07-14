@@ -50,7 +50,7 @@ export class McpClientManager {
       const transport = new StdioClientTransport({
         command,
         args,
-        env: env ? { ...process.env, ...env } : process.env,
+        env: env ? ({ ...process.env, ...env } as Record<string, string>) : (process.env as Record<string, string>),
       });
 
       const client = new Client({ name: `rottra-mcp-${serverId}`, version: "1.0.0" }, { capabilities: {} });

@@ -125,9 +125,7 @@ export component AdminActions(props: any) {
 
               try {
                 const responses = await Promise.all(
-                  items.map((p) =>
-                    fetch(`/api/admin/product/delete/${p.id || p._id}`, { method: "POST" }),
-                  ),
+                  items.map((p) => fetch(`/api/admin/product/delete/${p.id || p._id}`, { method: "POST" })),
                 );
                 const errors: string[] = [];
                 for (const res of responses) {

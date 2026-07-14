@@ -19,24 +19,6 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  const parsedUrl = url.parse(req.url || "", true);
-  if (parsedUrl.pathname === "/gold-prices" || parsedUrl.pathname === "/gold-prices/live") {
-    const randomChangeBuy = (Math.random() - 0.5) * 400000;
-    const randomChangeSell = (Math.random() - 0.5) * 400000;
-    const mockBuy = 148800000 + Math.round(randomChangeBuy);
-    const mockSell = 151800000 + Math.round(randomChangeSell);
-    res.writeHead(200, {
-      "Content-Type": "application/json",
-    });
-    res.end(
-      JSON.stringify({
-        buy: mockBuy,
-        sell: mockSell,
-        updatedText: `Cập nhật REST: ${new Date().toLocaleTimeString()}`,
-      }),
-    );
-    return;
-  }
   res.writeHead(200, { "Content-Type": "text/plain" });
   res.end("WebRTC Signaling Server is running on WS!");
 });
@@ -46,41 +28,6 @@ const wss = new WebSocketServer({ server });
 
 wss.on("connection", (ws, req) => {
   const parsedUrl = url.parse(req.url || "", true);
-  if (parsedUrl.pathname === "/gold-prices/live") {
-    console.log("[Gold Server] Client connected to live gold prices stream!");
-
-    ws.send(
-      JSON.stringify({
-        buy: 148800000,
-        sell: 151800000,
-        updatedText: `Cập nhật Live: ${new Date().toLocaleTimeString()}`,
-      }),
-    );
-
-    const intervalId = setInterval(() => {
-      if (ws.readyState === WebSocket.OPEN) {
-        const randomChangeBuy = (Math.random() - 0.5) * 400000;
-        const randomChangeSell = (Math.random() - 0.5) * 400000;
-        const mockBuy = 148800000 + Math.round(randomChangeBuy);
-        const mockSell = 151800000 + Math.round(randomChangeSell);
-
-        ws.send(
-          JSON.stringify({
-            buy: mockBuy,
-            sell: mockSell,
-            updatedText: `Cập nhật Live: ${new Date().toLocaleTimeString()}`,
-          }),
-        );
-      }
-    }, 5000);
-
-    ws.on("close", () => {
-      clearInterval(intervalId);
-      console.log("[Gold Server] Client disconnected from live gold prices stream.");
-    });
-    return;
-  }
-
   const parameters = parsedUrl.query;
   const room = (parameters.room as string) || "default";
   (ws as any).room = room;
@@ -151,6 +98,20 @@ wss.on("close", () => {
   clearInterval(interval);
 });
 
-server.listen(PORT, "127.0.0.1", () => {
-  console.log(`🚀 WebRTC Signaling Server started on ws://localhost:${PORT}`);
+server.listen(PORT, () => {
+  console.log(`[WS] WebRTC Signaling Server listening on port ${PORT}`);
+
+  // Start the DB Flusher Worker
+  try {
+    const workerPath = url.fileURLToPath(new URL("../../workers/db-flusher.worker.ts", import.meta.url));
+    const worker = new Worker(workerPath);
+    worker.onmessage = (event) => {
+      console.log("[Worker Msg]", event.data);
+    };
+    worker.onerror = (err) => {
+      console.error("[Worker Error]", err.message);
+    };
+  } catch (err) {
+    console.warn("Failed to spawn db-flusher worker. (Ensure you are using Bun or Node 20+)", err);
+  }
 });

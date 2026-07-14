@@ -20,15 +20,15 @@ const GREETING_WARMUP: WarmEntry[] = [
   {
     botId: "default",
     query: "xin chào",
-    response: "Chào sếp! Hệ thống Rottra Core sẵn sàng hỗ trợ thương lượng. Sếp muốn tìm hiểu về sản phẩm nào?",
+    response: "Chào bạn! Hệ thống Rottra Core sẵn sàng hỗ trợ thương lượng. Bạn muốn tìm hiểu về sản phẩm nào?",
   },
-  { botId: "default", query: "chào bạn", response: "Xin chào sếp, tôi là trợ lý giao thương Rottra. Sếp cần tôi tư vấn gì hôm nay?" },
+  { botId: "default", query: "chào bạn", response: "Xin chào bạn, tôi là AI giao thương của Rottra. Bạn cần tôi tư vấn gì hôm nay?" },
   {
     botId: "default",
     query: "hello",
-    response: "Chào sếp! Chào mừng đến với Rottra. Tôi sẵn sàng hỗ trợ sếp về nông sản và thương lượng.",
+    response: "Chào bạn! Chào mừng đến với Rottra. Tôi sẵn sàng hỗ trợ bạn về nông sản và thương lượng.",
   },
-  { botId: "default", query: "chào sếp", response: "Chào sếp! Hệ thống Rottra Core đã sẵn sàng. Sếp muốn mua hay bán nông sản hôm nay?" },
+  { botId: "default", query: "chào sếp", response: "Chào bạn! Hệ thống Rottra Core đã sẵn sàng. Bạn muốn mua hay bán nông sản hôm nay?" },
 
   // toLuong
   {
@@ -74,18 +74,18 @@ const GREETING_WARMUP: WarmEntry[] = [
  * Common product inquiry patterns — cached for instant response.
  */
 const PRODUCT_WARMUP: WarmEntry[] = [
-  { botId: "default", query: "giá bao nhiêu", response: "Sếp vui lòng cho em biết sản phẩm cụ thể để em báo giá chính xác nhất ạ!" },
-  { botId: "default", query: "còn hàng không", response: "Dạ hiện tại shop còn hàng ạ. Sếp muốn đặt lô bao nhiêu ký ạ?" },
+  { botId: "default", query: "giá bao nhiêu", response: "Quý khách vui lòng cho biết sản phẩm cụ thể để tôi báo giá chính xác nhất nhé!" },
+  { botId: "default", query: "còn hàng không", response: "Dạ hiện tại shop còn hàng. Bạn muốn đặt lô bao nhiêu ký?" },
   {
     botId: "default",
     query: "sản phẩm gì",
     response:
-      "Shop chuyên các loại nông sản chất lượng cao: cà phê, hồ tiêu, điều, sầu riêng, xoài, cam và nhiều loại khác. Sếp quan tâm loại nào ạ?",
+      "Chúng tôi chuyên các loại nông sản chất lượng cao: cà phê, hồ tiêu, điều, sầu riêng, xoài, cam và nhiều loại khác. Bạn quan tâm loại nào?",
   },
   {
     botId: "default",
     query: "bán gì đó",
-    response: "Chào sếp! Rottra chuyên cung cấp nông sản thượng hạng từ các vùng miền Việt Nam. Sếp muốn tìm hiểu sản phẩm nào?",
+    response: "Chào bạn! Rottra chuyên cung cấp nông sản thượng hạng từ các vùng miền Việt Nam. Bạn muốn tìm hiểu sản phẩm nào?",
   },
 ];
 
@@ -97,40 +97,40 @@ const INTENT_WARMUP: WarmEntry[] = [
   {
     botId: "default",
     query: "thời tiết hôm nay",
-    response: "Để em tra cứu thông tin thời tiết cho sếp nhé! Hiện tại hệ thống đang cập nhật dữ liệu thời tiết real-time.",
+    response: "Để tôi tra cứu thông tin thời tiết cho bạn nhé! Hiện tại hệ thống đang cập nhật dữ liệu thời tiết real-time.",
   },
   {
     botId: "default",
     query: "thời tiết ngày mai",
-    response: "Em sẽ kiểm tra dự báo thời tiết ngày mai cho sếp. Thời tiết ảnh hưởng lớn đến kế hoạch nông vụ!",
+    response: "Tôi sẽ kiểm tra dự báo thời tiết ngày mai cho bạn. Thời tiết ảnh hưởng lớn đến kế hoạch nông vụ!",
   },
 
   // Currency
   {
     botId: "default",
     query: "tỷ giá usd",
-    response: "Em đang cập nhật tỷ giá USD mới nhất cho sếp. Tỷ giá thay đổi liên tục nên em sẽ lấy dữ liệu real-time ạ.",
+    response: "Tôi đang cập nhật tỷ giá USD mới nhất cho bạn. Tỷ giá thay đổi liên tục nên tôi sẽ lấy dữ liệu real-time.",
   },
   {
     botId: "default",
     query: "giá cà phê",
-    response: "Giá cà phê hôm nay đang có biến động. Em sẽ lấy giá cập nhật từ thị trường cho sếp nhé!",
+    response: "Giá cà phê hôm nay đang có biến động. Tôi sẽ lấy giá cập nhật từ thị trường cho bạn nhé!",
   },
 
   // Common navigation
-  { botId: "default", query: "giỏ hàng", response: "Sếp muốn xem giỏ hàng ạ? Em sẽ hiển thị danh sách sản phẩm đã chọn cho sếp." },
-  { botId: "default", query: "đơn hàng", response: "Sếp muốn kiểm tra đơn hàng ạ? Em sẽ tra cứu thông tin đơn hàng cho sếp ngay." },
+  { botId: "default", query: "giỏ hàng", response: "Bạn muốn xem giỏ hàng ạ? Tôi sẽ hiển thị danh sách sản phẩm đã chọn cho bạn." },
+  { botId: "default", query: "đơn hàng", response: "Bạn muốn kiểm tra đơn hàng ạ? Tôi sẽ tra cứu thông tin đơn hàng ngay." },
 
   // Bargaining patterns
   {
     botId: "default",
     query: "giảm giá",
-    response: "Sếp ơi, giá hiện tại đã là giá tốt nhất rồi ạ. Nếu sếp mua số lượng lớn, em có thể thương lượng thêm优惠 nhé!",
+    response: "Giá hiện tại đã là giá tốt nhất rồi. Nếu bạn mua số lượng lớn, chúng ta có thể thương lượng thêm nhé!",
   },
   {
     botId: "default",
     query: "giá rẻ hơn được không",
-    response: "Sếp ơi, giá này đã là giá gốc rồi ạ. Hàng chất lượng cao nên giá tương xứng với giá trị ạ!",
+    response: "Đây đã là giá niêm yết chuẩn nhất. Hàng chất lượng cao nên giá tương xứng với giá trị bạn nhận được!",
   },
 ];
 

@@ -1,3 +1,4 @@
+import { Deterministic, Secure } from "~/shared/utils/rng";
 /**
  * 🧠 SPARSE DISTRIBUTED MEMORY (SDM) ENGINE
  *
@@ -180,7 +181,7 @@ export class SDMEngine {
     for (let i = 0; i < numLocations; i++) {
       const address = new Uint8Array(VECTOR_DIM);
       for (let j = 0; j < VECTOR_DIM; j++) {
-        address[j] = Math.random() < 0.5 ? 1 : 0;
+        address[j] = Deterministic.random() < 0.5 ? 1 : 0;
       }
       this.hardLocations.push({
         address,
@@ -327,7 +328,7 @@ export class SDMEngine {
    * Thêm pattern mới từ text
    */
   addPattern(utterance: string, response: string, intent: string): Pattern {
-    const id = `pat_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+    const id = `pat_${Date.now()}_${Secure.uuid().substr(2, 6)}`;
     const address = textToAddress(utterance);
     const data = textToDenseVector(utterance);
 

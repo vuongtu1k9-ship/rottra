@@ -1,3 +1,4 @@
+import { Deterministic } from "~/shared/utils/rng";
 import { cosineSimilarity } from "../../src/core/neural-memory/vector-rag";
 
 console.log("=================================================");
@@ -9,9 +10,9 @@ const VECTORS_COUNT = 10000; // Mô phỏng bộ nhớ có 10,000 vector
 
 // Tạo dữ liệu mảng động cũ (Vanilla JS Array)
 console.log(`[1] Tạo bộ nhớ giả lập ${VECTORS_COUNT} điểm dữ liệu (RAM)...`);
-const queryArray = Array.from({ length: DIMENSIONS }, () => Math.random());
+const queryArray = Array.from({ length: DIMENSIONS }, () => Deterministic.random());
 const docsArrays = Array.from({ length: VECTORS_COUNT }, () =>
-  Array.from({ length: DIMENSIONS }, () => Math.random())
+  Array.from({ length: DIMENSIONS }, () => Deterministic.random())
 );
 
 // Tạo dữ liệu mảng Tensor mới (Float32Array)

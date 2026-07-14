@@ -6,18 +6,7 @@ import tsrxSolid from "@tsrx/vite-plugin-solid";
 import devServer from "@hono/vite-dev-server";
 import path from "path";
 
-if (typeof Object.prototype.destroySoon === "undefined") {
-  Object.defineProperty(Object.prototype, "destroySoon", {
-    value: function (this: any) {
-      if (typeof this.destroy === "function") {
-        this.destroy();
-      }
-    },
-    configurable: true,
-    writable: true,
-    enumerable: false
-  });
-}
+
 
 type TsrxMetric = {
   id: string;
@@ -131,12 +120,41 @@ function instrumentTsrxMetrics(plugin: Plugin): Plugin {
     },
   };
 }
+
+function ssrSafeNodePolyfills(): Plugin {
+  return {
+    name: 'ssr-safe-node-polyfills',
+    enforce: 'pre',
+    resolveId(source, importer, options) {
+      const nodeBuiltins = [
+        "fs", "node:fs", "path", "node:path", "crypto", "node:crypto", 
+        "stream", "node:stream", "perf_hooks", "events", "node:events", 
+        "buffer", "process", "bun:sqlite", "needle", "duck-duck-scrape", 
+        "child_process", "node:child_process", "net", "tls", "util", 
+        "node:util", "node:os", "os", "node:worker_threads", "worker_threads", 
+        "node:async_hooks", "async_hooks", "zlib", "node:zlib", "v8", 
+        "node:v8", "http", "node:http", "https", "node:https", "url", "node:url"
+      ];
+
+      if (nodeBuiltins.includes(source)) {
+        if (options?.ssr) {
+          return null;
+        }
+        return path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts");
+      }
+      return null;
+    }
+  };
+}
+
 export default defineConfig({
   plugins: [
+    ssrSafeNodePolyfills(),
     devServer({
       entry: 'src/routes/api/[...paths].ts',
       exclude: [
-        /^\/(?!api\/|$).*/,
+        /^\/(?!api\/).*/,
+        /^\/api\/ws-signaling/,
         /^\/@.+$/,
         /.*\.(ts|tsrx)($|\?)/,
         /.*\.(css)($|\?)/,
@@ -153,7 +171,7 @@ export default defineConfig({
   server: {
     allowedHosts: true,
     open: false,
-    host: '127.0.0.1',
+    host: '0.0.0.0',
     port: 5173,
     strictPort: true,
     proxy: {
@@ -161,7 +179,7 @@ export default defineConfig({
         target: "ws://127.0.0.1:8080",
         ws: true,
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/ws-signaling/, ""),
+        rewrite: (path) => path.replace(/^\/api\/ws-signaling/, "/"),
       },
     },
     hmr: {
@@ -196,48 +214,10 @@ export default defineConfig({
       "~": path.resolve(__dirname, "./src"),
       "solid-js": path.resolve(__dirname, "node_modules/solid-js"),
       "solid-js/web": path.resolve(__dirname, "node_modules/solid-js/web"),
-      "solid-js/store": path.resolve(__dirname, "node_modules/solid-js/store"),
-      "fs": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts"),
-      "node:fs": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts"),
-      "path": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts"),
-      "node:path": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts"),
-      "crypto": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts"),
-      "node:crypto": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts"),
-      "stream": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts"),
-      "node:stream": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts"),
-      "perf_hooks": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts"),
-      "events": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts"),
-      "node:events": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts"),
-      "buffer": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts"),
-      "process": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts"),
-      "bun:sqlite": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts"),
-      "needle": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts"),
-      "duck-duck-scrape": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts"),
-      "child_process": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts"),
-      "node:child_process": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts"),
-      "net": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts"),
-      "tls": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts"),
-      "util": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts"),
-      "node:util": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts"),
-      "node:os": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts"),
-      "os": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts"),
-      "node:worker_threads": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts"),
-      "worker_threads": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts"),
-      "node:async_hooks": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts"),
-      "async_hooks": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts"),
-      "zlib": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts"),
-      "node:zlib": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts"),
-      "v8": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts"),
-      "node:v8": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts"),
-      "http": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts"),
-      "node:http": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts"),
-      "https": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts"),
-      "node:https": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts"),
-      "url": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts"),
-      "node:url": path.resolve(__dirname, "./src/client/mocks/node-polyfills.ts")
+      "solid-js/store": path.resolve(__dirname, "node_modules/solid-js/store")
     },
     dedupe: ["solid-js", "solid-js/web", "@solidjs/router", "solid-heroicons", "@tsrx/solid"],
-    extensions: ['.ts', '.ts', '.tsrx', '.json']
+    extensions: ['.ts', '.tsx', '.tsrx', '.json']
   },
   optimizeDeps: {
     entries: ["src/client/index.tsrx"],

@@ -1,3 +1,4 @@
+import { Deterministic } from "~/shared/utils/rng";
 /**
  * 🧠 ROTTRA — NATIVE DL EMBEDDING FINE-TUNE
  * Train the native Character-CNN model from scratch using Triplet Loss.
@@ -133,7 +134,7 @@ async function train(config: Config): Promise<void> {
   let bestLoss = Infinity;
 
   for (let epoch = 0; epoch < config.epochs; epoch++) {
-    const shuffled = triplets.sort(() => Math.random() - 0.5);
+    const shuffled = triplets.sort(() => Deterministic.random() - 0.5);
     const epochStartTime = Date.now();
     let totalLoss = 0;
     let batchCount = 0;

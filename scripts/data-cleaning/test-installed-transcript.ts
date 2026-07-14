@@ -1,11 +1,11 @@
-import { YoutubeTranscript } from "@danielxceron/youtube-transcript";
+import { YoutubeTranscript } from "youtube-transcript";
 
-const videoId = "at_eY6NKZZY";
+const videoId = "XuzRt-BFIKU";
 
 async function main() {
   console.log(`📡 Fetching transcript for video ID: ${videoId}...`);
   try {
-    const transcript = await (YoutubeTranscript as any).fetchTranscriptWithInnerTube(videoId);
+    const transcript = await YoutubeTranscript.fetchTranscript(videoId);
     console.log("SUCCESS! Transcript items count:", transcript.length);
     console.log("Transcript preview:");
     const fullText = transcript.map(t => t.text).join(" ");

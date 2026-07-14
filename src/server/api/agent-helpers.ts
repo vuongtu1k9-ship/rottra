@@ -1,3 +1,4 @@
+import { createLogger } from "~/shared/logger";
 import { db, pgClient } from "~/infra/database/db-pool";
 import { activity, agentMemory } from "~/infra/database/schema";
 import { filterMythosFable } from "~/core/cognitive-swarm/hive-mind";
@@ -7,6 +8,8 @@ import v8 from "node:v8";
 import { sql, eq, and } from "drizzle-orm";
 import path from "node:path";
 import fs from "node:fs";
+
+const log = createLogger("api/agent-helpers");
 
 // ==========================================
 // ACTIVITY RING BUFFER
@@ -33,7 +36,7 @@ export class ActivityRingBuffer {
 
     if (
       act === "BANKRUPTCY_WARNING" ||
-      msg.includes("tồn vong") ||
+      msg.includes("tử vong") ||
       msg.includes("phá sản") ||
       msg.includes("hết tiền") ||
       msg.includes("trả lương") ||
@@ -41,17 +44,17 @@ export class ActivityRingBuffer {
       msg.includes("chỉ còn tiền mặt") ||
       metadata.criticalBudget
     ) {
-      return "7 - Tồn vong";
+      return "7 - Tử vong";
     }
 
     if (
-      msg.includes("thảm họa cực đại") ||
+      msg.includes("thảm họa cực tệ") ||
       msg.includes("khóa tài khoản") ||
       msg.includes("ngừng hợp tác") ||
       act === "INFLATION_SHOCK" ||
       metadata.shockType === "INFLATION_SHOCK"
     ) {
-      return "6 - Thảm họa cực đại";
+      return "6 - Thảm họa cực tệ";
     }
 
     if (
@@ -103,7 +106,7 @@ export class ActivityRingBuffer {
     this.buffer.push(log);
 
     if (this.buffer.length >= this.flushThreshold) {
-      this.flush().catch((err) => console.error("Flush error in push:", err));
+      this.flush().catch((err) => log.error("Flush error in push:", err));
     }
   }
 
@@ -111,10 +114,10 @@ export class ActivityRingBuffer {
     if (this.timer) return;
     try {
       this.timer = setInterval(() => {
-        this.flush().catch((err) => console.error("Flush error in interval:", err));
+        this.flush().catch((err) => log.error("Flush error in interval:", err));
       }, this.flushIntervalMs);
     } catch (e) {
-      console.warn("Failed to set interval (likely in serverless environment):", e);
+      log.warn("Failed to set interval (likely in serverless environment):", e);
     }
   }
 
@@ -139,9 +142,9 @@ export class ActivityRingBuffer {
           timestamp: new Date().toISOString(),
         })),
       );
-      console.log(`[ActivityRingBuffer] Bulk inserted ${itemsToFlush.length} activity logs.`);
+      log.info(`[ActivityRingBuffer] Bulk inserted ${itemsToFlush.length} activity logs.`);
     } catch (err: any) {
-      console.error("[ActivityRingBuffer] Bulk insert failed:", err.message);
+      log.error("[ActivityRingBuffer] Bulk insert failed:", err.message);
       const merged = [...itemsToFlush, ...this.buffer];
       if (merged.length > this.capacity) {
         this.buffer = merged.slice(merged.length - this.capacity);
@@ -202,7 +205,7 @@ export async function checkAndAutoCleanMemoryIfNeeded(): Promise<{ cleaned: bool
       const shouldLogWarning = now - lastWarningTime > WARNING_COOLDOWN_MS;
 
       if (shouldLogWarning) {
-        console.warn(
+        log.warn(
           `🚨 [Memory Guard] Hệ thống đang quá sức! ` +
             `Free RAM: ${freeMemPercentage.toFixed(1)}% (${freeMemGB.toFixed(2)}GB), ` +
             `Heap Used: ${heapUsedMB.toFixed(1)}MB / Limit: ${heapLimitMB.toFixed(0)}MB. ` +
@@ -219,7 +222,7 @@ export async function checkAndAutoCleanMemoryIfNeeded(): Promise<{ cleaned: bool
       return { cleaned: true, reason: isSystemRamLow ? "low_system_ram" : "low_process_heap" };
     }
   } catch (err: any) {
-    console.error("❌ Lỗi trong phân hệ Memory Guard:", err);
+    log.error("❌ Lỗi trong phân hệ Memory Guard:", err);
   }
   return { cleaned: false };
 }
@@ -245,7 +248,7 @@ export function loadCollatzState(): CollatzState {
       return JSON.parse(data);
     }
   } catch (e) {
-    console.error("Failed to load Collatz state:", e);
+    log.error("Failed to load Collatz state:", e);
   }
   return {
     last_n: 1,
@@ -260,7 +263,7 @@ export function saveCollatzState(state: CollatzState): void {
   try {
     fs.writeFileSync(collatzStatePath, JSON.stringify(state, null, 2), "utf-8");
   } catch (e) {
-    console.error("Failed to save Collatz state:", e);
+    log.error("Failed to save Collatz state:", e);
   }
 }
 
@@ -287,7 +290,7 @@ export function generateDeepThinkingProcess(query: string, role: string, intent:
   steps.push(`Query: ${wordCount} words, ${charCount} chars`);
 
   // Step 3: Complexity assessment
-  const isComplex = wordCount >= 8 || /(và|còn|đồng thời|so sánh|tại sao|làm thế nào)/i.test(query);
+  const isComplex = wordCount >= 8 || /(về|cần|đồng thời|so sánh|tại sao|làm thế nào)/i.test(query);
   steps.push(`Complexity: ${isComplex ? "advanced (multi-hop RAG)" : "simple (direct retrieval)"}`);
 
   // Step 4: Role context
@@ -296,17 +299,17 @@ export function generateDeepThinkingProcess(query: string, role: string, intent:
   }
 
   // Step 5: Processing path
-  if (["ACADEMIC", "TSP", "NPV", "KALMAN", "COBEB", "WARDROP", "SHANNON"].includes(intent)) {
-    steps.push(`Path: Mathematical engine → computation → verification`);
+  if (["ACADEMIC", "TSP", "NPV", "KALMAN", "COBWEB", "WARDROP", "SHANNON"].includes(intent)) {
+    steps.push(`Path: Mathematical engine -> computation -> verification`);
   } else if (["ORDER_PAYMENT", "BARGAIN", "CONFIRM"].includes(intent)) {
-    steps.push(`Path: Transaction handler → persona response`);
+    steps.push(`Path: Transaction handler -> persona response`);
   } else if (["WEATHER_SEASON", "MARKET_PRICE", "FINANCE_COST"].includes(intent)) {
-    steps.push(`Path: External data API → domain knowledge → response`);
+    steps.push(`Path: External data API -> domain knowledge -> response`);
   } else {
-    steps.push(`Path: RAG retrieval → reranking → generation`);
+    steps.push(`Path: RAG retrieval -> reranking -> generation`);
   }
 
-  return steps.join(" → ");
+  return `<think>\n${steps.join(" -> ")}\n</think>\n\n`;
 }
 
 // ==========================================
@@ -320,15 +323,12 @@ export async function generateDynamicActivityStatsReport(): Promise<string> {
     const allLogsRes = await pgClient.query(`SELECT "addAt", "intent" FROM "NaturalLanguageLog"`);
     logs = allLogsRes.rows || [];
     totalCount = logs.length;
-  } catch (e) {}
+  } catch (_err) {
+    /* non-critical */
+  }
 
   if (totalCount === 0) {
-    totalCount = 40;
-    logs = [
-      ...Array.from({ length: 12 }, () => ({ intent: "NPV", addAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString() })),
-      ...Array.from({ length: 18 }, () => ({ intent: "TSP", addAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString() })),
-      ...Array.from({ length: 10 }, () => ({ intent: "GREETING", addAt: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString() })),
-    ];
+    return "### 📊 BIỂU ĐỒ TẦN SUẤT HOẠT ĐỘNG 7 NGÀY GẦN NHẤT\n\nChưa có dữ liệu hoạt động. Hãy sử dụng chatbot để tạo dữ liệu thống kê.";
   }
 
   const last7Days = Array.from({ length: 7 }, (_, i) => {
@@ -353,7 +353,7 @@ export async function generateDynamicActivityStatsReport(): Promise<string> {
   const chartHeight = 6;
   let asciiChart = "";
   for (let h = chartHeight; h >= 1; h--) {
-    let line = ` ${String(h).padStart(3)} ┤ `;
+    let line = ` ${String(h).padStart(3)} │ `;
     dailyCounts.forEach((day) => {
       const dayHeight = Math.round((day.count / maxCount) * chartHeight);
       let char = " ";
@@ -367,7 +367,7 @@ export async function generateDynamicActivityStatsReport(): Promise<string> {
     });
     asciiChart += line + "\n";
   }
-  asciiChart += "   0 ┼ ──┬─────┬─────┬─────┬─────┬─────┬─────┬───\n";
+  asciiChart += "   0 ┼──────┼──────┼──────┼──────┼──────┼──────┼──────\n";
   let labelLine = "        " + dailyCounts.map((day) => day.dayName.padEnd(6)).join("");
   asciiChart += labelLine;
 
@@ -382,24 +382,24 @@ export async function generateDynamicActivityStatsReport(): Promise<string> {
     .slice(0, 5);
 
   let unicodeTable = "";
-  unicodeTable += "┌────────┬──────────────────────┬────────┬────────┐\n";
-  unicodeTable += "│ Thứ tự │  Phân Loại Ý Định    │  Lượt  │ Tỷ Lệ  │\n";
-  unicodeTable += "├────────┼──────────────────────┼────────┼────────┤\n";
+  unicodeTable += "┌─────────┬──────────────────┬────────┬────────┐\n";
+  unicodeTable += "│ Thứ tự  │ Phân Loại / Định │  Lượt  │ Tỷ Lệ  │\n";
+  unicodeTable += "├─────────┼──────────────────┼────────┼────────┤\n";
   sortedIntents.forEach(([intentName, countVal], index) => {
     const percentage = ((countVal / totalCount) * 100).toFixed(1) + "%";
     unicodeTable += `│   ${index + 1}    │ ${intentName.padEnd(20)} │ ${countVal.toString().padEnd(6)} │ ${percentage.padStart(6)} │\n`;
     if (index < sortedIntents.length - 1) {
-      unicodeTable += "├────────┼──────────────────────┼────────┼────────┤\n";
+      unicodeTable += "├─────────┼──────────────────┼────────┼────────┤\n";
     }
   });
-  unicodeTable += "└────────┴──────────────────────┴────────┴────────┘";
+  unicodeTable += "└─────────┴──────────────────┴────────┴────────┘";
 
-  return `\n\n### 📈 BIỂU ĐỒ TẦN SUẤT HOẠT ĐỘNG 7 NGÀY GẦN NHẤT (DỮ LIỆU ĐỘNG):
+  return `\n\n### 📊 BIỂU ĐỒ TẦN SUẤT HOẠT ĐỘNG 7 NGÀY GẦN NHẤT (DỮ LIỆU ĐỘNG):
 \`\`\`text
 ${asciiChart}
 \`\`\`
 
-### 📊 BẢNG THỐNG KÊ CHI TIẾT Ý ĐỊNH - DỮ LIỆU ĐỘNG TRỰC TIẾP CSDL:
+### 📋 BẢNG THỐNG KÊ CHI TIẾT / ĐỊNH - DỮ LIỆU ĐỘNG TRỰC TIẾP CSDL:
 \`\`\`text
 ${unicodeTable}
 \`\`\``;

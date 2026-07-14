@@ -1,4 +1,7 @@
+import { createLogger } from "~/shared/logger";
 import type { Browser, Page } from "puppeteer";
+
+const log = createLogger("helpers/agent-scraper");
 
 const req = import.meta.require;
 const puppeteer = req ? req("puppeteer") : null;
@@ -9,13 +12,13 @@ export class AgentScraper {
   private static readonly MAX_RETRIES = 3;
   private static readonly BASE_DELAY_MS = 2_000;
 
-  async launchAgentBrowser() {
+  async launchAgentBrowser(): Promise<Browser> {
     if (!puppeteer) {
       throw new Error("[AGENT SCRAPER] Puppeteer is not supported in this environment (Serverless/Cloudflare Workers).");
     }
     if (!this.browser) {
-      console.log("[AGENT SCRAPER] Launching headless browser...");
-      this.browser = await puppeteer.launch({
+      log.info("[AGENT SCRAPER] Launching headless browser...");
+      this.browser = (await puppeteer.launch({
         headless: true,
         args: [
           "--no-sandbox",
@@ -25,7 +28,7 @@ export class AgentScraper {
           "--disable-gpu",
           "--window-size=1920x1080",
         ],
-      });
+      })) as Browser;
       this.browser.on("disconnected", () => {
         this.browser = null;
       });
@@ -53,7 +56,7 @@ export class AgentScraper {
           await page.setCookie(...auth.cookies);
         }
 
-        console.log(`[AGENT SCRAPER] Navigating to: ${url} (attempt ${attempt}/${AgentScraper.MAX_RETRIES})`);
+        log.info(`[AGENT SCRAPER] Navigating to: ${url} (attempt ${attempt}/${AgentScraper.MAX_RETRIES})`);
         await page.goto(url, {
           waitUntil: "domcontentloaded",
           timeout: AgentScraper.NAVIGATION_TIMEOUT,
@@ -70,16 +73,16 @@ export class AgentScraper {
         const isClosed = error.message?.includes("Target closed") || error.message?.includes("detached");
 
         if (isTimeout) {
-          console.warn(`[AGENT SCRAPER] Navigation timeout (attempt ${attempt}): ${url}`);
+          log.warn(`[AGENT SCRAPER] Navigation timeout (attempt ${attempt}): ${url}`);
         } else if (isClosed) {
-          console.warn(`[AGENT SCRAPER] Page closed during extraction (attempt ${attempt})`);
+          log.warn(`[AGENT SCRAPER] Page closed during extraction (attempt ${attempt})`);
         } else {
-          console.error(`[AGENT SCRAPER] Error (attempt ${attempt}):`, error.message?.slice(0, 200));
+          log.error(`[AGENT SCRAPER] Error (attempt ${attempt}):`, error.message?.slice(0, 200));
         }
 
         if (attempt < AgentScraper.MAX_RETRIES) {
           const delay = AgentScraper.BASE_DELAY_MS * attempt;
-          console.log(`[AGENT SCRAPER] Retrying in ${delay}ms...`);
+          log.info(`[AGENT SCRAPER] Retrying in ${delay}ms...`);
           await new Promise((r) => setTimeout(r, delay));
         }
 
@@ -94,7 +97,7 @@ export class AgentScraper {
 
   async cleanup() {
     if (this.browser) {
-      console.log("[AGENT SCRAPER] Closing browser and cleaning up memory...");
+      log.info("[AGENT SCRAPER] Closing browser and cleaning up memory...");
       await this.browser.close();
       this.browser = null;
     }

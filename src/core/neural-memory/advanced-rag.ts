@@ -8,6 +8,7 @@ import {
   RerankedCandidate,
   rerank,
   initRAGEngine,
+  soaPool,
 } from "~/core/neural-memory/vector-rag";
 import { retrieveGraphRAG } from "~/core/neural-memory/graph-rag";
 
@@ -193,7 +194,7 @@ Quy tắc:
   const { flatDocsCache } = await initRAGEngine();
 
   const candidates: RetrievalCandidate[] = flatDocsCache.map((doc) => {
-    const denseScore = cosineSimilarity(hydeVector, doc.vector || []);
+    const denseScore = cosineSimilarity(hydeVector, soaPool ? Array.from(soaPool.getVector(doc.vectorId)) : []);
     const docWords = doc.flatText.split(/\s+/);
     const queryWords = clean.split(/\s+/);
     let sparseScore = 0;

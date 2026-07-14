@@ -7,9 +7,6 @@ import { currencySymbol, formatCurrency } from "~/client/stores/i18n-store";
 
 export function getSafeMediaUrl(url: string): string {
   if (!url) return "/images/no-image.avif";
-  if (url.startsWith("http://") || url.startsWith("https://")) {
-    return "/images/no-image.avif"; // Chặn toàn bộ link ngoài
-  }
   return url;
 }
 
@@ -27,7 +24,8 @@ export function getPrimaryImage(item: any) {
   const first = validList[0];
 
   if (first) {
-    const rawUrl = typeof first === "string" ? first : first.link;
+    const rawUrl =
+      typeof first === "string" ? first : first.link;
     return getSafeMediaUrl(rawUrl);
   }
   return "/images/Rottra-logo.avif";
@@ -46,7 +44,8 @@ export function getPrimaryMediaType(item: any) {
   const first = validList[0];
 
   if (first) {
-    const t = typeof first === "string" ? "image" : first.type || "image";
+    const t =
+      typeof first === "string" ? "image" : first.type || "image";
     return t.startsWith("video") ? "video" : "image";
   }
   return "image";
@@ -78,13 +77,18 @@ export component ProductCard(props: any) {
 
   const currentMediaUrl = () => {
     const m = currentMedia();
-    const rawUrl = m ? (typeof m === "string" ? m : m.link) : "/no-image.avif";
+    const rawUrl =
+      m ? (typeof m === "string" ? m : m.link) : "/no-image.avif";
     return getSafeMediaUrl(rawUrl);
   };
 
   const currentMediaType = () => {
     const m = currentMedia();
-    const t = m ? (typeof m === "string" ? "image" : m.type || "image") : "image";
+    const t =
+      m ? (typeof m === "string" ? "image" : m.type || "image") : "image";
+    const rawUrl =
+      typeof m === "string" ? m : m?.link;
+    if (rawUrl && (rawUrl.toLowerCase().endsWith(".glb") || rawUrl.toLowerCase().endsWith(".gltf"))) return "3d";
     return t.startsWith("video") ? "video" : "image";
   };
 
@@ -104,6 +108,18 @@ export component ProductCard(props: any) {
             title={isMuted() ? "Bật âm thanh" : "Tắt âm thanh"}>
             <Icon path={isMuted() ? speakerXMark : speakerWave} class="w-4 h-4" />
           </button>
+        </div>
+      } else if (currentMediaType() === "3d") {
+        <div class="w-full h-full relative group/3d cursor-grab active:cursor-grabbing bg-gray-50 dark:bg-zinc-900/50">
+          <model-viewer
+            src={currentMediaUrl()}
+            auto-rotate
+            camera-controls
+            shadow-intensity="1"
+            class="w-full h-full outline-none"
+            alt={name}
+            style="--poster-color: transparent;"
+          />
         </div>
       } else {
         <img

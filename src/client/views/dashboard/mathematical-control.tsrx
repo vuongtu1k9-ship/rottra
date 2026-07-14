@@ -1,3 +1,4 @@
+import { Deterministic } from "~/shared/utils/rng";
 import { createSignal, createMemo, createEffect, onCleanup, Show, createResource, For } from "solid-js";
 import { theme } from "~/client/stores/theme-store";
 import { Icon } from "solid-heroicons";
@@ -315,7 +316,7 @@ export component MathematicalControl(props: any) {
         setAmbientTemp((prev) => prev < 32 ? Math.min(32, prev + 1) : Math.max(32, prev - 1));
         setLight((prev) => prev < 750 ? Math.min(750, prev + 10) : Math.max(750, prev - 10));
 
-        if (Math.random() > 0.8) {
+        if (Deterministic.random() > 0.8) {
           setLogs(
             (prev) => [
               `⚖️ [HOMEOSTASIS] Cân bằng nội môi đang diễn ra (Nhiệt độ CPU: ${temp()}°C, Độ ẩm đất: ${soilMoisture()}%)`,
@@ -371,10 +372,10 @@ export component MathematicalControl(props: any) {
 
       approachTimer = setInterval(() => {
         if (carState === 0) {
-          const randomPlate = plates[Math.floor(Math.random() * plates.length)];
+          const randomPlate = plates[Math.floor(Deterministic.random() * plates.length)];
           setInputPlate(randomPlate);
-          setRestrictedHour(Math.random() > 0.7);
-          setHasPermit(Math.random() > 0.5);
+          setRestrictedHour(Deterministic.random() > 0.7);
+          setHasPermit(Deterministic.random() > 0.5);
           setGpsDistance(15);
           carState = 1;
         } else if (carState === 1) {

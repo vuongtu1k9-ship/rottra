@@ -1,3 +1,4 @@
+import { Deterministic } from "~/shared/utils/rng";
 /**
  * Trái tim thị trường (Market Heartbeat) - Mô phỏng sự biến động giá nông sản động.
  * Sinh ra các nhiễu loạn giá cả trong khoảng ±5% mỗi chu kỳ (Brownian motion).
@@ -26,8 +27,8 @@ export class MarketSimulator {
     if (this.prices.size === 0 || now - this.lastUpdate > this.UPDATE_INTERVAL_MS) {
       for (const [prod, basePrice] of Object.entries(this.BASE_PRODUCTS)) {
         // Sinh nhiễu loạn ngẫu nhiên từ -5% đến +5%
-        // Công thức: fluctuation = (Math.random() * 0.1 - 0.05)
-        const fluctuation = Math.random() * 0.1 - 0.05;
+        // Công thức: fluctuation = (Deterministic.random() * 0.1 - 0.05)
+        const fluctuation = Deterministic.random() * 0.1 - 0.05;
         let currentPrice = this.prices.get(prod) || basePrice;
 
         // Cập nhật giá mới nhưng chặn biên không quá ±20% so với Base Price để tránh lạm phát/giảm phát vô hạn

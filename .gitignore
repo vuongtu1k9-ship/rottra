@@ -24,6 +24,26 @@ archive/
 build_log.txt
 collatz_state.json
 notifications.log
+tmp/
+*.tmp
+.tmp_*
+
+# Agent / tool memory & scratch
+.vault/
+.mimocode/
+.kilo/
+hoanb1_repos.json
+tygia.json
+runs.json
+rag_test_output*.json
+current_tree*.txt
+last_tick.json
+
+# Generated runtime data
+/storage/
+buffer.sqlite*
+pg_data*/
+video_ads/
 
 # Large binary dirs
 /models/
@@ -33,10 +53,20 @@ notifications.log
 /finetune/
 /*.gguf
 
+# Generated images (runtime-produced)
+/public/images/agent/
+/public/images/banners/
+/public/images/local-3d/
+
+# Build / deploy artifacts
+dist/
+.wrangler/
+.sst/
+*.output/
+
 # System Files
 .DS_Store
 Thumbs.db
 models/*.gguf
 node-llama-cpp build artifacts
-.wrangler/
 

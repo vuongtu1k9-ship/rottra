@@ -1,3 +1,4 @@
+﻿import { Deterministic, Secure } from "~/shared/utils/rng";
 /**
  * Multi-Agent Negotiation Engine
  * Hệ thống đàm phán đaagent cho nông sản
@@ -30,7 +31,7 @@ export interface NegotiationAgent {
 }
 
 export interface NegotiationStrategy {
-  type: "aggressive" | "cooperative" | "tit-for-tat" | "adaptive" | "pso-optimized";
+  type: "aggressive" | "cooperative" | "tit-for-tat" | "adaptive" | "pso-optimized" | "gwo-optimized";
   aggressiveness: number; // 0-1
   concessionRate: number; // Tốc độ nhượng bộ
   patience: number; // Số vòng tối đa
@@ -180,7 +181,7 @@ function aggressiveStrategy(agent: NegotiationAgent, round: number, opponentLast
       : agent.minAcceptablePrice + range * 0.1 * Math.min(round, 5);
 
   // Bluff: randomly inflate/deflate
-  const bluff = Math.random() < agent.strategy.bluffProbability ? (Math.random() - 0.5) * range * 0.2 : 0;
+  const bluff = Deterministic.random() < agent.strategy.bluffProbability ? (Deterministic.random() - 0.5) * range * 0.2 : 0;
 
   return basePrice + bluff;
 }
@@ -263,6 +264,31 @@ function psoOptimizedStrategy(
   return result.bestSolution[0];
 }
 
+function gwoOptimizedStrategy(agent: NegotiationAgent, round: number, opponentLastOffer?: number): number {
+  const fitnessFn = (x: number[]): number => {
+    const price = x[0];
+    if (price < agent.minAcceptablePrice || price > agent.maxAcceptablePrice) return -1000;
+    let utility = 0;
+    const midPrice = (agent.maxAcceptablePrice + agent.minAcceptablePrice) / 2;
+    utility -= Math.abs(price - midPrice) * 0.005;
+    if (opponentLastOffer) {
+      const diff = Math.abs(price - opponentLastOffer);
+      utility -= diff * 0.008;
+    }
+    const urgency = Math.min(1, round / (agent.strategy.patience || 10));
+    utility -= urgency * 1.5;
+    if (agent.role === "seller") {
+      utility += (price - agent.minAcceptablePrice) * 0.003;
+    } else {
+      utility += (agent.maxAcceptablePrice - price) * 0.003;
+    }
+    return utility;
+  };
+  const bounds: [number, number][] = [[agent.minAcceptablePrice, agent.maxAcceptablePrice]];
+  const config: GWOConfig = { dimension: 1, packSize: 12, maxIterations: 15, bounds };
+  const result = gwoOptimize(config, fitnessFn);
+  return result.bestSolution[0];
+}
 // ===== NEGOTIATION ENGINE =====
 
 /**
@@ -270,7 +296,7 @@ function psoOptimizedStrategy(
  */
 export function createNegotiationSession(product: string, buyers: NegotiationAgent[], sellers: NegotiationAgent[]): NegotiationSession {
   return {
-    id: `neg_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    id: `neg_${Date.now()}_${Secure.uuid().slice(2, 8)}`,
     product,
     agents: [...buyers, ...sellers],
     rounds: [],
@@ -308,6 +334,9 @@ export function executeNegotiationRound(session: NegotiationSession, round: numb
       break;
     case "pso-optimized":
       buyerPrice = psoOptimizedStrategy(buyer, round, lastSellerOffer, session.rounds);
+      break;
+    case "gwo-optimized":
+      buyerPrice = gwoOptimizedStrategy(buyer, round, lastSellerOffer);
       break;
     default:
       buyerPrice = cooperativeStrategy(buyer, round, lastSellerOffer);
@@ -426,10 +455,10 @@ export function englishAuction(config: AuctionConfig, bidders: NegotiationAgent[
 
     for (const bidder of bidders) {
       // Bidder decides whether to bid
-      const willBid = bidder.budget >= currentPrice + config.minBidIncrement && Math.random() < bidder.strategy.aggressiveness;
+      const willBid = bidder.budget >= currentPrice + config.minBidIncrement && Deterministic.random() < bidder.strategy.aggressiveness;
 
       if (willBid) {
-        const bid = currentPrice + config.minBidIncrement * (1 + Math.random());
+        const bid = currentPrice + config.minBidIncrement * (1 + Deterministic.random());
         bidHistory.push({ agentId: bidder.id, price: bid });
 
         if (bid > currentPrice) {
@@ -559,7 +588,7 @@ export function simulateMarket(
     currentPrice *= 1 + excess * 0.001;
 
     // Add noise
-    currentPrice *= 1 + (Math.random() - 0.5) * 0.02;
+    currentPrice *= 1 + (Deterministic.random() - 0.5) * 0.02;
 
     // Clamp
     currentPrice = Math.max(10000, Math.min(200000, currentPrice));

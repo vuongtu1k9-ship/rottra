@@ -20,6 +20,7 @@ import type {
   FLNode,
   FLEvent,
 } from "./types";
+import { byzantineDetector } from "./byzantine-fault-tolerance";
 
 // ── Default Config ───────────────────────────────────────────
 
@@ -235,8 +236,28 @@ export class FederatedLearningCoordinator {
     this.emit({ type: "aggregation_started", roundId });
 
     try {
+      // Run Byzantine fault detection before aggregation
+      const { valid, flagged } = await byzantineDetector.filterByzantineGradients(roundId);
+      if (flagged.length > 0) {
+        console.log(`[FL] Byzantine detection: ${flagged.length} suspicious nodes filtered: ${flagged.join(", ")}`);
+        // Update reputation for flagged nodes
+        await byzantineDetector.updateNodeReputations(roundId);
+      }
+
+      // Filter gradients to only valid ones
+      const validGradients = gradients.filter((g: any) => valid.includes(g.nodeId));
+
+      if (validGradients.length < round[0].config.minNodes) {
+        console.log(
+          `[FL] Not enough valid gradients after Byzantine filtering (${validGradients.length}/${round[0].config.minNodes}), marking as failed`,
+        );
+        await db.update(flRound).set({ status: "failed", completed_at: new Date() }).where(eq(flRound.id, roundId));
+        this.emit({ type: "round_failed", roundId, error: "Insufficient valid participants after Byzantine filtering" });
+        return;
+      }
+
       // Perform FedAvg aggregation
-      const result = await this.fedAvgAggregation(roundId, gradients);
+      const result = await this.fedAvgAggregation(roundId, validGradients);
 
       // Save new model version
       const modelId = randomUUID();
@@ -381,7 +402,7 @@ export class FederatedLearningCoordinator {
    * Simple hash computation
    */
   private async computeHash(data: any): Promise<string> {
-    const { createHash } = await import("node:crypto");
+    const { createHash } = require("node:crypto");
     return createHash("sha256").update(JSON.stringify(data)).digest("hex");
   }
 }

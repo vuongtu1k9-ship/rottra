@@ -150,7 +150,7 @@ export const Profile = (props: any) => {
 
   const [isPlaying, setIsPlaying] = createSignal(false);
   const [audioUrl, setAudioUrl] = createSignal<string | null>(null);
-  
+
   createEffect(() => {
     if (isAgent()) {
       const agentId = targetUserId();
@@ -297,7 +297,8 @@ export const Profile = (props: any) => {
       const protocol =
         window.location.protocol === "https:" ? "wss:" : "ws:";
       const host = window.location.host;
-      const newWs = new WebSocket(`${protocol}//${host}/api/ws-signaling`);
+      const wsUrl = import.meta.env.DEV ? `ws://localhost:8080/` : `${protocol}//${host}/api/ws-signaling`;
+      const newWs = new WebSocket(wsUrl);
 
       newWs.onmessage = async (event) => {
         try {
@@ -508,17 +509,15 @@ export const Profile = (props: any) => {
               <p class="text-sm text-gray-500 mb-4">
                 {props.user?.email || user()?.email}
               </p>
-
-              {isAgent() && (
+              {isAgent() &&
                 <div class="mb-4 flex flex-col items-start gap-2 w-full max-w-sm">
                   <span class="text-xs font-semibold text-purple-500 uppercase tracking-widest">🎵 Nhạc Nền Agent (Opus)</span>
-                  <audio 
-                    controls 
-                    src={audioUrl() || ""} 
+                  <audio
+                    controls
+                    src={audioUrl() || ""}
                     class="w-full h-10 outline-none rounded-full shadow-sm bg-purple-50/50 dark:bg-purple-900/20"
                   />
-                </div>
-              )}
+                </div>}
               <div
                 class={`w-full text-left p-4 rounded-2xl text-sm border space-y-2 ${
                   theme() === "dark" ? "bg-white/5 border-white/10" : "bg-gray-50 border-gray-100"

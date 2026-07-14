@@ -1,12 +1,15 @@
+import { createLogger } from "~/shared/logger";
 import { db } from "~/infra/database/db-pool";
 import { agentTask } from "~/infra/database/schema";
 import { eq, and, lte } from "drizzle-orm";
 import { generateTextLocal } from "~/core/nlp-cognitive/ai-sdk";
 
+const log = createLogger("api/cronjob-ai");
+
 const HEARTBEAT_INTERVAL_MS = process.env.HEARTBEAT_INTERVAL_MS ? parseInt(process.env.HEARTBEAT_INTERVAL_MS, 10) : 60000; // 60 seconds
 
 export function startCronjobAI() {
-  console.log("🚀 [Cronjob AI] Autonomous Core starting up...");
+  log.info("🚀 [Cronjob AI] Autonomous Core starting up...");
 
   setInterval(async () => {
     try {
@@ -14,24 +17,19 @@ export function startCronjobAI() {
 
       // Find pending tasks that are scheduled for now or earlier
       const tasks = await db.query.agentTask.findMany({
-        where: and(
-          eq(agentTask.status, "pending"),
-          lte(agentTask.scheduledFor, nowStr)
-        ),
+        where: and(eq(agentTask.status, "pending"), lte(agentTask.scheduledFor, nowStr)),
         limit: 5,
       });
 
       if (tasks.length === 0) return;
 
-      console.log(`[Cronjob AI] Waking up to process ${tasks.length} pending tasks...`);
+      log.info(`[Cronjob AI] Waking up to process ${tasks.length} pending tasks...`);
 
       for (const task of tasks) {
         // Lock the task
-        await db.update(agentTask)
-          .set({ status: "running" })
-          .where(eq(agentTask.id, task.id));
+        await db.update(agentTask).set({ status: "running" }).where(eq(agentTask.id, task.id));
 
-        console.log(`[Cronjob AI] Executing Task [${task.taskType}]: ${task.title}`);
+        log.info(`[Cronjob AI] Executing Task [${task.taskType}]: ${task.title}`);
 
         let resultData: any = {};
         let finalStatus = "completed";
@@ -55,24 +53,25 @@ Return a concise text report of your findings.`;
             report: text,
             executedAt: new Date().toISOString(),
           };
-          console.log(`[Cronjob AI] Task [${task.id}] completed successfully.`);
+          log.info(`[Cronjob AI] Task [${task.id}] completed successfully.`);
         } catch (execError: any) {
-          console.error(`[Cronjob AI] Task [${task.id}] failed:`, execError);
+          log.error(`[Cronjob AI] Task [${task.id}] failed:`, execError);
           finalStatus = "failed";
           resultData = { error: execError.message };
         }
 
         // Save result
-        await db.update(agentTask)
-          .set({ 
-            status: finalStatus, 
-            resultData, 
-            completedAt: new Date().toISOString() 
+        await db
+          .update(agentTask)
+          .set({
+            status: finalStatus,
+            resultData,
+            completedAt: new Date().toISOString(),
           })
           .where(eq(agentTask.id, task.id));
       }
     } catch (e) {
-      console.error("[Cronjob AI] Engine heartbeat error:", e);
+      log.error("[Cronjob AI] Engine heartbeat error:", e);
     }
   }, HEARTBEAT_INTERVAL_MS);
 }

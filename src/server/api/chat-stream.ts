@@ -2,6 +2,27 @@ import { Hono } from "hono";
 
 export const chatApp = new Hono();
 
+/**
+ * SSE Event Types:
+ * - thinking: AI reasoning/thought process
+ * - token: Streamed text token
+ * - suggestions: Follow-up suggestions
+ * - products: Product search results
+ * - proactive: Context-aware suggestions
+ * - reply_b: Alternative reply
+ * - error: Error message
+ * - done: Stream complete
+ */
+
+interface SSEEvent {
+  type: "thinking" | "token" | "suggestions" | "products" | "proactive" | "reply_b" | "error" | "done";
+  data: string;
+}
+
+function formatSSE(event: SSEEvent): string {
+  return `event: ${event.type}\ndata: ${JSON.stringify(event.data)}\n\n`;
+}
+
 chatApp.post("/", async (c) => {
   try {
     let bodyData: any = {};
@@ -19,49 +40,51 @@ chatApp.post("/", async (c) => {
     const host = c.req.header("host") || "localhost:5173";
     const protocol = host.startsWith("localhost") || host.startsWith("127.0.0.1") ? "http" : "https";
 
-    // Stream the offline AI reply character by character to maintain streaming UI effect
-    // We move the fetch INSIDE the ReadableStream so the HTTP connection is returned IMMEDIATELY.
-    const mockStream = new ReadableStream({
+    const encoder = new TextEncoder();
+
+    const sseStream = new ReadableStream({
       async start(controller) {
-        const encoder = new TextEncoder();
+        const sendEvent = (event: SSEEvent) => {
+          controller.enqueue(encoder.encode(formatSSE(event)));
+        };
+
         try {
-          // Hàm tự động sinh tiến trình tư duy dựa trên từ khóa câu hỏi
+          // 1. Generate and stream thinking process
           const generateDynamicThought = (q: string) => {
             const qLower = q.toLowerCase();
-            let thoughts = [];
+            const thoughts: string[] = [];
 
-            if (qLower.includes("thời tiết") || qLower.includes("nhiệt độ") || qLower.includes("mưa")) {
-              thoughts.push("- Đang thiết lập kết nối vệ tinh khí tượng và trạm cảm biến môi trường...");
+            if (qLower.includes("thoi tiet") || qLower.includes("nhiet do") || qLower.includes("mua")) {
+              thoughts.push("Dang thiet lap ket noi ve tinh khi tuong va tram cam bien moi truong...");
             }
-            if (qLower.includes("giá") || qLower.includes("tỷ giá") || qLower.includes("tiền")) {
-              thoughts.push("- Đang đồng bộ hóa dữ liệu tài chính & thị trường thời gian thực...");
+            if (qLower.includes("gia") || qLower.includes("ty gia") || qLower.includes("tien")) {
+              thoughts.push("Dang dong bo hoa du lieu tai chinh & thi truong thoi gian thuc...");
             }
-            if (qLower.includes("sản phẩm") || qLower.includes("mật ong") || qLower.includes("mvp") || qLower.includes("kho")) {
-              thoughts.push("- Kích hoạt luồng truy xuất trực tiếp vào Cơ sở dữ liệu Kho hàng Rottra...");
+            if (qLower.includes("san pham") || qLower.includes("mat ong") || qLower.includes("kho")) {
+              thoughts.push("Kich hoat luong truy xuat truc tiep vao Co so du lieu Kho hang Rottra...");
             }
-            if (qLower.includes("toán") || qLower.includes("xác suất") || qLower.includes("thống kê") || qLower.includes("giải")) {
-              thoughts.push("- Kích hoạt lõi nhận thức Toán học & Suy luận Suy diễn (Deductive Reasoning)...");
+            if (qLower.includes("toan") || qLower.includes("xac xuat") || qLower.includes("giai")) {
+              thoughts.push("Kich hoai lo nhan thuc Toan hoc & Suy luan Su dien (Deductive Reasoning)...");
             }
-            if (qLower.includes("kiến trúc") || qLower.includes("công nghệ") || qLower.includes("code")) {
-              thoughts.push("- Phân tích cấu trúc hệ thống và đối chiếu với tài liệu kỹ thuật nội bộ...");
+            if (qLower.includes("kien truc") || qLower.includes("cong nghe") || qLower.includes("code")) {
+              thoughts.push("Phan tich cau truc he thong va doi chieu voi tai lieu ky thuat noi bo...");
             }
 
             if (thoughts.length === 0) {
-              thoughts.push("- Đang phân tích ngữ nghĩa và trích xuất ý định cốt lõi của câu hỏi...");
-              thoughts.push("- Rà soát mạng lưới Tri thức Đa nguồn & Ký ức Hệ thống Rottra...");
+              thoughts.push("Dang phan tich ngu nghia va trich xuat y dinh cot loi cau hoi...");
+              thoughts.push("Ra soat mang luoi Tri thuc Da nguon & Ky uc He thong Rottra...");
             } else {
-              thoughts.push("- Đang tổng hợp dữ liệu và chuẩn bị cấu trúc phản hồi...");
+              thoughts.push("Dang tong hop du lieu va chuan bi cau truc phan hoi...");
             }
 
             return thoughts.join("\n");
           };
 
           const dynamicThought = generateDynamicThought(lastMessage);
+          sendEvent({ type: "thinking", data: dynamicThought });
 
-          // Gửi tiến trình tư duy động ngay lập tức
-          controller.enqueue(encoder.encode(`<think>\n${dynamicThought}\n</think>\n\n`));
-
-          const localRes = await fetch(`${protocol}://${host}/api/agent/chat-expert`, {
+          // 2. Fetch response from pipeline (clean architecture)
+          const pipelineRes = await fetch(`${protocol}://${host}/api/agent/pipeline/chat`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -69,68 +92,77 @@ chatApp.post("/", async (c) => {
             },
             body: JSON.stringify({
               query: lastMessage,
-              usePrivateBrain: true,
+              sessionId: "sse-session",
               lang: selectedLang,
             }),
             signal: AbortSignal.timeout(180_000),
           });
 
-          if (!localRes.ok) {
-            throw new Error(`Local Rottra Expert AI returned HTTP ${localRes.status}`);
+          if (!pipelineRes.ok) {
+            throw new Error(`Pipeline returned HTTP ${pipelineRes.status}`);
           }
 
-          const responseText = await localRes.text();
+          const responseText = await pipelineRes.text();
           let data: any = {};
           try {
             data = JSON.parse(responseText);
           } catch (err: any) {
-            throw new Error(`Unexpected non-JSON response from chat-expert: "${responseText.substring(0, 200)}..." (${err.message})`);
+            throw new Error(`Unexpected non-JSON response from pipeline: "${responseText.substring(0, 200)}..." (${err.message})`);
           }
-          const reply: string = data.reply || "Dạ hoan hỉ thưa Sếp, hệ thống nội bộ của em chưa xử lý được câu hỏi này.";
 
-          // Speed up the streaming (chunking multiple characters) to avoid 15s+ typing delay
+          let reply: string = data.reply || "Dạ hoan hoi thua Sep, he thong noi bo cua em chua xu ly duoc cau hoi nay.";
+          // Remove any nested <think>...</think> block from the reply
+          reply = reply.replace(/<think>[\s\S]*?<\/think>\s*/gi, "");
+
+          // 3. Stream reply tokens (chunked for performance)
           const chars = Array.from(reply);
           const chunkSize = 4;
           for (let i = 0; i < chars.length; i += chunkSize) {
             const chunk = chars.slice(i, i + chunkSize).join("");
-            controller.enqueue(encoder.encode(chunk));
-            await new Promise((r) => setTimeout(r, 2)); // ultra-fast 2ms per chunk
+            sendEvent({ type: "token", data: chunk });
+            await new Promise((r) => setTimeout(r, 2));
           }
 
-          // Stream suggestions if available
+          // 4. Stream structured data
           if (data.suggestions && data.suggestions.length > 0) {
-            controller.enqueue(encoder.encode(`\n[SUGGESTIONS:${JSON.stringify(data.suggestions)}]`));
+            sendEvent({ type: "suggestions", data: JSON.stringify(data.suggestions) });
           }
 
-          // Stream products if available
           if (data.results && data.results.length > 0) {
-            controller.enqueue(encoder.encode(`\n[PRODUCTS_START]${JSON.stringify(data.results)}[PRODUCTS_END]`));
+            sendEvent({ type: "products", data: JSON.stringify(data.results) });
           }
 
-          // Proactive suggestions based on context
+          // 5. Proactive suggestions
           const proactiveSuggestions = generateProactiveSuggestions(lastMessage, data.intent || "UNKNOWN");
           if (proactiveSuggestions.length > 0) {
-            controller.enqueue(encoder.encode(`\n[PROACTIVE:${JSON.stringify(proactiveSuggestions)}]`));
+            sendEvent({ type: "proactive", data: JSON.stringify(proactiveSuggestions) });
           }
+
           if (data.replyB) {
-            controller.enqueue(encoder.encode(`\n[REPLY_B:${JSON.stringify(data.replyB)}]`));
+            sendEvent({ type: "reply_b", data: JSON.stringify(data.replyB) });
           }
+
+          // 6. Signal completion
+          sendEvent({ type: "done", data: "" });
         } catch (error: any) {
-          console.error("Lỗi bên trong ReadableStream:", error.message);
-          controller.enqueue(encoder.encode(`\n\n❌ [Lỗi Hệ Thống]: ${error.message}`));
+          console.error("SSE Stream Error:", error.message);
+          sendEvent({ type: "error", data: error.message });
         } finally {
           controller.close();
         }
       },
     });
 
-    return new Response(mockStream, {
+    return new Response(sseStream, {
       headers: {
-        "Content-Type": "text/plain; charset=utf-8",
+        "Content-Type": "text/event-stream; charset=utf-8",
+        "Cache-Control": "no-cache, no-transform",
+        Connection: "keep-alive",
+        "X-Accel-Buffering": "no",
       },
     });
   } catch (error: any) {
-    console.error("Lỗi Offline AI Chat API:", error.message);
+    console.error("Offline AI Chat API Error:", error.message);
     return c.json({ success: false, error: error.message }, 500);
   }
 });
@@ -146,39 +178,39 @@ function generateProactiveSuggestions(query: string, intent: string): string[] {
   // Time-based suggestions
   const hour = new Date().getHours();
   if (hour >= 6 && hour < 12) {
-    suggestions.push("Cập nhật giá thị trường hôm nay");
+    suggestions.push("Cap nhat gia thi truong hom nay");
   } else if (hour >= 18 && hour < 22) {
-    suggestions.push("Tóm tắt hoạt động hôm nay");
+    suggestions.push("Tom tat hoat dong hom nay");
   }
 
   // Intent-based suggestions
-  if (intent === "WEATHER_SEASON" || /thời tiết|weather|mưa|nắng/i.test(q)) {
-    suggestions.push("Dự báo thời tiết 3 ngày tới");
-    suggestions.push("Lịch gieo trồng phù hợp");
-  } else if (intent === "MARKET_PRICE" || /giá|bao nhiêu|cost|price/i.test(q)) {
-    suggestions.push("So sánh giá với tuần trước");
-    suggestions.push("Dự báo xu hướng giá");
-  } else if (intent === "SMART_AGRI" || /nông nghiệp|trồng|canh tác/i.test(q)) {
-    suggestions.push("Kỹ thuật phòng trừ sâu bệnh");
-    suggestions.push("Lịch bón phân theo mùa");
-  } else if (intent === "ORDER_PAYMENT" || /mua|order|đặt hàng/i.test(q)) {
-    suggestions.push("Kiểm tra trạng thái đơn hàng");
-    suggestions.push("Chính sách đổi trả");
-  } else if (intent === "FINANCE_COST" || /chi phí|lợi nhuận|ROI/i.test(q)) {
-    suggestions.push("Tính toán chi phí sản xuất");
-    suggestions.push("Phân tích lợi nhuận hộ nông dân");
+  if (intent === "WEATHER_SEASON" || /thoi tiet|weather|mua|nang/i.test(q)) {
+    suggestions.push("Du bao thoi tiet 3 ngay toi");
+    suggestions.push("Lich gieo trong phu hop");
+  } else if (intent === "MARKET_PRICE" || /gia|bao nhieu|cost|price/i.test(q)) {
+    suggestions.push("So sanh gia voi tuan truoc");
+    suggestions.push("Du bao xu huong gia");
+  } else if (intent === "SMART_AGRI" || /nong nghiep|trong|canh tac/i.test(q)) {
+    suggestions.push("Ky thuat phong tru sau benh");
+    suggestions.push("Lich bon phan theo mua");
+  } else if (intent === "ORDER_PAYMENT" || /mua|order|dat hang/i.test(q)) {
+    suggestions.push("Kiem tra trang thai don hang");
+    suggestions.push("Chinh sach doi tra");
+  } else if (intent === "FINANCE_COST" || /chi phi|loi nhuan|ROI/i.test(q)) {
+    suggestions.push("Tinh toan chi phi san xuat");
+    suggestions.push("Phan tich loi nhuan ho nong dan");
   }
 
   // Product mention suggestions
-  if (/cà phê|coffee/i.test(q)) {
-    suggestions.push("Giá cà phê hôm nay");
-    suggestions.push("Kỹ thuật trồng cà phê");
-  } else if (/lúa|rice/i.test(q)) {
-    suggestions.push("Giá lúa gạo thị trường");
-    suggestions.push("Kỹ thuật trồng lúa");
-  } else if (/tiêu|pepper/i.test(q)) {
-    suggestions.push("Giá hồ tiêu xuất khẩu");
-    suggestions.push("Bệnh hại trên tiêu");
+  if (/ca phe|coffee/i.test(q)) {
+    suggestions.push("Gia ca phe hom nay");
+    suggestions.push("Ky thuat trong ca phe");
+  } else if (/lua|rice/i.test(q)) {
+    suggestions.push("Gia lua gao thi truong");
+    suggestions.push("Ky thuat trong lua");
+  } else if (/tieu|pepper/i.test(q)) {
+    suggestions.push("Gia ho tieu xuat khau");
+    suggestions.push("Benh hai tren tieu");
   }
 
   // Deduplicate and limit

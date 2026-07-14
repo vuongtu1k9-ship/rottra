@@ -29,7 +29,7 @@ export class TSIntentClassifier {
       corpus.push(item.text);
     }
     this.intents = Array.from(uniqueIntents).sort();
-    
+
     console.log(`[TS-AI] Nhận diện được ${this.intents.length} Intent:`, this.intents);
 
     // 2. Học từ vựng (Fit Vectorizer)
@@ -39,12 +39,12 @@ export class TSIntentClassifier {
     const inputSize = this.vectorizer.getVocabSize();
     const hiddenSize = Math.floor(inputSize * 1.5); // Lớp ẩn lớn hơn 1 chút
     const outputSize = this.intents.length;
-    
+
     this.mlp = new MLPNetwork(inputSize, hiddenSize, outputSize, learningRate);
 
     // 4. Chuẩn bị dữ liệu huấn luyện (Vector hóa Text và One-Hot Encoding Intent)
-    const trainInputs = data.map(item => this.vectorizer.vectorize(item.text));
-    const trainOutputs = data.map(item => {
+    const trainInputs = data.map((item) => this.vectorizer.vectorize(item.text));
+    const trainOutputs = data.map((item) => {
       const oneHot = new Array(outputSize).fill(0);
       oneHot[this.intents.indexOf(item.intent)] = 1;
       return oneHot;
@@ -58,7 +58,7 @@ export class TSIntentClassifier {
       for (let i = 0; i < trainInputs.length; i++) {
         // Lan truyền tiến để tính loss trước khi train
         const prediction = this.mlp.predict(trainInputs[i]);
-        
+
         // Tính Cross Entropy Loss: -sum(target * log(prediction))
         let loss = 0;
         for (let j = 0; j < outputSize; j++) {
@@ -101,7 +101,7 @@ export class TSIntentClassifier {
 
     return {
       intent: this.intents[maxIdx],
-      confidence: maxProb
+      confidence: maxProb,
     };
   }
 }

@@ -1,0 +1,268 @@
+{
+  "timestamp": "2026-07-14T02:30:56.356Z",
+  "config": {
+    "topK": 5,
+    "kValues": [
+      1,
+      3,
+      5,
+      10
+    ],
+    "maxQueries": 10,
+    "skipDomains": [
+      "greeting",
+      "general"
+    ]
+  },
+  "summary": {
+    "totalQueries": 10,
+    "avgPrecisionAt3": 0.7,
+    "avgRecallAt3": 0.40476190476190477,
+    "avgMRR": 0.7166666666666667,
+    "avgNDCG": 0.7643359178905536,
+    "categoryAccuracy": 0,
+    "avgLatencyMs": 687.3
+  },
+  "results": [
+    {
+      "queryId": "g001",
+      "query": "Gia lua hom nay bao nhieu?",
+      "difficulty": "easy",
+      "domain": "market_price",
+      "retrievedCount": 7,
+      "precisionAtK": {
+        "1": 1,
+        "3": 1,
+        "5": 1,
+        "10": 0.7
+      },
+      "recallAtK": {
+        "1": 0.14285714285714285,
+        "3": 0.42857142857142855,
+        "5": 0.7142857142857143,
+        "10": 1
+      },
+      "mrr": 1,
+      "ndcg": 1,
+      "categoryMatch": false,
+      "keywordOverlap": 1,
+      "latencyMs": 5694
+    },
+    {
+      "queryId": "g002",
+      "query": "Mua vu trong lua o Dong bang song Cuu Long",
+      "difficulty": "easy",
+      "domain": "agriculture",
+      "retrievedCount": 7,
+      "precisionAtK": {
+        "1": 0,
+        "3": 0.6666666666666666,
+        "5": 0.8,
+        "10": 0.6
+      },
+      "recallAtK": {
+        "1": 0,
+        "3": 0.3333333333333333,
+        "5": 0.6666666666666666,
+        "10": 1
+      },
+      "mrr": 0.5,
+      "ndcg": 0.6608397947263839,
+      "categoryMatch": false,
+      "keywordOverlap": 1,
+      "latencyMs": 129
+    },
+    {
+      "queryId": "g003",
+      "query": "Cach phong chong sau benh tren cay lua",
+      "difficulty": "easy",
+      "domain": "agriculture",
+      "retrievedCount": 7,
+      "precisionAtK": {
+        "1": 0,
+        "3": 0,
+        "5": 0,
+        "10": 0.1
+      },
+      "recallAtK": {
+        "1": 0,
+        "3": 0,
+        "5": 0,
+        "10": 1
+      },
+      "mrr": 0.16666666666666666,
+      "ndcg": 0,
+      "categoryMatch": false,
+      "keywordOverlap": 1,
+      "latencyMs": 117
+    },
+    {
+      "queryId": "g004",
+      "query": "Phan bon nao tot cho cay lua?",
+      "difficulty": "easy",
+      "domain": "agriculture",
+      "retrievedCount": 7,
+      "precisionAtK": {
+        "1": 1,
+        "3": 1,
+        "5": 1,
+        "10": 0.7
+      },
+      "recallAtK": {
+        "1": 0.14285714285714285,
+        "3": 0.42857142857142855,
+        "5": 0.7142857142857143,
+        "10": 1
+      },
+      "mrr": 1,
+      "ndcg": 1,
+      "categoryMatch": false,
+      "keywordOverlap": 1,
+      "latencyMs": 136
+    },
+    {
+      "queryId": "g005",
+      "query": "Tuoi tu dong cho ruong lua",
+      "difficulty": "easy",
+      "domain": "agriculture",
+      "retrievedCount": 7,
+      "precisionAtK": {
+        "1": 1,
+        "3": 1,
+        "5": 1,
+        "10": 0.7
+      },
+      "recallAtK": {
+        "1": 0.14285714285714285,
+        "3": 0.42857142857142855,
+        "5": 0.7142857142857143,
+        "10": 1
+      },
+      "mrr": 1,
+      "ndcg": 1,
+      "categoryMatch": false,
+      "keywordOverlap": 1,
+      "latencyMs": 158
+    },
+    {
+      "queryId": "g006",
+      "query": "Gia ca phe the gioi hom nay",
+      "difficulty": "easy",
+      "domain": "market_price",
+      "retrievedCount": 7,
+      "precisionAtK": {
+        "1": 0,
+        "3": 0.6666666666666666,
+        "5": 0.8,
+        "10": 0.6
+      },
+      "recallAtK": {
+        "1": 0,
+        "3": 0.3333333333333333,
+        "5": 0.6666666666666666,
+        "10": 1
+      },
+      "mrr": 0.5,
+      "ndcg": 0.6608397947263839,
+      "categoryMatch": false,
+      "keywordOverlap": 1,
+      "latencyMs": 129
+    },
+    {
+      "queryId": "g007",
+      "query": "Ky thuat trong ca phe Robusta",
+      "difficulty": "easy",
+      "domain": "agriculture",
+      "retrievedCount": 7,
+      "precisionAtK": {
+        "1": 0,
+        "3": 0.6666666666666666,
+        "5": 0.8,
+        "10": 0.6
+      },
+      "recallAtK": {
+        "1": 0,
+        "3": 0.3333333333333333,
+        "5": 0.6666666666666666,
+        "10": 1
+      },
+      "mrr": 0.5,
+      "ndcg": 0.6608397947263839,
+      "categoryMatch": false,
+      "keywordOverlap": 1,
+      "latencyMs": 135
+    },
+    {
+      "queryId": "g008",
+      "query": "Drone phun thuoc tru sau",
+      "difficulty": "easy",
+      "domain": "technology",
+      "retrievedCount": 7,
+      "precisionAtK": {
+        "1": 1,
+        "3": 0.3333333333333333,
+        "5": 0.2,
+        "10": 0.1
+      },
+      "recallAtK": {
+        "1": 1,
+        "3": 1,
+        "5": 1,
+        "10": 1
+      },
+      "mrr": 1,
+      "ndcg": 1,
+      "categoryMatch": false,
+      "keywordOverlap": 1,
+      "latencyMs": 130
+    },
+    {
+      "queryId": "g009",
+      "query": "Cam bien nhiet do cho nha luoi",
+      "difficulty": "easy",
+      "domain": "technology",
+      "retrievedCount": 7,
+      "precisionAtK": {
+        "1": 1,
+        "3": 1,
+        "5": 1,
+        "10": 0.7
+      },
+      "recallAtK": {
+        "1": 0.14285714285714285,
+        "3": 0.42857142857142855,
+        "5": 0.7142857142857143,
+        "10": 1
+      },
+      "mrr": 1,
+      "ndcg": 1,
+      "categoryMatch": false,
+      "keywordOverlap": 1,
+      "latencyMs": 122
+    },
+    {
+      "queryId": "g010",
+      "query": "Gia gao xuat khau Viet Nam",
+      "difficulty": "easy",
+      "domain": "market_price",
+      "retrievedCount": 7,
+      "precisionAtK": {
+        "1": 0,
+        "3": 0.6666666666666666,
+        "5": 0.8,
+        "10": 0.6
+      },
+      "recallAtK": {
+        "1": 0,
+        "3": 0.3333333333333333,
+        "5": 0.6666666666666666,
+        "10": 1
+      },
+      "mrr": 0.5,
+      "ndcg": 0.6608397947263839,
+      "categoryMatch": false,
+      "keywordOverlap": 1,
+      "latencyMs": 123
+    }
+  ]
+}

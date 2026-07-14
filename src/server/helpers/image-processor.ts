@@ -1,4 +1,8 @@
+import { Deterministic } from "~/shared/utils/rng";
 import { randomBytes } from "node:crypto";
+import { createLogger } from "~/shared/logger";
+
+const log = createLogger("helpers/image-processor");
 
 type ImageStyle = "watercolor" | "sketch" | "cyberpunk" | "oil" | "realism" | "corrupt" | "restore_blind";
 
@@ -14,7 +18,7 @@ async function getSharp() {
 async function generatePaperTexture(width: number, height: number): Promise<Buffer> {
   const noise = Buffer.alloc(width * height * 3);
   for (let i = 0; i < noise.length; i += 3) {
-    const val = Math.round(128 + (Math.random() * 24 - 12));
+    const val = Math.round(128 + (Deterministic.random() * 24 - 12));
     noise[i] = noise[i + 1] = noise[i + 2] = val;
   }
   const sharp = await getSharp();
@@ -129,20 +133,20 @@ export async function corruptImage(inputPath: string, outputPath: string): Promi
 
   let svgContent = `<svg width="${width}" height="${height}">`;
   for (let i = 0; i < 15; i++) {
-    const w = Math.floor(20 + Math.random() * (width / 4));
-    const h = Math.floor(20 + Math.random() * (height / 4));
-    const x = Math.floor(Math.random() * (width - w));
-    const y = Math.floor(Math.random() * (height - h));
+    const w = Math.floor(20 + Deterministic.random() * (width / 4));
+    const h = Math.floor(20 + Deterministic.random() * (height / 4));
+    const x = Math.floor(Deterministic.random() * (width - w));
+    const y = Math.floor(Deterministic.random() * (height - h));
     const colors = ["#ff0000", "#00ff00", "#0000ff", "#ffff00", "#00ffff", "#ff00ff", "#000000", "#ffffff"];
-    const color = colors[Math.floor(Math.random() * colors.length)];
-    const opacity = 0.5 + Math.random() * 0.4;
+    const color = colors[Math.floor(Deterministic.random() * colors.length)];
+    const opacity = 0.5 + Deterministic.random() * 0.4;
     svgContent += `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${color}" fill-opacity="${opacity}"/>`;
   }
   for (let i = 0; i < 5; i++) {
-    const x = Math.floor(Math.random() * width);
-    const y = Math.floor(Math.random() * height);
+    const x = Math.floor(Deterministic.random() * width);
+    const y = Math.floor(Deterministic.random() * height);
     svgContent += `<text x="${x}" y="${y}" fill="#00ff00" font-family="monospace" font-size="24">CORRUPT_ERR_0x${Math.floor(
-      Math.random() * 65536,
+      Deterministic.random() * 65536,
     )
       .toString(16)
       .toUpperCase()}</text>`;
@@ -188,7 +192,7 @@ export async function processImage(inputPath: string, outputPath: string, style?
     await sharp(result).toFile(outputPath);
     return true;
   } catch (err: any) {
-    console.error("[ImageProcessor] Error:", err.message);
+    log.error("[ImageProcessor] Error:", err.message);
     return false;
   }
 }
@@ -234,7 +238,7 @@ export async function embedBlindWatermark(inputPath: string, outputPath: string,
 
     return true;
   } catch (err: any) {
-    console.error("[Watermark] Embedding failed:", err.message);
+    log.error("[Watermark] Embedding failed:", err.message);
     return false;
   }
 }
@@ -283,7 +287,7 @@ export async function extractBlindWatermark(inputPath: string): Promise<string |
 
     return null;
   } catch (err: any) {
-    console.error("[Watermark] Extraction failed:", err.message);
+    log.error("[Watermark] Extraction failed:", err.message);
     return null;
   }
 }

@@ -325,27 +325,28 @@ export async function getColorName(hex: string): Promise<string> {
   try {
     const oklch = hexToOklch(h);
 
-    // Call local AI to decide/name the color dynamically
-    try {
-      const { generateTextLocal } = await import("./ai-sdk");
-      const prompt = `Xác định tên màu tiếng Việt cho Hex #${h} (OKLCH: L=${oklch.L.toFixed(2)}, C=${oklch.C.toFixed(2)}, H=${oklch.H.toFixed(2)}°). Trả về duy nhất tên màu sắc chính (ví dụ: Đỏ, Cam, Vàng, Xanh lá, Xanh dương, Tím, Hồng, Nâu, Đen, Trắng, Xám). Không giải thích.`;
+    if (typeof window === "undefined") {
+      try {
+        const sdkModule = "./ai-sdk";
+        const { generateTextLocal } = await import(/* @vite-ignore */ sdkModule);
+        const prompt = `COLOR_HEX:${h}`;
+        const aiResponse = await generateTextLocal({
+          system: "Xử lý màu sắc",
+          prompt,
+          decodingSettings: { temperature: 0.1, maxTokens: 10 },
+          isInternalReasoning: true,
+        });
 
-      const aiResponse = await generateTextLocal({
-        system: "Bạn là AI nhận diện màu sắc từ thông số OKLCH. Chỉ trả về duy nhất 1-2 từ tên màu sắc chính bằng tiếng Việt.",
-        prompt,
-        decodingSettings: { temperature: 0.1, maxTokens: 10 },
-        isInternalReasoning: true,
-      });
-
-      if (aiResponse && aiResponse.text) {
-        const cleanName = aiResponse.text.replace(/[^\p{L}\s]/gu, "").trim();
-        if (cleanName.length > 0 && cleanName.length < 20) {
-          colorNameCache.set(h, cleanName);
-          return cleanName;
+        if (aiResponse && aiResponse.text) {
+          const cleanName = aiResponse.text.replace(/[^\p{L}\s]/gu, "").trim();
+          if (cleanName.length > 0 && cleanName.length < 20) {
+            colorNameCache.set(h, cleanName);
+            return cleanName;
+          }
         }
+      } catch (aiErr) {
+        console.warn("AI color name generation failed, falling back to local OKLCH distance:", aiErr);
       }
-    } catch (aiErr) {
-      console.warn("AI color name generation failed, falling back to OKLCH distance:", aiErr);
     }
 
     const standardColors = [

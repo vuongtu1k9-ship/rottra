@@ -1,3 +1,4 @@
+import { Deterministic } from "~/shared/utils/rng";
 /**
  * Rottra Vision AI Brain (Pure TypeScript)
  * Analyzes the 64-D OKLCH color/texture vector from Frontend to classify image validity.
@@ -11,24 +12,40 @@ export class RottraVisionBrain {
   private inputSize = 64;
   private hiddenSize = 32;
   private outputSize = 1; // Number of learned categories (grows dynamically if we want, but let's start with a generic valid vs invalid, or output per category)
-  
+
   // Weights & Biases
   public weights1: number[][]; // [inputSize][hiddenSize]
-  public bias1: number[];      // [hiddenSize]
+  public bias1: number[]; // [hiddenSize]
   public weights2: number[][]; // [hiddenSize][outputSize]
-  public bias2: number[];      // [outputSize]
+  public bias2: number[]; // [outputSize]
   public categoryMap: string[] = []; // Maps output index to Category Name
 
   constructor() {
-    this.weights1 = Array(this.inputSize).fill(0).map(() => Array(this.hiddenSize).fill(0).map(() => Math.random() * 0.2 - 0.1));
+    this.weights1 = Array(this.inputSize)
+      .fill(0)
+      .map(() =>
+        Array(this.hiddenSize)
+          .fill(0)
+          .map(() => Deterministic.random() * 0.2 - 0.1),
+      );
     this.bias1 = Array(this.hiddenSize).fill(0);
-    this.weights2 = Array(this.hiddenSize).fill(0).map(() => Array(this.outputSize).fill(0).map(() => Math.random() * 0.2 - 0.1));
+    this.weights2 = Array(this.hiddenSize)
+      .fill(0)
+      .map(() =>
+        Array(this.outputSize)
+          .fill(0)
+          .map(() => Deterministic.random() * 0.2 - 0.1),
+      );
     this.bias2 = Array(this.outputSize).fill(0);
     this.loadWeights();
   }
 
-  private relu(x: number) { return Math.max(0, x); }
-  private sigmoid(x: number) { return 1 / (1 + Math.exp(-x)); }
+  private relu(x: number) {
+    return Math.max(0, x);
+  }
+  private sigmoid(x: number) {
+    return 1 / (1 + Math.exp(-x));
+  }
 
   public expandCategories(categories: string[]) {
     for (const cat of categories) {
@@ -37,14 +54,14 @@ export class RottraVisionBrain {
         // Expand output layer
         this.outputSize = this.categoryMap.length;
         for (let h = 0; h < this.hiddenSize; h++) {
-          this.weights2[h].push(Math.random() * 0.2 - 0.1);
+          this.weights2[h].push(Deterministic.random() * 0.2 - 0.1);
         }
         this.bias2.push(0);
       }
     }
   }
 
-  public predict(features: number[]): { category: string, confidence: number }[] {
+  public predict(features: number[]): { category: string; confidence: number }[] {
     if (features.length !== this.inputSize) return [];
     if (this.categoryMap.length === 0) return [];
 
@@ -73,7 +90,7 @@ export class RottraVisionBrain {
     // Softmax probabilities
     const probabilities = output.map((val, i) => ({
       category: this.categoryMap[i],
-      confidence: val / expSum
+      confidence: val / expSum,
     }));
 
     // Sort by confidence
@@ -82,7 +99,7 @@ export class RottraVisionBrain {
 
   public trainSingle(features: number[], targetCategory: string, learningRate = 0.01) {
     if (!this.categoryMap.includes(targetCategory)) this.expandCategories([targetCategory]);
-    
+
     // Forward pass
     const hidden = Array(this.hiddenSize).fill(0);
     const hiddenRaw = Array(this.hiddenSize).fill(0);
@@ -107,7 +124,7 @@ export class RottraVisionBrain {
     }
 
     const targetIndex = this.categoryMap.indexOf(targetCategory);
-    
+
     // Backpropagation (Cross-Entropy + Softmax gradient)
     const outputError = Array(this.outputSize).fill(0);
     for (let o = 0; o < this.outputSize; o++) {
@@ -125,7 +142,7 @@ export class RottraVisionBrain {
         this.weights2[h][o] -= learningRate * outputError[o] * hidden[h];
       }
       hiddenError[h] = hiddenRaw[h] > 0 ? err : 0; // ReLU derivative
-      
+
       // Update B2
       for (let o = 0; o < this.outputSize; o++) {
         this.bias2[o] -= learningRate * outputError[o];
@@ -145,9 +162,11 @@ export class RottraVisionBrain {
 
   public saveWeights() {
     const data = {
-      w1: this.weights1, b1: this.bias1,
-      w2: this.weights2, b2: this.bias2,
-      map: this.categoryMap
+      w1: this.weights1,
+      b1: this.bias1,
+      w2: this.weights2,
+      b2: this.bias2,
+      map: this.categoryMap,
     };
     if (!fs.existsSync(path.dirname(WEIGHTS_PATH))) {
       fs.mkdirSync(path.dirname(WEIGHTS_PATH), { recursive: true });
@@ -159,11 +178,13 @@ export class RottraVisionBrain {
     if (fs.existsSync(WEIGHTS_PATH)) {
       try {
         const data = JSON.parse(fs.readFileSync(WEIGHTS_PATH, "utf-8"));
-        this.weights1 = data.w1; this.bias1 = data.b1;
-        this.weights2 = data.w2; this.bias2 = data.b2;
+        this.weights1 = data.w1;
+        this.bias1 = data.b1;
+        this.weights2 = data.w2;
+        this.bias2 = data.b2;
         this.categoryMap = data.map;
         this.outputSize = this.categoryMap.length;
-      } catch(e) {}
+      } catch (e) {}
     }
   }
 }

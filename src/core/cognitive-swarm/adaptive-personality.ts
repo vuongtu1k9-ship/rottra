@@ -1,3 +1,4 @@
+import { Secure } from "~/shared/utils/rng";
 /**
  * Adaptive Personality Engine
  * Tự điều chỉnh tính cách theo user behavior
@@ -177,7 +178,7 @@ export function createPersonalityProfile(
   return {
     ...base,
     ...customizations,
-    id: `profile_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+    id: `profile_${Date.now()}_${Secure.uuid().slice(2, 6)}`,
     lastUpdated: Date.now(),
   };
 }

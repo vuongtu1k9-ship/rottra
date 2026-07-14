@@ -1,9 +1,12 @@
-import { db } from "~/infra/database/db-pool";
+﻿import { db } from "~/infra/database/db-pool";
+import { createLogger } from "~/shared/logger";
 import { agentTraining } from "~/infra/database/schema";
 import { eq } from "drizzle-orm";
 
+const log = createLogger("api/clean_bad_db");
+
 async function cleanDB() {
-  console.log("Cleaning up hallucinated records from AgentTraining...");
+  log.info("Cleaning up hallucinated records from AgentTraining...");
   try {
     const allRecords = await db.query.agentTraining.findMany();
     let deletedCount = 0;
@@ -16,13 +19,13 @@ async function cleanDB() {
           record.answer.includes("Hệ thống suy luận dự đoán"))
       ) {
         await db.delete(agentTraining).where(eq(agentTraining.id, record.id));
-        console.log(`Deleted bad record for utterance: ${record.utterance}`);
+        log.info(`Deleted bad record for utterance: ${record.utterance}`);
         deletedCount++;
       }
     }
-    console.log(`Successfully deleted ${deletedCount} bad records.`);
+    log.info(`Successfully deleted ${deletedCount} bad records.`);
   } catch (e) {
-    console.error("Error:", e);
+    log.error("Error:", e);
   }
   process.exit(0);
 }

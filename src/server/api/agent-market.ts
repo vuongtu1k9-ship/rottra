@@ -1,6 +1,5 @@
-// ============================================================================
-// STOCK & CRYPTO MARKET DATA (extracted from agent-router.ts)
-// ============================================================================
+import { createLogger } from "~/shared/logger";
+const log = createLogger("agent-market");
 
 export interface StockQuote {
   symbol: string;
@@ -15,37 +14,37 @@ export interface StockQuote {
 }
 
 const defaultStockPrices: Record<string, number> = {
-  ACB: 0,
-  BCM: 0,
-  BID: 0,
-  BVH: 0,
-  CTG: 0,
-  FPT: 0,
-  GAS: 0,
-  GVR: 0,
-  HDB: 0,
-  HPG: 0,
-  MBB: 0,
-  MSN: 0,
-  MWG: 0,
-  PLX: 0,
-  POW: 0,
-  SAB: 0,
-  SHB: 0,
-  SSB: 0,
-  SSI: 0,
-  STB: 0,
-  TCB: 0,
-  TPB: 0,
-  VCB: 0,
-  VHM: 0,
-  VIB: 0,
-  VIC: 0,
-  VJC: 0,
-  VNM: 0,
-  VPB: 0,
-  VRE: 0,
-  BTC: 0,
+  ACB: 27500,
+  BCM: 61200,
+  BID: 49500,
+  BVH: 42300,
+  CTG: 34100,
+  FPT: 110500,
+  GAS: 78900,
+  GVR: 29800,
+  HDB: 23400,
+  HPG: 29500,
+  MBB: 24100,
+  MSN: 68400,
+  MWG: 48900,
+  PLX: 36700,
+  POW: 11200,
+  SAB: 56700,
+  SHB: 11800,
+  SSB: 22100,
+  SSI: 35600,
+  STB: 29400,
+  TCB: 45600,
+  TPB: 18900,
+  VCB: 92400,
+  VHM: 41200,
+  VIB: 21500,
+  VIC: 45600,
+  VJC: 102500,
+  VNM: 67800,
+  VPB: 19500,
+  VRE: 23400,
+  BTC: 1650000000,
 };
 
 export const cachedStockQuotes: Record<string, StockQuote> = {};
@@ -70,25 +69,22 @@ export async function fetchStockQuote(symbol: string, allowLive = true): Promise
   // 1. Check cache
   const cached = cachedStockQuotes[sym];
   const cacheTTL = 120000; // 2 minutes cache
-  if (cached && cached.price && (now - cached.timestamp < cacheTTL)) {
+  if (cached && cached.price && now - cached.timestamp < cacheTTL) {
     return cached;
   }
 
   // 2. Return simulated price update if live fetch is disabled or restricted
   if (!allowLive) {
-    const basePrice = defaultStockPrices[sym] || 50000;
+    const basePrice = defaultStockPrices[sym] && defaultStockPrices[sym] > 0 ? defaultStockPrices[sym] : sym === "BTC" ? 0 : 50000;
     const lastPrice = cached?.price || basePrice;
-    const pctChange = (Math.random() - 0.5) * 0.02;
-    const change = Math.round(lastPrice * pctChange);
-    const newPrice = Math.max(100, lastPrice + change);
 
     const simulated = {
       symbol: sym,
-      price: newPrice,
-      change,
-      percentChange: pctChange * 100,
-      high: Math.round(newPrice * 1.02),
-      low: Math.round(newPrice * 0.98),
+      price: lastPrice,
+      change: 0,
+      percentChange: 0,
+      high: lastPrice,
+      low: lastPrice,
       open: lastPrice,
       previousClose: lastPrice,
       timestamp: now,
@@ -119,23 +115,21 @@ export async function fetchStockQuote(symbol: string, allowLive = true): Promise
       quote = await fetchStockQuoteFallback(sym);
     }
   } catch (e) {
-    console.warn(`[Stock Quote] Error fetching ${sym}:`, e);
+    log.warn(`[Stock Quote] Error fetching ${sym}:`, e);
   }
 
   if (!quote || !quote.price) {
-    const basePrice = defaultStockPrices[sym] || 50000;
+    const defaultVal = defaultStockPrices[sym];
+    const basePrice = defaultVal && defaultVal > 0 ? defaultVal : sym === "BTC" ? 0 : 50000;
     const lastPrice = cached?.price || basePrice;
-    const pctChange = (Math.random() - 0.5) * 0.02;
-    const change = Math.round(lastPrice * pctChange);
-    const newPrice = Math.max(100, lastPrice + change);
 
     quote = {
       symbol: sym,
-      price: newPrice,
-      change,
-      percentChange: pctChange * 100,
-      high: Math.round(newPrice * 1.02),
-      low: Math.round(newPrice * 0.98),
+      price: lastPrice,
+      change: 0,
+      percentChange: 0,
+      high: lastPrice,
+      low: lastPrice,
       open: lastPrice,
       previousClose: lastPrice,
       timestamp: now,
@@ -147,52 +141,8 @@ export async function fetchStockQuote(symbol: string, allowLive = true): Promise
   cachedStockQuotes[sym] = quote;
   return quote;
 }
-
 async function fetchStockQuoteFallback(symbol: string): Promise<StockQuote | null> {
-  const sym = symbol.toUpperCase().replace(".VN", "");
-
-  try {
-    const ssiUrl = `https://iboard-query.ssi.com.vn/stock/${sym}`;
-    const response = await fetchWithTimeout(
-      ssiUrl,
-      {
-        headers: {
-          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-          Referer: "https://iboard.ssi.com.vn/",
-          Origin: "https://iboard.ssi.com.vn",
-          Accept: "application/json, text/plain, */*",
-        },
-      },
-      600,
-    ).catch(() => null);
-
-    if (response && response.ok) {
-      const result = (await response.json()) as any;
-      if (result && result.code === "SUCCESS" && result.data) {
-        const data = result.data;
-        const price = data.matchedPrice || data.expectedMatchedPrice || data.refPrice || null;
-        const parsedPrice = price ? parseFloat(price) : null;
-        const validPrice = parsedPrice !== null && Number.isFinite(parsedPrice) && parsedPrice > 0 ? parsedPrice : null;
-
-        if (validPrice) {
-          return {
-            symbol: sym,
-            price: validPrice,
-            change: data.priceChange || data.expectedPriceChange || 0,
-            percentChange: data.priceChangePercent || data.expectedPriceChangePercent || 0,
-            high: data.highest || null,
-            low: data.lowest || null,
-            open: data.openPrice || null,
-            previousClose: data.priorClosePrice || data.refPrice || null,
-            timestamp: Date.now(),
-          };
-        }
-      }
-    }
-  } catch (err) {
-    console.warn(`[SSI API Error] Failed for ${sym}:`, err);
-  }
-
+  const sym = symbol.toUpperCase();
   const searchSymbol = symbol.includes(".VN") ? symbol : `${symbol}.VN`;
   const apiEndpoints = [
     `https://api.vietstock.vn/intraday/${searchSymbol}`,
@@ -206,7 +156,7 @@ async function fetchStockQuoteFallback(symbol: string): Promise<StockQuote | nul
         {
           headers: { "User-Agent": "Mozilla/5.0 (compatible; Rottra-Agent/1.0)" },
         },
-        400,
+        800,
       ).catch(() => null);
       if (response && response.ok) {
         const data = (await response.json()) as any;
@@ -262,18 +212,17 @@ export async function fetchCryptoQuote(symbol: string, allowLive = true) {
 
   const cached = cachedStockQuotes[sym];
   const cacheTTL = 120000; // 2 minutes
-  if (cached && (now - cached.timestamp < cacheTTL)) {
+  if (cached && now - cached.timestamp < cacheTTL) {
     return cached;
   }
 
+  const basePrice = 0;
+  const cachedPrice = cached?.price || basePrice;
+
   if (!allowLive) {
-    const basePrice = defaultStockPrices[sym] || 25400;
-    const cachedPrice = cached?.price || basePrice;
-    const pctChange = (Math.random() - 0.5) * 0.02;
-    const newPrice = Math.max(1, Math.round(cachedPrice * (1 + pctChange)));
     const simulated = {
       symbol: sym,
-      price: newPrice,
+      price: cachedPrice,
       change: 0,
       percentChange: 0,
       high: null,
@@ -287,68 +236,45 @@ export async function fetchCryptoQuote(symbol: string, allowLive = true) {
   }
 
   try {
-    if (sym === "BTC") {
-      const coingeckoRes = await fetchWithTimeout(
-        "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=vnd",
-        {},
-        800,
-      ).catch(() => null);
-      if (coingeckoRes && coingeckoRes.ok) {
-        const data = (await coingeckoRes.json()) as any;
-        const priceVnd = data.bitcoin?.vnd;
-        if (Number.isFinite(priceVnd) && priceVnd > 0) {
-          return {
-            symbol: "BTC",
-            price: priceVnd,
-            timestamp: Date.now(),
-          };
-        }
-      }
-    }
-    const pair = sym.endsWith("USDT") ? sym : `${sym}USDT`;
-    const res = await fetchWithTimeout(`https://api.binance.com/api/v3/ticker/price?symbol=${pair}`, {}, 800).catch(() => null);
+    let cgId = sym.toLowerCase();
+    if (cgId === "btc") cgId = "bitcoin";
+    if (cgId === "eth") cgId = "ethereum";
+
+    const cgUrl = `https://api.coingecko.com/api/v3/simple/price?ids=${cgId}&vs_currencies=vnd`;
+    const res = await fetchWithTimeout(cgUrl, {}, 2000);
     if (res && res.ok) {
       const data = (await res.json()) as any;
-      const priceVal = parseFloat(data.price);
-      if (Number.isFinite(priceVal) && priceVal > 0) {
-        const finalPrice = sym === "BTC" ? priceVal * 25400 : priceVal;
+      const coinData = data[cgId];
+      if (coinData && coinData.vnd) {
         return {
           symbol: sym,
-          price: finalPrice,
+          price: coinData.vnd,
+          change: 0,
+          percentChange: 0,
+          high: coinData.vnd,
+          low: coinData.vnd,
+          open: coinData.vnd,
+          previousClose: coinData.vnd,
           timestamp: Date.now(),
         };
       }
     }
   } catch (e) {
-    console.error("Crypto fetch error:", e);
+    log.error("Crypto fetch error:", e);
   }
 
-  try {
-    const cgId = sym.toLowerCase();
-    const cgUrl = `https://api.coingecko.com/api/v3/simple/price?ids=${cgId}&vs_currencies=usd&include_24hr_change=true`;
-    const res = await fetchWithTimeout(cgUrl, {}, 800);
-    if (res && res.ok) {
-      const data = (await res.json()) as any;
-      const coinData = data[cgId];
-      if (coinData && coinData.usd) {
-        return {
-          symbol: sym,
-          price: coinData.usd * 25400,
-          changePercent: coinData.usd_24h_change || 0,
-          timestamp: Date.now(),
-        };
-      }
-    }
-  } catch {}
-
-  const basePrice = defaultStockPrices[sym] || 25400;
-  const cachedPrice = cachedStockQuotes[sym]?.price || basePrice;
-  const pctChange = (Math.random() - 0.5) * 0.02;
-  const newPrice = Math.max(1, Math.round(cachedPrice * (1 + pctChange)));
-
-  return {
+  const finalQuote: StockQuote = {
     symbol: sym,
-    price: newPrice,
+    price: cachedPrice,
+    change: 0,
+    percentChange: cachedStockQuotes[sym]?.percentChange || 0,
+    high: cachedPrice,
+    low: cachedPrice,
+    open: cachedPrice,
+    previousClose: cachedPrice,
     timestamp: Date.now(),
   };
+
+  cachedStockQuotes[sym] = finalQuote;
+  return finalQuote;
 }

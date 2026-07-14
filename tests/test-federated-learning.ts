@@ -1,3 +1,4 @@
+import { Deterministic } from "~/shared/utils/rng";
 /**
  * 🧠 ROTTRA — FEDERATED LEARNING TEST
  * Basic test for the FL system.
@@ -57,7 +58,7 @@ async function testFederatedLearning() {
 
   // Generate synthetic data
   const syntheticData = Array.from({ length: 100 }, (_, i) => ({
-    features: Array.from({ length: 256 }, () => Math.random()),
+    features: Array.from({ length: 256 }, () => Deterministic.random()),
     label: i % 20,
   }));
 
@@ -116,7 +117,7 @@ async function testFederatedLearning() {
     const testGradients = Array.from({ length: 5 }, () => {
       const grad = new Float32Array(100);
       for (let i = 0; i < grad.length; i++) {
-        grad[i] = (Math.random() - 0.5) * 0.1;
+        grad[i] = (Deterministic.random() - 0.5) * 0.1;
       }
       return grad;
     });

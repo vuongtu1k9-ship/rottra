@@ -1,5 +1,5 @@
-import fs from "node:fs";
 import path from "node:path";
+import * as fs from "node:fs";
 
 interface CacheEntry {
   botId: string;
@@ -119,13 +119,15 @@ function getCache(): CacheEntry[] {
 function saveCache(cache: CacheEntry[]) {
   try {
     if (!fs.existsSync(CACHE_DIR)) {
-      fs.mkdirSync(CACHE_DIR, { recursive: true });
+      try {
+        fs.mkdirSync(CACHE_DIR, { recursive: true });
+      } catch (mkdirErr: any) {
+        console.error(`[SemanticCache] mkdirSync error for ${CACHE_DIR}:`, mkdirErr);
+      }
     }
-    fs.promises.writeFile(CACHE_FILE, JSON.stringify(cache, null, 2), "utf-8").catch((err) => {
-      console.error("[SemanticCache] Failed to save cache file:", err.message);
-    });
+    fs.writeFileSync(CACHE_FILE, JSON.stringify(cache, null, 2), "utf-8");
   } catch (err: any) {
-    console.error("[SemanticCache] Failed to save cache file:", err.message);
+    console.error("[SemanticCache] Failed to save cache file:", err.message, "path:", CACHE_DIR);
   }
 }
 

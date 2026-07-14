@@ -1,4 +1,4 @@
-import { LRUCache } from "~/core/neural-memory/zero-alloc-lru";
+﻿import { LRUCache } from "~/core/neural-memory/zero-alloc-lru";
 import { ClassificationResult } from "~/core/nlp-cognitive/tokenizer";
 import { db } from "~/infra/database/db-pool";
 import { agentMemory } from "~/infra/database/schema";
@@ -92,13 +92,13 @@ export class SelfCorrectionEngine {
     return classification;
   }
 
-  // Phương thức dùng Neural Net mini để đánh giá sự phân vân và tự học giảm entropy
+  // Phương thức dùng Neural Net mini đánh giá sự phân vân và tự học giảm entropy
   async evaluateAndLearnCertainty(query: string, initialConfidence: number): Promise<number> {
-    const wordCount = query.split(/\s+/).length / 20.0; // scale 0-1
+    const wordCount = Math.min(1.0, query.split(/\s+/).length / 20.0); // scale 0-1
     const lenScore = Math.min(query.length / 100.0, 1.0);
     const features = [[wordCount, initialConfidence, lenScore]];
 
-    // Lan truyền tiến: Dự đoán độ tin cậy (Cong xác suất lên 1)
+    // Lan truyền tiến: Dự đoán độ tin cậy (Cong xác suất lớp 1)
     const prediction = this.certaintyNet.predict(features)[0][0];
 
     // Học: Nếu AI đang phân vân (xác suất ~0.5), ta cung cấp nhãn ảo để nó học cách tự tin hơn
@@ -178,7 +178,7 @@ export class SelfCorrectionEngine {
       }
       console.log("Successfully saved certaintyNet weights to database.");
     } catch (err) {
-      console.error("Failed to save certaintyNet weights to database:", err);
+      console.error("Failed to save certaintyNet weights from database:", err);
     }
   }
 }

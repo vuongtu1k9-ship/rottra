@@ -29,7 +29,7 @@ export class PromptRegistry {
 
   private registerDefaultTemplates(): void {
     this.templates.set("GREETING", {
-      template: `👋 **Chào Sếp! Tôi là Trợ lý AI Siêu nhỏ Rottra.**\n\nChúc Sếp một ngày làm việc tràn đầy năng lượng và gặt hái nhiều thành công! Lõi nhận thức offline của tôi đã sẵn sàng.`,
+      template: `👋 **Chào Sếp! Tôi là hệ thống AI AI Siêu nhỏ Rottra.**\n\nChúc Sếp một ngày làm việc tràn đầy năng lượng và gặt hái nhiều thành công! Lõi nhận thức offline của tôi đã sẵn sàng.`,
       intent: "GREETING",
       variables: [],
     });

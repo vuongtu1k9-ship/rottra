@@ -1,3 +1,4 @@
+import { Deterministic } from "~/shared/utils/rng";
 export interface KnowledgeItem {
   id: string;
   title: string;
@@ -92,6 +93,6 @@ export const AgentKnowledgeBase: Record<string, KnowledgeItem[]> = {
 export function getRandomKnowledge(category: string): KnowledgeItem | undefined {
   const items = AgentKnowledgeBase[category];
   if (!items || items.length === 0) return undefined;
-  const idx = Math.floor(Math.random() * items.length);
+  const idx = Math.floor(Deterministic.random() * items.length);
   return items[idx];
 }

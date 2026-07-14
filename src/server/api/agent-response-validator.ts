@@ -1,4 +1,4 @@
-const MAX_RESPONSE_LENGTH = 8000;
+﻿const MAX_RESPONSE_LENGTH = 8000;
 const MIN_RESPONSE_LENGTH = 5;
 
 const FORBIDDEN_PATTERNS = [
@@ -10,8 +10,6 @@ const FORBIDDEN_PATTERNS = [
   /sk-[a-zA-Z0-9]{20,}/,
   /ghp_[a-zA-Z0-9]{36}/,
   /AKIA[A-Z0-9]{16}/,
-  // Vũ khí Tiêu diệt Ngoại lai: Chặn mọi đường link http/https do AI tự bịa ra
-  /https?:\/\/[^\s"'<>\)]+/gi,
 ];
 
 const HALLUCINATION_MARKERS = [
@@ -35,11 +33,15 @@ export function validateAgentResponse(raw: string, context?: string): Validation
   let sanitized = raw;
 
   if (!sanitized || sanitized.trim().length < MIN_RESPONSE_LENGTH) {
-    return { valid: false, sanitized: "Dạ em chưa có thông tin đầy đủ để trả lời câu hỏi này ạ.", issues: ["empty_response"] };
+    return {
+      valid: false,
+      sanitized: "Dạ em chưa có thông tin đầy đủ để trả lời câu hỏi này ă.",
+      issues: ["empty_response"],
+    };
   }
 
   if (sanitized.length > MAX_RESPONSE_LENGTH) {
-    sanitized = sanitized.slice(0, MAX_RESPONSE_LENGTH) + "\n\n*(Phản hồi bị cắt ngắn do quá dài)*";
+    sanitized = sanitized.slice(0, MAX_RESPONSE_LENGTH) + "\n\n*(Phản hồi bịt cát ngắn do quá dài)*";
     issues.push("truncated");
   }
 

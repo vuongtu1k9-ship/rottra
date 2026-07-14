@@ -19,6 +19,10 @@ const Assembly = lazy(() => import("./views/assembly.tsrx").then((module) => ({ 
 const Cart = lazy(() => import("./views/layout/cart.tsrx").then((module) => ({ default: module.Cart })));
 const Assistant = lazy(() => import("./views/assistant.tsrx").then((m) => ({ default: m.Assistant })));
 const MarketSeoPage = lazy(() => import("./views/market-seo.tsrx").then((m) => ({ default: m.MarketSeoPage })));
+const MotionDetector = lazy(() => import("./views/motion-detector.tsrx").then((m) => ({ default: m.MotionDetector })));
+const MLTraining = lazy(() => import("./views/ai/ml-training.tsrx").then((m) => ({ default: m.MLTraining })));
+const TuringTest = lazy(() => import("./views/ai/turing-test.tsrx").then((m) => ({ default: m.TuringTest })));
+const AIEducation = lazy(() => import("./views/ai/ai-education.tsrx").then((m) => ({ default: m.AIEducation })));
 import "../index.css";
 
 import { toasts } from "./stores/toast-store";
@@ -218,15 +222,9 @@ export component Root(props: RouteSectionProps<unknown>) {
     }
   });
 
-  <Router
-    root={(props) => (
-      <>
-        <RootLayout>
-          {props.children}
-        </RootLayout>
-      </>
-    )}>
+  <Router root={RootLayout}>
     <Route path="/dashboard" component={Protect({ component: Dashboard, adminOnly: true })} />
+    <Route path="/motion-detector" component={Protect({ component: MotionDetector, adminOnly: true })} />
     <Route path="/" component={Home} />
     <Route path="/auth" component={Auth} />
     <Route path="/about" component={About} />
@@ -239,5 +237,8 @@ export component Root(props: RouteSectionProps<unknown>) {
     <Route path="/cart" component={Cart} />
     <Route path="/assistant" component={Protect({ component: Assistant })} />
     <Route path="/market/:productSlug/at/:locationSlug" component={MarketSeoPage} />
+    <Route path="/ai-education" component={AIEducation} />
+    <Route path="/turing-test" component={Protect({ component: TuringTest })} />
+    <Route path="/dashboard/ml-training" component={Protect({ component: MLTraining, adminOnly: true })} />
   </Router>
 }

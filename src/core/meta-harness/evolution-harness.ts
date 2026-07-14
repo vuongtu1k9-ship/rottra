@@ -1,3 +1,4 @@
+import { Deterministic } from "~/shared/utils/rng";
 import { AgentChromosome, initializePopulation, evolvePopulation } from "./genetic-algorithm";
 import { calculateEquilibriumPrice, MarketState } from "../quant-engine/linear-programming";
 import { dynamicProgrammingTradeOptimize, KnapsackItem } from "../quant-engine/dynamic-programming";
@@ -16,8 +17,8 @@ function simulateEconomicCycle(population: AgentChromosome[]) {
   // Môi trường thị trường ngẫu nhiên cho chu kỳ này
   const market: MarketState = {
     currentPrice: 50000,
-    totalSupply: 500 + Math.random() * 2000, // Ngẫu nhiên Cung
-    totalDemand: 1000 + Math.random() * 3000, // Ngẫu nhiên Cầu
+    totalSupply: 500 + Deterministic.random() * 2000, // Ngẫu nhiên Cung
+    totalDemand: 1000 + Deterministic.random() * 3000, // Ngẫu nhiên Cầu
     elasticity: 0.2,
   };
 
@@ -28,15 +29,15 @@ function simulateEconomicCycle(population: AgentChromosome[]) {
   const marketItems: KnapsackItem[] = [];
   for (let i = 0; i < 5; i++) {
     // Giá thực tế dao động quanh BasePrice
-    const cost = Math.max(10000, basePrice * (0.5 + Math.random()));
+    const cost = Math.max(10000, basePrice * (0.5 + Deterministic.random()));
     // Giá trị tương lai (Intrinsic Value) có thể cao hoặc thấp hơn chi phí (Lỗ/Lãi)
-    const futureValue = cost * (0.8 + Math.random() * 0.6);
+    const futureValue = cost * (0.8 + Deterministic.random() * 0.6);
     marketItems.push({
       id: `Item_${i}`,
       name: `Sản phẩm ${i}`,
       cost: cost,
       value: futureValue,
-      qty: Math.floor(Math.random() * 5) + 1,
+      qty: Math.floor(Deterministic.random() * 5) + 1,
     });
   }
 
@@ -48,7 +49,7 @@ function simulateEconomicCycle(population: AgentChromosome[]) {
     // Ảnh hưởng của DNA lên việc ra quyết định
     // Nếu nhạy cảm về giá (PriceSensitive cao) mà giá base quá cao -> Agent từ chối mua
     const isPriceTooHigh = basePrice > 60000;
-    if (isPriceTooHigh && Math.random() < priceSensitivity) {
+    if (isPriceTooHigh && Deterministic.random() < priceSensitivity) {
       // Giữ tiền mặt, không mua bán
       agent.fitnessScore = budget;
       continue;

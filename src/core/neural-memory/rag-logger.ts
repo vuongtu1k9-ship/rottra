@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import { appendFile } from "node:fs/promises";
 import path from "node:path";
 
 export interface RAGTrace {
@@ -105,7 +106,7 @@ export class RAGLogger {
       }) + "\n";
 
     try {
-      fs.promises.appendFile(this.logPath, logEntry, "utf8").catch((err) => {
+      appendFile(this.logPath, logEntry, "utf8").catch((err) => {
         console.error("[RAG OBSERVABILITY] Failed to write trace to file:", err.message);
       });
       console.log(`[RAG OBSERVABILITY] Trace queued to ${this.logPath} (Latency: ${trace.overallLatencyMs}ms)`);

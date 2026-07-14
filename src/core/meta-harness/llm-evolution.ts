@@ -1,3 +1,4 @@
+import { Deterministic } from "~/shared/utils/rng";
 /**
  * LLM-Driven Automated Algorithm Design (Auto-EA)
  * Sử dụng AI để tự tạo hoặc cải thiện thuật toán tiến hóa
@@ -108,12 +109,12 @@ function generateRandomStrategy(dimension: number): EvolutionStrategy {
     },
   ];
 
-  const numOperators = 1 + Math.floor(Math.random() * 3);
+  const numOperators = 1 + Math.floor(Deterministic.random() * 3);
   const operators: EvolutionOperator[] = [];
   for (let i = 0; i < numOperators; i++) {
     operators.push({
-      ...operatorPool[Math.floor(Math.random() * operatorPool.length)],
-      params: { ...operatorPool[Math.floor(Math.random() * operatorPool.length)].params },
+      ...operatorPool[Math.floor(Deterministic.random() * operatorPool.length)],
+      params: { ...operatorPool[Math.floor(Deterministic.random() * operatorPool.length)].params },
     });
   }
 
@@ -121,17 +122,17 @@ function generateRandomStrategy(dimension: number): EvolutionStrategy {
   const replacementMethods: ReplacementMethod[] = ["generational", "steady_state", "elitist"];
 
   return {
-    name: `EA_Strategy_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+    name: `EA_Strategy_${Date.now()}_${Math.floor(Deterministic.random() * 1000)}`,
     description: `Chiến lược tiến hóa ngẫu nhiên với ${numOperators} operators`,
     parameters: {
-      populationSize: 20 + Math.floor(Math.random() * 80),
-      tournamentSize: 2 + Math.floor(Math.random() * 5),
-      elitismRate: Math.random() * 0.3,
-      diversityWeight: Math.random(),
+      populationSize: 20 + Math.floor(Deterministic.random() * 80),
+      tournamentSize: 2 + Math.floor(Deterministic.random() * 5),
+      elitismRate: Deterministic.random() * 0.3,
+      diversityWeight: Deterministic.random(),
     },
     operators,
-    selectionMethod: selectionMethods[Math.floor(Math.random() * selectionMethods.length)],
-    replacementMethod: replacementMethods[Math.floor(Math.random() * replacementMethods.length)],
+    selectionMethod: selectionMethods[Math.floor(Deterministic.random() * selectionMethods.length)],
+    replacementMethod: replacementMethods[Math.floor(Deterministic.random() * replacementMethods.length)],
   };
 }
 
@@ -155,7 +156,7 @@ function evaluateStrategy(
   const fitness: number[] = [];
 
   for (let i = 0; i < popSize; i++) {
-    const individual = bounds.map(([min, max]) => min + Math.random() * (max - min));
+    const individual = bounds.map(([min, max]) => min + Deterministic.random() * (max - min));
     population.push(individual);
     fitness.push(benchmarkFn(individual));
   }
@@ -172,7 +173,7 @@ function evaluateStrategy(
     for (let i = 0; i < parents.length; i++) {
       let child = [...parents[i]];
       for (const op of strategy.operators) {
-        if (Math.random() < (op.params.rate || 0.1)) {
+        if (Deterministic.random() < (op.params.rate || 0.1)) {
           child = applyOperator(child, op, bounds);
         }
       }
@@ -209,7 +210,7 @@ function selectParents(population: number[][], fitness: number[], method: Select
       for (let i = 0; i < NP; i++) {
         let best = -1;
         for (let t = 0; t < tournamentSize; t++) {
-          const idx = Math.floor(Math.random() * NP);
+          const idx = Math.floor(Deterministic.random() * NP);
           if (best === -1 || fitness[idx] > fitness[best]) {
             best = idx;
           }
@@ -222,7 +223,7 @@ function selectParents(population: number[][], fitness: number[], method: Select
     case "roulette": {
       const totalFitness = fitness.reduce((a, b) => a + Math.max(0, b), 0);
       for (let i = 0; i < NP; i++) {
-        let r = Math.random() * totalFitness;
+        let r = Deterministic.random() * totalFitness;
         for (let j = 0; j < NP; j++) {
           r -= Math.max(0, fitness[j]);
           if (r <= 0) {
@@ -242,7 +243,7 @@ function selectParents(population: number[][], fitness: number[], method: Select
       });
       const totalRank = (NP * (NP + 1)) / 2;
       for (let i = 0; i < NP; i++) {
-        let r = Math.random() * totalRank;
+        let r = Deterministic.random() * totalRank;
         for (let j = 0; j < NP; j++) {
           r -= ranks[j];
           if (r <= 0) {
@@ -258,7 +259,7 @@ function selectParents(population: number[][], fitness: number[], method: Select
       const sorted = fitness.map((f, i) => ({ f, i })).sort((a, b) => b.f - a.f);
       const topHalf = sorted.slice(0, Math.floor(NP / 2));
       for (let i = 0; i < NP; i++) {
-        const parent = topHalf[Math.floor(Math.random() * topHalf.length)];
+        const parent = topHalf[Math.floor(Deterministic.random() * topHalf.length)];
         parents.push([...population[parent.i]]);
       }
       break;
@@ -267,7 +268,7 @@ function selectParents(population: number[][], fitness: number[], method: Select
     default: {
       // Fallback: random selection
       for (let i = 0; i < NP; i++) {
-        parents.push([...population[Math.floor(Math.random() * NP)]]);
+        parents.push([...population[Math.floor(Deterministic.random() * NP)]]);
       }
     }
   }
@@ -285,9 +286,9 @@ function applyOperator(individual: number[], operator: EvolutionOperator, bounds
   switch (operator.name) {
     case "uniform_crossover": {
       // Self-crossover với một template ngẫu nhiên
-      const template = bounds.map(([min, max]) => min + Math.random() * (max - min));
+      const template = bounds.map(([min, max]) => min + Deterministic.random() * (max - min));
       for (let d = 0; d < dim; d++) {
-        if (Math.random() < operator.params.rate) {
+        if (Deterministic.random() < operator.params.rate) {
           result[d] = template[d];
         }
       }
@@ -296,10 +297,10 @@ function applyOperator(individual: number[], operator: EvolutionOperator, bounds
 
     case "sbx": {
       const eta = operator.params.eta || 2;
-      const template = bounds.map(([min, max]) => min + Math.random() * (max - min));
+      const template = bounds.map(([min, max]) => min + Deterministic.random() * (max - min));
       for (let d = 0; d < dim; d++) {
-        if (Math.random() < 0.5) {
-          const beta = Math.pow(Math.random(), 1 / (eta + 1));
+        if (Deterministic.random() < 0.5) {
+          const beta = Math.pow(Deterministic.random(), 1 / (eta + 1));
           result[d] = 0.5 * ((1 + beta) * individual[d] + (1 - beta) * template[d]);
         }
       }
@@ -309,7 +310,7 @@ function applyOperator(individual: number[], operator: EvolutionOperator, bounds
     case "gaussian": {
       const sigma = operator.params.sigma || 0.1;
       for (let d = 0; d < dim; d++) {
-        result[d] += sigma * (Math.random() * 2 - 1) * bounds[d][1] - bounds[d][0];
+        result[d] += sigma * (Deterministic.random() * 2 - 1) * bounds[d][1] - bounds[d][0];
       }
       break;
     }
@@ -317,7 +318,7 @@ function applyOperator(individual: number[], operator: EvolutionOperator, bounds
     case "polynomial": {
       const eta = operator.params.eta || 20;
       for (let d = 0; d < dim; d++) {
-        const u = Math.random();
+        const u = Deterministic.random();
         const delta = u < 0.5 ? Math.pow(2 * u, 1 / (eta + 1)) - 1 : 1 - Math.pow(2 * (1 - u), 1 / (eta + 1));
         result[d] += delta * (bounds[d][1] - bounds[d][0]);
       }
@@ -328,7 +329,7 @@ function applyOperator(individual: number[], operator: EvolutionOperator, bounds
       const scale = operator.params.scale || 0.05;
       for (let d = 0; d < dim; d++) {
         // Cauchy distribution via inverse CDF
-        const u = Math.random() - 0.5;
+        const u = Deterministic.random() - 0.5;
         result[d] += scale * Math.tan(Math.PI * u) * (bounds[d][1] - bounds[d][0]);
       }
       break;
@@ -463,7 +464,7 @@ Chỉ trả JSON, không giải thích.
       name: `Mutated_${Date.now()}`,
       parameters: {
         ...strategy.parameters,
-        populationSize: (strategy.parameters.populationSize || 30) + Math.floor(Math.random() * 10 - 5),
+        populationSize: (strategy.parameters.populationSize || 30) + Math.floor(Deterministic.random() * 10 - 5),
       },
     };
   }
@@ -566,14 +567,14 @@ export async function autoEADesign(
 
     // Traditional mutations
     while (newStrategies.length < popSize) {
-      const parentIdx = Math.floor(Math.random() * Math.min(5, strategies.length));
+      const parentIdx = Math.floor(Deterministic.random() * Math.min(5, strategies.length));
       const parent = strategies[parentIdx];
 
       // Random mutation
       const mutated = { ...parent.strategy };
       mutated.name = `mutated_${gen}_${newStrategies.length}`;
       if (mutated.operators[0]) {
-        mutated.operators[0].params.rate = (mutated.operators[0].params.rate || 0.5) + (Math.random() - 0.5) * 0.2;
+        mutated.operators[0].params.rate = (mutated.operators[0].params.rate || 0.5) + (Deterministic.random() - 0.5) * 0.2;
       }
 
       newStrategies.push({

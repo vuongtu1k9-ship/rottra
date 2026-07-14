@@ -1,11 +1,15 @@
-import { exec as execCallback } from "node:child_process";
+﻿import { exec as execCallback } from "node:child_process";
+import { createLogger } from "~/shared/logger";
 import util from "node:util";
+import path from "node:path";
 import { Hono } from "hono";
 import { eq } from "drizzle-orm";
 import { db } from "~/infra/database/db-pool";
 import { systemSetting } from "~/infra/database/schema";
 import { aiAuthMiddleware as verifyAuth } from "~/server/middlewares/auth-guard";
 import { z } from "zod";
+
+const log = createLogger("services/wifi-agent-service");
 
 type AppEnv = any;
 
@@ -46,7 +50,7 @@ export function createWifiAgentService() {
       if (!token) continue;
       if (token.includes("/") || token.includes("..") || token.includes("\\")) {
         try {
-          const resolved = require("path").resolve(cwd, token);
+          const resolved = path.resolve(cwd, token);
           if (!resolved.startsWith(cwd)) {
             const isAllowedBin =
               /^\/usr\/bin\/(bun|node|npm|npx|yarn|pnpm|git|vite)$/i.test(token) ||
@@ -67,7 +71,7 @@ export function createWifiAgentService() {
     while ((match = redirectRegex.exec(trimmed)) !== null) {
       const targetPath = match[1];
       try {
-        const resolved = require("path").resolve(cwd, targetPath);
+        const resolved = path.resolve(cwd, targetPath);
         if (!resolved.startsWith(cwd)) {
           return false;
         }
@@ -119,7 +123,7 @@ export function createWifiAgentService() {
         band,
       });
     } catch (error) {
-      console.error("[WiFi Agent] status error:", error);
+      log.error("[WiFi Agent] status error:", error);
       return c.json({ success: false as const, message: "Không thể lấy trạng thái", wifiPerf: false, agentEnabled: false as const });
     }
   });
@@ -251,7 +255,7 @@ export function createWifiAgentService() {
         });
       }
     } catch (error: any) {
-      console.error("[WiFi Agent] apply error:", error);
+      log.error("[WiFi Agent] apply error:", error);
       return c.json({ success: false as const, message: error?.message || "Lỗi áp dụng chính sách Wi-Fi" }, 500);
     }
   });

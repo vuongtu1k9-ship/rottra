@@ -1,7 +1,11 @@
+import { Deterministic } from "~/shared/utils/rng";
+import { createLogger } from "~/shared/logger";
 import { db } from "~/infra/database/db-pool";
 import { aiModels } from "~/infra/database/schema";
 import { eq } from "drizzle-orm";
 import { NeuralNetwork } from "./rl-brain";
+
+const log = createLogger("api/rl-engine");
 
 const EPSILON = 0.2; // Exploration rate
 const MODEL_ID = "rl_product_recommender";
@@ -16,7 +20,7 @@ function encodeString(str: string, size: number): number[] {
   }
   // Normalize
   for (let i = 0; i < size; i++) {
-    arr[i] = (arr[i] % 100) / 50 - 1; 
+    arr[i] = (arr[i] % 100) / 50 - 1;
   }
   return arr;
 }
@@ -43,7 +47,7 @@ async function loadModel(): Promise<NeuralNetwork> {
     try {
       nn.fromJSON(record.weightsJson);
     } catch (e) {
-      console.error("[RL-Engine] Lỗi parse model weights, khởi tạo lại từ đầu.");
+      log.error("[RL-Engine] Lỗi parse model weights, khởi tạo lại từ đầu.");
     }
   }
   cachedModel = nn;
@@ -73,18 +77,18 @@ export async function getQValue(context: any, actionId: string): Promise<number>
 
 export async function updateQValue(context: any, actionId: string, reward: number): Promise<void> {
   const nn = await loadModel();
-  
+
   // Anti-reward hacking can be done before passing reward
   // but for NN, we just train towards the reward directly.
   const input = encodeStateAction(context, actionId);
-  
+
   // Lấy Q-value hiện tại để tính toán Bellman
   const currentQ = nn.predict(input)[0];
   const ALPHA = 0.1;
   const targetQ = currentQ + ALPHA * (reward - currentQ);
 
   nn.train(input, [targetQ]);
-  
+
   // Lưu model (có thể tối ưu hóa lưu định kỳ thay vì mỗi lần)
   await saveModel(nn);
 }
@@ -92,11 +96,11 @@ export async function updateQValue(context: any, actionId: string, reward: numbe
 export async function recommendProduct(context: any, availableProducts: any[]): Promise<any> {
   if (!availableProducts || availableProducts.length === 0) return null;
 
-  const isExplore = Math.random() < EPSILON;
+  const isExplore = Deterministic.random() < EPSILON;
 
   if (isExplore) {
-    const randomIndex = Math.floor(Math.random() * availableProducts.length);
-    console.log(`[RL-Engine] 🎲 Exploration: Chọn ngẫu nhiên sản phẩm bằng Mạng Nơ-ron.`);
+    const randomIndex = Math.floor(Deterministic.random() * availableProducts.length);
+    log.info(`[RL-Engine] 🎲 Exploration: Chọn ngẫu nhiên sản phẩm bằng Mạng Nơ-ron.`);
     return availableProducts[randomIndex];
   } else {
     let bestProduct = availableProducts[0];
@@ -109,7 +113,18 @@ export async function recommendProduct(context: any, availableProducts: any[]): 
         bestProduct = product;
       }
     }
-    console.log(`[RL-Engine] 🎯 Exploitation: Chọn sản phẩm tốt nhất (Q=${maxQ.toFixed(2)}) bằng Mạng Nơ-ron.`);
+    log.info(`[RL-Engine] 🎯 Exploitation: Chọn sản phẩm tốt nhất (Q=${maxQ.toFixed(2)}) bằng Mạng Nơ-ron.`);
     return bestProduct;
   }
+}
+
+export function hashState(context: any): string {
+  const stateStr = JSON.stringify(context || {});
+  // Simple deterministic string hashing
+  let hash = 0;
+  for (let i = 0; i < stateStr.length; i++) {
+    hash = (hash << 5) - hash + stateStr.charCodeAt(i);
+    hash |= 0; // Convert to 32bit integer
+  }
+  return "hash_" + Math.abs(hash).toString(36);
 }

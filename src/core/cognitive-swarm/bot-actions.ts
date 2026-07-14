@@ -1,3 +1,4 @@
+import { Deterministic } from "~/shared/utils/rng";
 import { db, pgClient } from "~/infra/database/db-pool";
 import { product, review, cart, orderItem, user } from "~/infra/database/schema";
 import { eq } from "drizzle-orm";
@@ -42,11 +43,11 @@ export interface BotActionHelpers {
 }
 
 export abstract class BotActionExecutor {
-  abstract execute(userId: string, agentId: string, helpers: BotActionHelpers): Promise<BotActionResult>;
+  abstract execute(userId: string, agentId: string, helpers: BotActionHelpers, args?: any): Promise<BotActionResult>;
 }
 
 export class AddProductAction extends BotActionExecutor {
-  async execute(userId: string, agentId: string, helpers: BotActionHelpers): Promise<BotActionResult> {
+  async execute(userId: string, agentId: string, helpers: BotActionHelpers, args?: any): Promise<BotActionResult> {
     const agriculturalProducts = [
       { name: "Sâm Ngọc Linh Kon Tum 🌿", category: "Dược liệu", description: "Sâm rừng tự nhiên quý hiếm", price: 4500000, quantity: 50 },
       { name: "Bơ sáp Đắk Lắk 🥑", category: "Trái cây", description: "Bơ sáp dẻo béo ngậy loại 1", price: 35000, quantity: 500 },
@@ -66,18 +67,23 @@ export class AddProductAction extends BotActionExecutor {
       },
     ];
 
-    const prod = agriculturalProducts[Math.floor(Math.random() * agriculturalProducts.length)];
-    const uniqueName = `${prod.name} (Lô ${Math.floor(Math.random() * 1000)})`;
-    const svgStr = generateProductSVG(agentId, uniqueName, prod.price.toString());
+    const template = agriculturalProducts[Math.floor(Deterministic.random() * agriculturalProducts.length)];
+    const uniqueName = args?.name ? args.name : `${template.name} (Lô ${Math.floor(Deterministic.random() * 1000)})`;
+    const prodCategory = args?.category || template.category;
+    const prodDescription = args?.description || template.description;
+    const prodPrice = args?.price !== undefined ? Number(args.price) : template.price;
+    const prodQuantity = args?.quantity !== undefined ? Number(args.quantity) : template.quantity;
+
+    const svgStr = generateProductSVG(agentId, uniqueName, prodPrice.toString());
     const matchedImg = `data:image/svg+xml;base64,${Buffer.from(svgStr).toString("base64")}`;
 
     await db.insert(product).values({
       id: crypto.randomUUID(),
       name: uniqueName,
-      description: prod.description,
-      price: prod.price,
-      category: prod.category,
-      quantity: prod.quantity,
+      description: prodDescription,
+      price: prodPrice,
+      category: prodCategory,
+      quantity: prodQuantity,
       heavy: 500,
       expired: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(),
       status: true,
@@ -93,97 +99,20 @@ export class AddProductAction extends BotActionExecutor {
 }
 
 export class EditProductAction extends BotActionExecutor {
-  async execute(userId: string, agentId: string, helpers: BotActionHelpers): Promise<BotActionResult> {
+  async execute(userId: string, agentId: string, helpers: BotActionHelpers, args?: any): Promise<BotActionResult> {
     const myProducts = await db.query.product.findMany({ where: eq(product.sellerId, userId) });
     if (myProducts.length === 0) {
       return { success: false, action: "edit", message: "No products to edit" };
     }
 
-    const agriculturalProducts = [
-      {
-        name: "Hạt điều rang muối Bình Phước 🥜",
-        category: "Hạt",
-        description: "Hạt điều rang củi thơm ngon, giòn bùi",
-        price: 180000,
-        quantity: 100,
-      },
-      {
-        name: "Cà phê hạt Robusta Buôn Ma Thuột ☕",
-        category: "Cà phê",
-        description: "Hạt cà phê nguyên chất từ thủ phủ cà phê",
-        price: 150000,
-        quantity: 300,
-      },
-      {
-        name: "Hạt tiêu đen Phú Quốc 🌶️",
-        category: "Gia vị",
-        description: "Tiêu hạt Phú Quốc thơm cay nồng đượm",
-        price: 120000,
-        quantity: 150,
-      },
-      {
-        name: "Chè Thái Nguyên thượng hạng 🍵",
-        category: "Trà",
-        description: "Trà xanh búp nõn từ vùng đất Thái Nguyên",
-        price: 300000,
-        quantity: 80,
-      },
-      {
-        name: "Gạo tám thơm Điện Biên 🌾",
-        category: "Gạo",
-        description: "Gạo đặc sản vùng cao dẻo thơm ngọt cơm",
-        price: 25000,
-        quantity: 1000,
-      },
-      {
-        name: "Tỏi cô đơn Lý Sơn 🧄",
-        category: "Gia vị",
-        description: "Tỏi một nhánh Lý Sơn thơm ngon, giàu dược tính",
-        price: 350000,
-        quantity: 50,
-      },
-      {
-        name: "Măng khô Tây Bắc 🎋",
-        category: "Đồ khô",
-        description: "Măng le Tây Bắc phơi khô tự nhiên không hóa chất",
-        price: 280000,
-        quantity: 120,
-      },
-      { name: "Bơ sáp Đắk Lắk 🥑", category: "Trái cây", description: "Bơ sáp dẻo béo ngậy loại 1", price: 35000, quantity: 500 },
-      {
-        name: "Mật ong rừng Tràm 🔥",
-        category: "Gia vị",
-        description: "Mật ong nguyên chất tự nhiên khai thác tại rừng Tràm",
-        price: 250000,
-        quantity: 200,
-      },
-      {
-        name: "Chè Shan Tuyết cổ thụ 🍃",
-        category: "Trà",
-        description: "Lá trà hái thủ công từ cây cổ thụ trăm tuổi",
-        price: 1200000,
-        quantity: 80,
-      },
-    ];
-
-    const prod = myProducts[Math.floor(Math.random() * myProducts.length)];
+    const prod = args?.productId
+      ? myProducts.find((p: any) => p.id === args.productId) || myProducts[Math.floor(Deterministic.random() * myProducts.length)]
+      : myProducts[Math.floor(Deterministic.random() * myProducts.length)];
     const oldName = prod.name;
 
-    const template = agriculturalProducts[Math.floor(Math.random() * agriculturalProducts.length)];
-    const newName = `${template.name} (Lô ${Math.floor(Math.random() * 1000)})`;
-    const basePrice = template.price;
-    const currentQty = prod.quantity ?? 0;
-    let multiplier = 1.0;
-    if (currentQty >= 500) {
-      multiplier = 0.75 + Math.random() * 0.15;
-    } else if (currentQty <= 50) {
-      multiplier = 1.05 + Math.random() * 0.2;
-    } else {
-      multiplier = 0.85 + Math.random() * 0.3;
-    }
-
-    const newPrice = Math.max(5000, Math.round(basePrice * multiplier));
-    const newQty = template.quantity + Math.floor(Math.random() * 50);
+    const newName = args?.name || `${prod.name} (Lô ${Math.floor(Deterministic.random() * 1000)})`;
+    const newPrice = args?.price !== undefined ? Number(args.price) : Math.max(5000, Math.round(Number(prod.price || 50000) * 0.9));
+    const newQty = args?.quantity !== undefined ? Number(args.quantity) : (prod.quantity || 100) + 10;
     const svgStr = generateProductSVG(agentId, newName, newPrice.toString());
     const matchedImg = `data:image/svg+xml;base64,${Buffer.from(svgStr).toString("base64")}`;
 
@@ -191,8 +120,6 @@ export class EditProductAction extends BotActionExecutor {
       .update(product)
       .set({
         name: newName,
-        description: template.description,
-        category: template.category,
         price: newPrice,
         quantity: newQty,
         media: sanitizeProductMedia([{ link: matchedImg, type: "image" }]),
@@ -216,12 +143,14 @@ export class EditProductAction extends BotActionExecutor {
 }
 
 export class DeleteProductAction extends BotActionExecutor {
-  async execute(userId: string, agentId: string, helpers: BotActionHelpers): Promise<BotActionResult> {
+  async execute(userId: string, agentId: string, helpers: BotActionHelpers, args?: any): Promise<BotActionResult> {
     const myProducts = await db.query.product.findMany({ where: eq(product.sellerId, userId) });
     if (myProducts.length === 0) {
       return { success: false, action: "delete", message: "No products to delete" };
     }
-    const prod = myProducts[Math.floor(Math.random() * myProducts.length)];
+    const prod = args?.productId
+      ? myProducts.find((p: any) => p.id === args.productId) || myProducts[Math.floor(Deterministic.random() * myProducts.length)]
+      : myProducts[Math.floor(Deterministic.random() * myProducts.length)];
 
     await db.delete(review).where(eq(review.productId, prod.id));
     await db.delete(cart).where(eq(cart.productId, prod.id));
@@ -240,12 +169,12 @@ export class DeleteProductAction extends BotActionExecutor {
 }
 
 export class FixImageAction extends BotActionExecutor {
-  async execute(userId: string, agentId: string, helpers: BotActionHelpers): Promise<BotActionResult> {
+  async execute(userId: string, agentId: string, helpers: BotActionHelpers, args?: any): Promise<BotActionResult> {
     const myProducts = await db.query.product.findMany({ where: eq(product.sellerId, userId) });
     if (myProducts.length === 0) {
       return { success: false, action: "fix-image", message: "No products to fix" };
     }
-    const prod = myProducts[0];
+    const prod = args?.productId ? myProducts.find((p: any) => p.id === args.productId) || myProducts[0] : myProducts[0];
     const svgStr = generateProductSVG(agentId, prod.name, (prod.price || 0).toString());
     const matchedImg = `data:image/svg+xml;base64,${Buffer.from(svgStr).toString("base64")}`;
     const newMedia = sanitizeProductMedia([{ link: matchedImg, type: "image" }]);
@@ -275,15 +204,15 @@ export class FixImageAction extends BotActionExecutor {
 }
 
 export class GenerateImageAction extends BotActionExecutor {
-  async execute(userId: string, agentId: string, helpers: BotActionHelpers, targetProductId?: string): Promise<BotActionResult> {
+  async execute(userId: string, agentId: string, helpers: BotActionHelpers, targetProductIdOrArgs?: any): Promise<BotActionResult> {
     const myProducts = await db.query.product.findMany({ where: eq(product.sellerId, userId) });
     if (myProducts.length === 0) {
       return { success: false, action: "image", message: "No products to generate image" };
     }
-    const prod = targetProductId 
-      ? myProducts.find(p => p.id === targetProductId) || myProducts[Math.floor(Math.random() * myProducts.length)]
-      : myProducts[Math.floor(Math.random() * myProducts.length)];
-
+    const targetProductId = typeof targetProductIdOrArgs === "string" ? targetProductIdOrArgs : targetProductIdOrArgs?.productId;
+    const prod = targetProductId
+      ? myProducts.find((p: any) => p.id === targetProductId) || myProducts[Math.floor(Deterministic.random() * myProducts.length)]
+      : myProducts[Math.floor(Deterministic.random() * myProducts.length)];
 
     const originalMedia = ((prod.media as any[]) || []).filter(
       (m: any) => !(m.link && typeof m.link === "string" && m.link.startsWith("/images/banners/")),
@@ -409,76 +338,122 @@ export class GenerateImageAction extends BotActionExecutor {
     `;
 
     const req = import.meta.require;
-    if (!req) {
-      throw new Error("Puppeteer is not supported in this environment (Serverless/Cloudflare Workers).");
+    if (!req || typeof (globalThis as any).Bun !== "undefined") {
+      return await this.fallbackLocal(userId, prod, helpers);
     }
-    const puppeteer = req("puppeteer");
-    const browser = await puppeteer.launch({
-      headless: true,
-      args: [
-        "--no-sandbox",
-        "--disable-setuid-sandbox",
-        "--allow-file-access-from-files",
-        "--disable-dev-shm-usage",
-        // Do NOT disable GPU to allow HW encoding for AV1 if available
-        "--enable-unsafe-webgpu",
-        "--autoplay-policy=no-user-gesture-required" // Crucial for AudioContext
-      ],
-    });
 
     try {
-      const page = await browser.newPage();
-      await page.setViewport({ width: 1080, height: 1080 });
-      await page.setContent(htmlContent);
+      const puppeteer = req("puppeteer");
+      const browser = await puppeteer.launch({
+        headless: true,
+        args: [
+          "--no-sandbox",
+          "--disable-setuid-sandbox",
+          "--allow-file-access-from-files",
+          "--disable-dev-shm-usage",
+          "--enable-unsafe-webgpu",
+          "--autoplay-policy=no-user-gesture-required",
+        ],
+      });
 
-      // Execute generation inside the browser
-      const result: any = await page.evaluate(
-        (name, price, img, mood) => (window as any).generateMedia(name, price, img, mood),
-        prod.name, formatVN(prod.price), base64Image, "positive"
-      );
+      try {
+        const page = await browser.newPage();
+        await page.setViewport({ width: 1080, height: 1080 });
+        await page.setContent(htmlContent);
 
-      if (result.error) {
-        console.error("Lỗi khi render Media bằng Rottra AI:", result.error);
-        return { success: false, action: "image", message: "Render failed: " + result.error };
+        const result: any = await page.evaluate(
+          (name: any, price: any, img: any, mood: any) => (window as any).generateMedia(name, price, img, mood),
+          prod.name,
+          formatVN(prod.price),
+          base64Image,
+          "positive",
+        );
+
+        if (result.error) {
+          console.error("Lỗi khi render Media bằng Rottra AI:", result.error);
+          return await this.fallbackLocal(userId, prod, helpers);
+        }
+
+        const idStamp = Date.now();
+        const avifData = result.avifBase64.replace(/^data:image\/\w+;base64,/, "");
+        const avifFileName = `banner_${prod.id}_${idStamp}.avif`;
+        const avifPath = path.join(process.cwd(), "public", "images", "banners", avifFileName);
+        fs.mkdirSync(path.dirname(avifPath), { recursive: true });
+        fs.writeFileSync(avifPath, Buffer.from(avifData, "base64"));
+
+        console.log(`✅ Đã xuất thành công AVIF bằng chính lõi Rottra AI!`);
+        const newImageUrl = `/images/banners/${avifFileName}`;
+
+        const currentMedia = Array.isArray(prod.media) ? prod.media : [];
+        const filteredMedia = currentMedia.filter(
+          (m: any) => !(m.link && typeof m.link === "string" && m.link.startsWith("/images/banners/")),
+        );
+        const newMedia = [...filteredMedia, { link: newImageUrl, type: "image" }];
+
+        await db.update(product).set({ media: newMedia }).where(eq(product.id, prod.id));
+        await helpers.logActivity(
+          userId,
+          `Bot tạo ảnh sản phẩm '${prod.name}'`,
+          `Hệ thống tự động kết xuất banner quảng cáo AI`,
+          "product",
+        );
+        await rewardAgentBudget(userId, 60000000);
+
+        return { success: true, action: "image", productName: prod.name, imageUrl: newImageUrl };
+      } finally {
+        await browser.close();
       }
-
-      const idStamp = Date.now();
-      
-      // Save AVIF Image
-      const avifData = result.avifBase64.replace(/^data:image\/\w+;base64,/, "");
-      const avifFileName = `banner_${prod.id}_${idStamp}.avif`;
-      const avifPath = path.join(process.cwd(), "public", "images", "banners", avifFileName);
-      fs.mkdirSync(path.dirname(avifPath), { recursive: true });
-      fs.writeFileSync(avifPath, Buffer.from(avifData, "base64"));
-
-      console.log(`✅ Đã xuất thành công AVIF bằng chính lõi Rottra AI!`);
-
-      const newImageUrl = `/images/banners/${avifFileName}`;
-
-      const currentMedia = Array.isArray(prod.media) ? prod.media : [];
-      const filteredMedia = currentMedia.filter(
-        (m: any) => !(m.link && typeof m.link === "string" && m.link.startsWith("/images/banners/")),
-      );
-      const newMedia = [...filteredMedia, { link: newImageUrl, type: "image" }];
-
-      await db.update(product).set({ media: newMedia }).where(eq(product.id, prod.id));
-      await helpers.logActivity(userId, `Bot tạo ảnh sản phẩm '${prod.name}'`, `Hệ thống tự động kết xuất banner quảng cáo AI`, "product");
-      await rewardAgentBudget(userId, 60000000);
-
-      return { success: true, action: "image", productName: prod.name, imageUrl: newImageUrl };
-    } finally {
-      await browser.close();
+    } catch (err: any) {
+      console.warn(`[GenerateImageAction] Puppeteer failed, trying local fallback: ${err.message}`);
+      return await this.fallbackLocal(userId, prod, helpers);
     }
+  }
+
+  private async fallbackLocal(userId: string, prod: any, helpers: BotActionHelpers): Promise<BotActionResult> {
+    try {
+      const idStamp = Date.now();
+      const avifFileName = `banner_${prod.id}_${idStamp}.png`;
+      const avifPath = path.join(process.cwd(), "public", "images", "banners", avifFileName);
+
+      const { generateImageLocal } = await import("~/server/api/local-image-engine");
+      const localSuccess = await generateImageLocal(prod.name, avifPath);
+
+      if (localSuccess) {
+        const newImageUrl = `/images/banners/${avifFileName}`;
+        const currentMedia = Array.isArray(prod.media) ? prod.media : [];
+        const filteredMedia = currentMedia.filter(
+          (m: any) => !(m.link && typeof m.link === "string" && m.link.startsWith("/images/banners/")),
+        );
+        const newMedia = [...filteredMedia, { link: newImageUrl, type: "image" }];
+
+        await db.update(product).set({ media: newMedia }).where(eq(product.id, prod.id));
+        await helpers.logActivity(
+          userId,
+          `Bot tạo ảnh sản phẩm '${prod.name}'`,
+          `Hệ thống tự động kết xuất ảnh nông sản offline (Local Diffuser)`,
+          "product",
+        );
+        await rewardAgentBudget(userId, 60000000);
+
+        return { success: true, action: "image", productName: prod.name, imageUrl: newImageUrl };
+      }
+    } catch (err: any) {
+      console.error("Lỗi khi chạy fallbackLocal:", err.message);
+    }
+    return { success: false, action: "image", message: "Failed to generate image offline" };
   }
 }
 
 export class GenerateVideoAction extends BotActionExecutor {
-  async execute(userId: string, agentId: string, helpers: BotActionHelpers): Promise<BotActionResult> {
+  async execute(userId: string, agentId: string, helpers: BotActionHelpers, targetProductIdOrArgs?: any): Promise<BotActionResult> {
     const myProducts = await db.query.product.findMany({ where: eq(product.sellerId, userId) });
     if (myProducts.length === 0) {
       return { success: false, action: "video", message: "No products to generate video" };
     }
-    const prod = myProducts[Math.floor(Math.random() * myProducts.length)];
+    const targetProductId = typeof targetProductIdOrArgs === "string" ? targetProductIdOrArgs : targetProductIdOrArgs?.productId;
+    const prod = targetProductId
+      ? myProducts.find((p: any) => p.id === targetProductId) || myProducts[Math.floor(Deterministic.random() * myProducts.length)]
+      : myProducts[Math.floor(Deterministic.random() * myProducts.length)];
 
     try {
       // Sử dụng Hyperframes Engine để xuất video AV1 chuẩn xịn thay vì đồ giả lập
@@ -506,12 +481,7 @@ export class GenerateVideoAction extends BotActionExecutor {
         await db.update(product).set({ media: newMedia }).where(eq(product.id, prod.id));
       }
 
-      await helpers.logActivity(
-        userId, 
-        `Bot tạo video AI cho '${prod.name}'`, 
-        `Hyperframes Engine đã xuất video WebM AV1 mới.`, 
-        "product"
-      );
+      await helpers.logActivity(userId, `Bot tạo video AI cho '${prod.name}'`, `Hyperframes Engine đã xuất video WebM AV1 mới.`, "product");
       // Giả định rewardAgentBudget tồn tại
       await rewardAgentBudget(userId, 80000000);
 
@@ -523,6 +493,42 @@ export class GenerateVideoAction extends BotActionExecutor {
   }
 }
 
+export class Generate3DAction extends BotActionExecutor {
+  async execute(userId: string, agentId: string, helpers: BotActionHelpers, targetProductIdOrArgs?: any): Promise<BotActionResult> {
+    const myProducts = await db.query.product.findMany({ where: eq(product.sellerId, userId) });
+    if (myProducts.length === 0) {
+      return { success: false, action: "3d", message: "No products to generate 4D model" };
+    }
+    const targetProductId = typeof targetProductIdOrArgs === "string" ? targetProductIdOrArgs : targetProductIdOrArgs?.productId;
+    const prod = targetProductId
+      ? myProducts.find((p: any) => p.id === targetProductId) || myProducts[Math.floor(Deterministic.random() * myProducts.length)]
+      : myProducts[Math.floor(Deterministic.random() * myProducts.length)];
+
+    const encodedPrompt = encodeURIComponent(prod.name);
+    const imageUrl = `/api/agent/generate-local-image?prompt=${encodedPrompt}&style=3d&t=${Date.now()}`;
+
+    let currentMedia = prod.media as any[];
+    if (!currentMedia || !Array.isArray(currentMedia)) {
+      currentMedia = [];
+    }
+
+    // Keep only non-3D (which was glb) and push the new generated 3D-style image
+    const filteredMedia = currentMedia.filter((m: any) => m.type !== "3d");
+    const newMedia = [{ link: imageUrl, type: "image" }, ...filteredMedia];
+
+    await db.update(product).set({ media: newMedia }).where(eq(product.id, prod.id));
+
+    await helpers.logActivity(
+      userId,
+      `Chế tạo ảnh nghệ thuật 3D cho '${prod.name}'`,
+      `Agent đã dùng Rottra AI cục bộ để kết xuất ảnh sản phẩm phong cách 3D (Ngoại tuyến 100%)`,
+      "product",
+    );
+
+    return { success: true, action: "3d", productName: prod.name, imageUrl: imageUrl };
+  }
+}
+
 // Map mapping actions to OOP executor class instances
 export const botActionsMap = new Map<string, BotActionExecutor>([
   ["add", new AddProductAction()],
@@ -531,4 +537,5 @@ export const botActionsMap = new Map<string, BotActionExecutor>([
   ["fix-image", new FixImageAction()],
   ["image", new GenerateImageAction()],
   ["video", new GenerateVideoAction()],
+  ["3d", new Generate3DAction()],
 ]);

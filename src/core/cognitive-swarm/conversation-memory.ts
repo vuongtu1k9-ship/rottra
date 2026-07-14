@@ -328,14 +328,124 @@ Tóm tắt:`;
     const ctx = this.getSessionContext(sessionId);
     const parts: string[] = [];
 
-    if (ctx.isReturningUser) parts.push("User là khách quen.");
-    if (ctx.lastActiveProduct) parts.push(`Sản phẩm quan tâm: ${ctx.lastActiveProduct}.`);
-    if (ctx.dominantIntents.length > 0) parts.push(`Chủ đề thường hỏi: ${ctx.dominantIntents.join(", ")}.`);
-    if (ctx.conversationCount > 5) parts.push(`Đã chat ${ctx.conversationCount} tin trong session này.`);
+    if (ctx.isReturningUser) parts.push("User la khach quen.");
+    if (ctx.lastActiveProduct) parts.push(`San pham quan tam: ${ctx.lastActiveProduct}.`);
+    if (ctx.dominantIntents.length > 0) parts.push(`Chu de thuong hoi: ${ctx.dominantIntents.join(", ")}.`);
+    if (ctx.conversationCount > 5) parts.push(`Da chat ${ctx.conversationCount} tin trong session nay.`);
     if (ctx.preferredLanguage !== "vi") parts.push(`User prefer language: ${ctx.preferredLanguage}.`);
 
     return parts.length > 0 ? `\n[User Context]: ${parts.join(" ")}` : "";
   }
+
+  // ══════════════════════════════════════════════════════════════
+  // SESSION HANDOFF: Serialize, restore, and transfer session state
+  // ══════════════════════════════════════════════════════════════
+
+  /**
+   * Serialize session state for persistence or transfer
+   */
+  serializeSession(sessionId: string): SessionHandoff | null {
+    const ctx = this.cache.get(sessionId);
+    const sessionCtx = this.sessionContexts.get(sessionId);
+
+    if (!ctx) return null;
+
+    return {
+      sessionId,
+      messages: ctx.messages,
+      summary: ctx.summary || "",
+      topicKeywords: ctx.topicKeywords,
+      lastAccessTime: ctx.lastAccessTime,
+      sessionContext: sessionCtx || {
+        isReturningUser: false,
+        conversationCount: 0,
+        preferredLanguage: "vi",
+        dominantIntents: [],
+        lastActiveProduct: undefined,
+        lastActivePage: undefined,
+      },
+      serializedAt: Date.now(),
+    };
+  }
+
+  /**
+   * Restore session from serialized state
+   */
+  restoreSession(handoff: SessionHandoff): void {
+    // Restore conversation context
+    this.cache.set(handoff.sessionId, {
+      messages: handoff.messages,
+      summary: handoff.summary,
+      lastAccessTime: handoff.lastAccessTime,
+      topicKeywords: handoff.topicKeywords,
+      topicKeywordSet: new Set(handoff.topicKeywords),
+    });
+
+    // Restore session context
+    this.sessionContexts.set(handoff.sessionId, handoff.sessionContext);
+  }
+
+  /**
+   * Transfer context from one session to another (handoff)
+   * Useful when user switches devices or sessions expire
+   */
+  transferSession(fromSessionId: string, toSessionId: string): boolean {
+    const handoff = this.serializeSession(fromSessionId);
+    if (!handoff) return false;
+
+    // Update session ID and restore
+    handoff.sessionId = toSessionId;
+    handoff.sessionContext.conversationCount = 0; // Reset count for new session
+    handoff.sessionContext.isReturningUser = true; // Mark as returning user
+    this.restoreSession(handoff);
+
+    return true;
+  }
+
+  /**
+   * Export all sessions for a user (for backup/transfer)
+   */
+  exportUserSessions(sessionIds: string[]): SessionHandoff[] {
+    return sessionIds.map((id) => this.serializeSession(id)).filter((h): h is SessionHandoff => h !== null);
+  }
+
+  /**
+   * Import sessions from backup
+   */
+  importUserSessions(handoffs: SessionHandoff[]): number {
+    let imported = 0;
+    for (const handoff of handoffs) {
+      // Only restore if newer than existing
+      const existing = this.cache.get(handoff.sessionId);
+      if (!existing || handoff.lastAccessTime > existing.lastAccessTime) {
+        this.restoreSession(handoff);
+        imported++;
+      }
+    }
+    return imported;
+  }
+
+  /**
+   * Cleanup old sessions (older than maxAgeMs)
+   */
+  cleanupOldSessions(maxAgeMs: number = 7 * 24 * 60 * 60 * 1000): number {
+    const now = Date.now();
+    let cleaned = 0;
+
+    // Note: LRUCache doesn't expose iteration, so this is a placeholder
+    // In production, you'd iterate through the cache and delete old entries
+    return cleaned;
+  }
+}
+
+export interface SessionHandoff {
+  sessionId: string;
+  messages: Message[];
+  summary?: string;
+  topicKeywords: string[];
+  lastAccessTime: number;
+  sessionContext: SessionContext;
+  serializedAt: number;
 }
 
 export interface SessionContext {

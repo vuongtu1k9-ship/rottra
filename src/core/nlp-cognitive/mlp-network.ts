@@ -1,3 +1,4 @@
+import { Deterministic } from "~/shared/utils/rng";
 /**
  * Multi-Layer Perceptron (MLP) Neural Network - Thuần TypeScript
  * Tự xây dựng từ đầu (From Scratch), lấy cảm hứng từ Microsoft AI-For-Beginners.
@@ -14,13 +15,13 @@ export const reluDerivative = (x: number) => (x > 0 ? 1 : 0);
 // Khởi tạo ma trận ngẫu nhiên (Xavier/Glorot Initialization)
 export function randomMatrix(rows: number, cols: number): number[][] {
   const limit = Math.sqrt(6 / (rows + cols));
-  return Array.from({ length: rows }, () => Array.from({ length: cols }, () => (Math.random() * 2 - 1) * limit));
+  return Array.from({ length: rows }, () => Array.from({ length: cols }, () => (Deterministic.random() * 2 - 1) * limit));
 }
 
 // Khởi tạo vector ngẫu nhiên
 export function randomVector(size: number): number[] {
   const limit = Math.sqrt(6 / size);
-  return Array.from({ length: size }, () => (Math.random() * 2 - 1) * limit);
+  return Array.from({ length: size }, () => (Deterministic.random() * 2 - 1) * limit);
 }
 
 // Nhân ma trận với vector (Matrix-Vector dot product)
@@ -44,7 +45,12 @@ export class MLPNetwork {
   private biasO: number[]; // Bias Output Layer
   private learningRate: number;
 
-  constructor(public inputNodes: number, public hiddenNodes: number, public outputNodes: number, learningRate: number = 0.05) {
+  constructor(
+    public inputNodes: number,
+    public hiddenNodes: number,
+    public outputNodes: number,
+    learningRate: number = 0.05,
+  ) {
     this.weightsIH = randomMatrix(hiddenNodes, inputNodes);
     this.weightsHO = randomMatrix(outputNodes, hiddenNodes);
     this.biasH = randomVector(hiddenNodes);

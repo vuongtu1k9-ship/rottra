@@ -1,12 +1,18 @@
-import { db } from "./db-pool";
-import { vectorDocument } from "./schema";
+import { db } from "~/infra/database/db-pool";
+import { product, user } from "~/infra/database/schema";
 
-const docs = await db.select().from(vectorDocument);
-console.log(`Total documents: ${docs.length}`);
-for (const doc of docs) {
-  console.log(`- ID: ${doc.id}, Category: ${doc.category}, Title: ${doc.title}`);
-  if (doc.content.toLowerCase().includes("chuộc") || doc.content.toLowerCase().includes("cống")) {
-    console.log(`  MATCH: ${doc.content.substring(0, 150)}...`);
+async function main() {
+  console.log("Fetching all products...");
+  const prods = await db.select().from(product);
+  console.log(`Found ${prods.length} products.`);
+  for (const p of prods) {
+    console.log(`- Product: ${p.name}`);
+    console.log(`  Seller ID: ${p.sellerId}`);
+    console.log(`  Quantity: ${p.quantity}`);
+    console.log(`  Price: ${p.price}`);
+    console.log(`  Media:`, JSON.stringify(p.media));
+    console.log(`  Status: ${p.status}`);
   }
 }
-process.exit(0);
+
+main().then(() => process.exit(0));

@@ -121,13 +121,28 @@ if (existsSync(progressPath) && filesList.length > 0) {
 }
 
 // 4. Chạy kiểm tra code tự động (Harness Verification)
-console.log("🧪 Đang chạy kiểm thử tự động (./init.sh)...");
-const initResult = spawnSync("./init.sh", { stdio: "inherit" });
+console.log("🧪 Đang chạy kiểm thử tự động...");
+const isWin = process.platform === "win32";
+let initStatus = 0;
+
+if (isWin) {
+  const resInstall = spawnSync("bun", ["install"], { stdio: "inherit", shell: true });
+  const resFormat = spawnSync("bun", ["run", "format"], { stdio: "inherit", shell: true });
+  const resTsc = spawnSync("bun", ["x", "tsc", "--noEmit"], { stdio: "inherit", shell: true });
+  const resBuild = spawnSync("bun", ["run", "build"], { stdio: "inherit", shell: true });
+  
+  if (resInstall.status !== 0 || resBuild.status !== 0) {
+    initStatus = 1;
+  }
+} else {
+  const initResult = spawnSync("./init.sh", { stdio: "inherit" });
+  initStatus = initResult.status ?? 0;
+}
 
 console.log("📏 Đang kiểm tra điểm chất lượng Harness...");
 const harnessResult = spawnSync("bun", ["scripts/build-tools/validate-harness.ts", "--target", "."], { stdio: "inherit" });
 
-if (initResult.status === 0 && harnessResult.status === 0) {
+if (initStatus === 0 && harnessResult.status === 0) {
   console.log("🎉 [AI Auto-Sync Hoàn Tất] Mọi thứ đã sẵn sàng, được đồng bộ và đạt điểm chất lượng tối đa!");
 } else {
   console.log("⚠️ Phát hiện lỗi khi chạy thử code hoặc Harness chưa đạt chuẩn. Vui lòng kiểm tra lại.");

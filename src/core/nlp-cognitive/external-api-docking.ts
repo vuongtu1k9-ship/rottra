@@ -43,7 +43,7 @@ export const fetchGoogleBooks = async (topic: string): Promise<any | null> => {
       author: "Giáo sư AI Rottra",
       description: "Tài liệu lưu trữ nội bộ về cách ứng dụng AI và công nghệ vào tối ưu hóa giá nông sản.",
       year: new Date().getFullYear().toString(),
-    }
+    },
   ];
 };
 
@@ -77,7 +77,7 @@ export const searchWikipedia = async (
       title: `Bài viết về ${query}`,
       snippet: `Trích lục nội bộ từ kho tri thức Offline của Rottra về chủ đề ${query}...`,
       url: `https://rottra.vn/wiki-offline`,
-    }
+    },
   ];
 };
 

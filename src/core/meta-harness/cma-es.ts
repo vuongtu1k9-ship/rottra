@@ -1,3 +1,4 @@
+import { Deterministic } from "~/shared/utils/rng";
 /**
  * CMA-ES (Covariance Matrix Adaptation Evolution Strategy)
  * Tiêu chuẩn vàng cho tối ưu hóa liên tục không cần đạo hàm
@@ -211,8 +212,8 @@ function sampleMultivariateNormal(dimension: number, eigenvectors: number[][], e
   // z ~ N(0, I)
   const z = Array.from({ length: dimension }, () => {
     // Box-Muller transform
-    const u1 = Math.random();
-    const u2 = Math.random();
+    const u1 = Deterministic.random();
+    const u2 = Deterministic.random();
     return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
   });
 

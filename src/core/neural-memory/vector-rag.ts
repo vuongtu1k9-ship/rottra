@@ -60,9 +60,7 @@ export const initRAGEngine = async (forceRefresh = false) => {
   }
 
   const expectedDim = 1024;
-  const hasInvalidDim = dbDocs.some(
-    (d) => d.embedding && Array.isArray(d.embedding) && d.embedding.length !== expectedDim
-  );
+  const hasInvalidDim = dbDocs.some((d) => d.embedding && Array.isArray(d.embedding) && d.embedding.length !== expectedDim);
 
   if (hasInvalidDim) {
     console.warn(`[RAG DB HEAL] Found embeddings with dimension !== ${expectedDim}. Re-seeding database...`);
@@ -888,7 +886,8 @@ export const computeAttentionFusion = (query: string, candidates: RetrievalCandi
   // Trong đó: Q là vector truy vấn, K là vector của từng tài liệu ứng viên
   const rawScores = candidates.map((c) => {
     // Tích vô hướng (Q x K^T)
-    const dotProd = cosineSimilarity(queryVector, c.doc.vector || []);
+    const docVec = soaPool ? Array.from(soaPool.getVector(c.doc.vectorId)) : [];
+    const dotProd = cosineSimilarity(queryVector, docVec);
     // Chuẩn hóa tỷ lệ theo đúng công thức Transformer
     const scaledScore = dotProd / Math.sqrt(d_k);
     return {

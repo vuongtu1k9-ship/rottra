@@ -1,10 +1,11 @@
-/**
+﻿/**
  * 🧠 ROTTRA — FEDERATED LEARNING API ROUTER
  * API endpoints for FL system.
  * Uses Hono framework.
  */
 
 import { Hono } from "hono";
+import { createLogger } from "~/shared/logger";
 import { flCoordinator } from "~/core/federated-learning/coordinator";
 import { flBlockchainAudit } from "~/core/federated-learning/blockchain-audit";
 import { privacyEngine } from "~/core/federated-learning/privacy-engine";
@@ -12,6 +13,8 @@ import { db } from "~/infra/database/db-pool";
 import { flRound, flModelVersion, flNode, flGradientUpdate } from "~/infra/database/schema";
 import { eq, sql } from "drizzle-orm";
 import type { StartRoundRequest, SubmitGradientRequest, FLRoundConfig } from "~/core/federated-learning/types";
+
+const log = createLogger("api/fl-router");
 
 // ── Router ───────────────────────────────────────────────────
 
@@ -38,7 +41,7 @@ flApp.post("/start-round", async (c) => {
       config: round.config,
     });
   } catch (err: any) {
-    console.error("[FL API] Start round error:", err);
+    log.error("[FL API] Start round error:", err);
     return c.json({ success: false, error: err.message }, 500);
   }
 });
@@ -59,7 +62,7 @@ flApp.post("/gradients/submit", async (c) => {
       message: result.message,
     });
   } catch (err: any) {
-    console.error("[FL API] Submit gradient error:", err);
+    log.error("[FL API] Submit gradient error:", err);
     return c.json({ success: false, error: err.message }, 500);
   }
 });
@@ -87,7 +90,7 @@ flApp.get("/global-model", async (c) => {
       weights: model.weights,
     });
   } catch (err: any) {
-    console.error("[FL API] Get model error:", err);
+    log.error("[FL API] Get model error:", err);
     return c.json({ success: false, error: err.message }, 500);
   }
 });
@@ -105,7 +108,7 @@ flApp.get("/status", async (c) => {
       ...status,
     });
   } catch (err: any) {
-    console.error("[FL API] Status error:", err);
+    log.error("[FL API] Status error:", err);
     return c.json({ success: false, error: err.message }, 500);
   }
 });
@@ -131,7 +134,7 @@ flApp.get("/model/:modelId", async (c) => {
       model: model[0],
     });
   } catch (err: any) {
-    console.error("[FL API] Get model error:", err);
+    log.error("[FL API] Get model error:", err);
     return c.json({ success: false, error: err.message }, 500);
   }
 });
@@ -172,7 +175,7 @@ flApp.get("/compare/:modelId1/:modelId2", async (c) => {
       },
     });
   } catch (err: any) {
-    console.error("[FL API] Compare models error:", err);
+    log.error("[FL API] Compare models error:", err);
     return c.json({ success: false, error: err.message }, 500);
   }
 });
@@ -195,7 +198,7 @@ flApp.post("/verify-model", async (c) => {
       errors: result.errors,
     });
   } catch (err: any) {
-    console.error("[FL API] Verify model error:", err);
+    log.error("[FL API] Verify model error:", err);
     return c.json({ success: false, error: err.message }, 500);
   }
 });
@@ -215,7 +218,7 @@ flApp.get("/provenance/:modelId", async (c) => {
       length: chain.length,
     });
   } catch (err: any) {
-    console.error("[FL API] Get provenance error:", err);
+    log.error("[FL API] Get provenance error:", err);
     return c.json({ success: false, error: err.message }, 500);
   }
 });
@@ -236,7 +239,7 @@ flApp.get("/nodes", async (c) => {
       count: nodes.length,
     });
   } catch (err: any) {
-    console.error("[FL API] Get nodes error:", err);
+    log.error("[FL API] Get nodes error:", err);
     return c.json({ success: false, error: err.message }, 500);
   }
 });
@@ -264,7 +267,7 @@ flApp.get("/nodes/:nodeId", async (c) => {
       privacyBudget: budget,
     });
   } catch (err: any) {
-    console.error("[FL API] Get node error:", err);
+    log.error("[FL API] Get node error:", err);
     return c.json({ success: false, error: err.message }, 500);
   }
 });
@@ -291,7 +294,7 @@ flApp.get("/privacy/:nodeId", async (c) => {
       },
     });
   } catch (err: any) {
-    console.error("[FL API] Get privacy error:", err);
+    log.error("[FL API] Get privacy error:", err);
     return c.json({ success: false, error: err.message }, 500);
   }
 });
@@ -315,7 +318,7 @@ flApp.post("/privacy/estimate", async (c) => {
       estimate,
     });
   } catch (err: any) {
-    console.error("[FL API] Privacy estimate error:", err);
+    log.error("[FL API] Privacy estimate error:", err);
     return c.json({ success: false, error: err.message }, 500);
   }
 });
@@ -348,7 +351,7 @@ flApp.get("/rounds", async (c) => {
       offset,
     });
   } catch (err: any) {
-    console.error("[FL API] Get rounds error:", err);
+    log.error("[FL API] Get rounds error:", err);
     return c.json({ success: false, error: err.message }, 500);
   }
 });
@@ -377,7 +380,7 @@ flApp.get("/rounds/:roundId", async (c) => {
       gradientCount: gradients.length,
     });
   } catch (err: any) {
-    console.error("[FL API] Get round error:", err);
+    log.error("[FL API] Get round error:", err);
     return c.json({ success: false, error: err.message }, 500);
   }
 });

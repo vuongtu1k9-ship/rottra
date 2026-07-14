@@ -1,3 +1,4 @@
+import { Deterministic } from "~/shared/utils/rng";
 import { db } from "../db/db";
 import { product, user, agentMemory } from "../db/schema";
 import { eq } from "drizzle-orm";
@@ -23,7 +24,7 @@ async function verifyPrecisionEngine() {
   }
 
   // Chọn ngẫu nhiên 1 Buyer Agent để giả lập hành vi mua hàng
-  const buyer = agents[Math.floor(Math.random() * agents.length)];
+  const buyer = agents[Math.floor(Deterministic.random() * agents.length)];
   const buyerProf = (buyer.profile as any) || {};
   const buyerBudget = buyerProf.budget ?? 10000000;
   console.log(`\n👤 Khách hàng (Buyer): ${buyer.name || buyer.username}`);

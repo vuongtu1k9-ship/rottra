@@ -1,3 +1,4 @@
+import { Deterministic } from "~/shared/utils/rng";
 // Rottra Markov Engine — MDP, HMM, MCMC
 // Agricultural supply chain optimization, demand forecasting, probability sampling
 
@@ -516,8 +517,8 @@ export class MCMCSampler {
   private gaussianRandom(): number {
     let u = 0,
       v = 0;
-    while (u === 0) u = Math.random();
-    while (v === 0) v = Math.random();
+    while (u === 0) u = Deterministic.random();
+    while (v === 0) v = Deterministic.random();
     return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
   }
 
@@ -536,7 +537,7 @@ export class MCMCSampler {
       const logAlpha = proposalLogDensity - currentLogDensity;
 
       // Accept or reject
-      if (Math.log(Math.random()) < logAlpha) {
+      if (Math.log(Deterministic.random()) < logAlpha) {
         current = proposal;
         currentLogDensity = proposalLogDensity;
       }
@@ -587,7 +588,7 @@ export class MCMCSampler {
 
     while (samples.length < count) {
       const x = proposalSampler();
-      const u = Math.random();
+      const u = Deterministic.random();
       const acceptanceProb = targetDensity(x) / (M * proposalDensity(x));
 
       if (u < acceptanceProb) {

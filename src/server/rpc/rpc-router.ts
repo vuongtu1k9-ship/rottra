@@ -1,4 +1,4 @@
-import { Hono } from "hono";
+﻿import { Hono } from "hono";
 import { db } from "~/infra/database/db-pool";
 import { strategyPreset, vietnameseLexicon, bilingualCorpus } from "~/infra/database/schema";
 import { eq, sql } from "drizzle-orm";
@@ -56,7 +56,9 @@ const rpcApp = new Hono()
       `);
       try {
         await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_rl_qtable_state ON "RlQTable" ("stateHash");`);
-      } catch (e) {}
+      } catch (_err) {
+        /* non-critical */
+      }
 
       // 🇻🇳 SEED ADVANCED VIETNAMESE GRAMMAR LEXICON
       const advancedLexicons = [
@@ -331,7 +333,9 @@ const rpcApp = new Hono()
           await db.execute(sql`
             ALTER TABLE "BilingualCorpus" ADD COLUMN ${sql.raw(`"${col}"`)} text;
           `);
-        } catch (_) {}
+        } catch (_err) {
+          /* non-critical */
+        }
       }
 
       let totalCorpusSeed = 0;

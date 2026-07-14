@@ -1,3 +1,4 @@
+import { Deterministic } from "~/shared/utils/rng";
 // Pure TypeScript Multi-Layer Perceptron (MLP) for Q-Learning
 // Designed to be extremely lightweight and run anywhere (Cloudflare Pages/Workers)
 // without native C++ dependencies or WebAssembly.
@@ -26,13 +27,11 @@ export class NeuralNetwork {
   }
 
   private initMatrix(rows: number, cols: number): number[][] {
-    return Array.from({ length: rows }, () => 
-      Array.from({ length: cols }, () => Math.random() * 2 - 1)
-    );
+    return Array.from({ length: rows }, () => Array.from({ length: cols }, () => Deterministic.random() * 2 - 1));
   }
 
   private initArray(size: number): number[] {
-    return Array.from({ length: size }, () => Math.random() * 2 - 1);
+    return Array.from({ length: size }, () => Deterministic.random() * 2 - 1);
   }
 
   private sigmoid(x: number): number {
@@ -144,7 +143,7 @@ export class NeuralNetwork {
       weightsInputHidden: this.weightsInputHidden,
       weightsHiddenOutput: this.weightsHiddenOutput,
       biasHidden: this.biasHidden,
-      biasOutput: this.biasOutput
+      biasOutput: this.biasOutput,
     });
   }
 

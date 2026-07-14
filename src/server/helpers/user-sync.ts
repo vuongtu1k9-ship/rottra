@@ -1,5 +1,8 @@
-import { isServer } from "solid-js/web";
+﻿import { isServer } from "solid-js/web";
+import { createLogger } from "~/shared/logger";
 import { authClient } from "~/client/utils/auth-client";
+
+const log = createLogger("helpers/user-sync");
 
 let syncTimeout: any = null;
 // Profile sync is initially enabled and auto-disables on HTTP failure
@@ -23,11 +26,11 @@ export const syncUserPreferences = async (prefs: Record<string, any>) => {
       });
 
       if (!res.ok) {
-        console.warn("[UserSync] Profile API is not available (static host). Disabling sync.");
+        log.warn("[UserSync] Profile API is not available (static host). Disabling sync.");
         isProfileSyncAvailable = false;
       }
     } catch (e) {
-      console.error("Failed to sync user preferences", e);
+      log.error("Failed to sync user preferences", e);
       isProfileSyncAvailable = false;
     }
   }, 1000);
@@ -50,7 +53,7 @@ export const fetchUserPreferences = async () => {
       isProfileSyncAvailable = false;
     }
   } catch (e) {
-    console.error("Failed to fetch user preferences", e);
+    log.error("Failed to fetch user preferences", e);
     isProfileSyncAvailable = false;
   }
   return null;
@@ -68,7 +71,9 @@ export const loadAndApplyUserPreferences = async () => {
       let localChat: any[] = [];
       try {
         if (localChatStr) localChat = JSON.parse(localChatStr);
-      } catch (e) {}
+      } catch (_err) {
+        /* non-critical */
+      }
 
       let finalChat = prefs.chatHistory || [];
       if (localChat.length > finalChat.length) {
@@ -93,7 +98,7 @@ export const loadAndApplyUserPreferences = async () => {
         localStorage.setItem("agent_bot_chat", JSON.stringify(finalChat));
         window.dispatchEvent(new Event("chat_history_updated"));
       } catch (e: any) {
-        console.error("Lỗi khi lưu lịch sử chat vào trình duyệt:", e);
+        log.error("Lỗi khi lưu lịch sử chat vào trình duyệt:", e);
         if (e.name === "QuotaExceededError") {
           localStorage.removeItem("agent_bot_chat");
           localStorage.setItem("agent_bot_chat", JSON.stringify(finalChat.slice(-50))); // Lấy 50 tin nhắn mới nhất

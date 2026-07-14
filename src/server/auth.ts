@@ -1,17 +1,24 @@
-import "dotenv/config";
+﻿import "dotenv/config";
+import { createLogger } from "~/shared/logger";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "~/infra/database/db-pool";
 import * as schema from "~/infra/database/schema";
 import crypto from "node:crypto";
 
+const log = createLogger("auth");
+
 if (!process.env.BETTER_AUTH_SECRET) {
-  process.env.BETTER_AUTH_SECRET = "some-secure-default-secret-key-1234567890-rottra-app-fallback-secret-5719";
+  log.error("CRITICAL: BETTER_AUTH_SECRET environment variable is not set. Using an insecure fallback.");
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("BETTER_AUTH_SECRET must be set in production");
+  }
+  process.env.BETTER_AUTH_SECRET = "dev-only-insecure-fallback-do-not-use-in-production";
 }
 
 export const auth = betterAuth({
   baseURL: process.env.BETTER_AUTH_URL || "http://localhost:5173/api/auth",
-  secret: process.env.BETTER_AUTH_SECRET || "some-secure-default-secret-key-1234567890-rottra-app",
+  secret: process.env.BETTER_AUTH_SECRET!,
   trustHeaders: true,
   trustedOrigins: [
     "http://localhost:5173",
@@ -21,7 +28,7 @@ export const auth = betterAuth({
     "https://rottra.pages.dev",
   ],
   database: drizzleAdapter(db, {
-    provider: "sqlite",
+    provider: "pg",
     schema,
   }),
   session: {
@@ -55,7 +62,7 @@ export const auth = betterAuth({
               timestamp: new Date().toISOString(),
             });
           } catch (err) {
-            console.error("Failed to log signup activity:", err);
+            log.error("Failed to log signup activity:", err);
           }
         },
       },

@@ -96,7 +96,7 @@ export async function youtubeLearnerReasoning(query: string): Promise<string> {
       // Fallback: trả 500 ký tự đầu của content gốc
       response += rawText.substring(0, 500) + "...";
     }
-    
+
     response += `\n--- [KẾT THÚC ĐẠO LÝ] ---\n\n`;
     response += `Hãy trả lời người dùng dựa trên đạo lý trên. Nhớ giữ nguyên thần thái của bậc minh triết!`;
 
@@ -141,4 +141,42 @@ function extractRelevantSentences(text: string, queryWords: string[], maxSentenc
     .filter((s) => s.matches > 0)
     .slice(0, maxSentences)
     .map((s) => s.sentence);
+}
+
+/**
+ * Tìm kiếm các câu chứa từ vựng trong transcript của kho YouTube RAG
+ * Hỗ trợ pipeline Học Từ Vựng
+ */
+export async function findVocabularyInYouTube(word: string): Promise<string[]> {
+  try {
+    const { flatDocsCache } = await initRAGEngine(false);
+    const ytDocs = flatDocsCache.filter((d) => d.category?.startsWith("YOUTUBE_"));
+    if (!ytDocs.length) return [];
+
+    const wordNorm = cleanAndNormalize(word);
+
+    // Tìm các chunk chứa từ
+    const matches = ytDocs.filter((d) => d.flatText.includes(wordNorm));
+    if (matches.length === 0) return [];
+
+    // Trích xuất câu nguyên bản chứa từ
+    const results: string[] = [];
+    for (const match of matches) {
+      const rawText = match.item.definition || match.flatText;
+      const sentences = rawText.split(/(?<=[.!?])\s+|\n+/).map((s) => s.trim());
+
+      for (const sentence of sentences) {
+        if (cleanAndNormalize(sentence).includes(wordNorm) && sentence.length > 20 && sentence.length < 300) {
+          results.push(`"${sentence}" (Nguồn: ${match.item.title || "YouTube"})`);
+          if (results.length >= 3) break; // Lấy tối đa 3 câu làm ví dụ thực tế
+        }
+      }
+      if (results.length >= 3) break;
+    }
+
+    return results;
+  } catch (e) {
+    console.error("❌ [findVocabularyInYouTube ERROR]", e);
+    return [];
+  }
 }

@@ -1,3 +1,4 @@
+import { Deterministic } from "~/shared/utils/rng";
 /**
  * Meta-Heuristics: Genetic Algorithm (Thuật toán Di truyền)
  * Tối ưu hóa siêu suy diễn dành cho Rottra Agents
@@ -6,6 +7,7 @@
 export interface AgentDNA {
   greed: number; // Lòng tham (0 -> 1.0): Ảnh hưởng đến mức độ ép giá
   vengeance: number; // Thù dai (0 -> 1.0): Ảnh hưởng việc cạch mặt đối thủ
+  malice: number; // Lòng hiểm độc (0 -> 1.0): Ảnh hưởng mức độ gây hại đối thủ
   riskTolerance: number; // Chấp nhận rủi ro (0 -> 1.0): Mua hàng giá cao nhưng rủi ro sinh lời lớn
   priceSensitivity: number; // Độ nhạy giá (0 -> 1.0): Dễ bị thao túng bởi giá rẻ hay không
 }
@@ -18,10 +20,11 @@ export interface AgentChromosome {
 
 export function generateRandomDNA(): AgentDNA {
   return {
-    greed: Math.random(),
-    vengeance: Math.random(),
-    riskTolerance: Math.random(),
-    priceSensitivity: Math.random(),
+    greed: Deterministic.random(),
+    vengeance: Deterministic.random(),
+    malice: Deterministic.random(),
+    riskTolerance: Deterministic.random(),
+    priceSensitivity: Deterministic.random(),
   };
 }
 
@@ -46,10 +49,11 @@ export function initializePopulation(size: number): AgentChromosome[] {
  */
 export function crossover(dna1: AgentDNA, dna2: AgentDNA): AgentDNA {
   return {
-    greed: Math.random() > 0.5 ? dna1.greed : dna2.greed,
-    vengeance: Math.random() > 0.5 ? dna1.vengeance : dna2.vengeance,
-    riskTolerance: Math.random() > 0.5 ? dna1.riskTolerance : dna2.riskTolerance,
-    priceSensitivity: Math.random() > 0.5 ? dna1.priceSensitivity : dna2.priceSensitivity,
+    greed: Deterministic.random() > 0.5 ? dna1.greed : dna2.greed,
+    vengeance: Deterministic.random() > 0.5 ? dna1.vengeance : dna2.vengeance,
+    malice: Deterministic.random() > 0.5 ? dna1.malice : dna2.malice,
+    riskTolerance: Deterministic.random() > 0.5 ? dna1.riskTolerance : dna2.riskTolerance,
+    priceSensitivity: Deterministic.random() > 0.5 ? dna1.priceSensitivity : dna2.priceSensitivity,
   };
 }
 
@@ -59,10 +63,11 @@ export function crossover(dna1: AgentDNA, dna2: AgentDNA): AgentDNA {
  */
 export function mutate(dna: AgentDNA, mutationRate: number = 0.05): AgentDNA {
   const newDna = { ...dna };
-  if (Math.random() < mutationRate) newDna.greed = Math.random();
-  if (Math.random() < mutationRate) newDna.vengeance = Math.random();
-  if (Math.random() < mutationRate) newDna.riskTolerance = Math.random();
-  if (Math.random() < mutationRate) newDna.priceSensitivity = Math.random();
+  if (Deterministic.random() < mutationRate) newDna.greed = Deterministic.random();
+  if (Deterministic.random() < mutationRate) newDna.vengeance = Deterministic.random();
+  if (Deterministic.random() < mutationRate) newDna.malice = Deterministic.random();
+  if (Deterministic.random() < mutationRate) newDna.riskTolerance = Deterministic.random();
+  if (Deterministic.random() < mutationRate) newDna.priceSensitivity = Deterministic.random();
   return newDna;
 }
 
@@ -92,8 +97,8 @@ export function evolvePopulation(
   // 4. Lai ghép & Sinh sản cho đủ sĩ số Quần thể
   while (nextGeneration.length < population.length) {
     // Chọn ngẫu nhiên 2 bố mẹ từ nhóm Tinh anh
-    const parent1 = elites[Math.floor(Math.random() * elites.length)].dna;
-    const parent2 = elites[Math.floor(Math.random() * elites.length)].dna;
+    const parent1 = elites[Math.floor(Deterministic.random() * elites.length)].dna;
+    const parent2 = elites[Math.floor(Deterministic.random() * elites.length)].dna;
 
     // Lai ghép
     let childDNA = crossover(parent1, parent2);

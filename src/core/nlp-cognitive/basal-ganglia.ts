@@ -1,12 +1,38 @@
+import { Deterministic } from "~/shared/utils/rng";
 import { Amygdala } from "./amygdala";
 import { Hippocampus } from "./hippocampus";
 import { runCognitiveArena } from "./meta-evaluator";
 import { MarketSimulator } from "../neural-memory/market-simulator";
+import { IntentClassifier, type IntentResult } from "./intent-classifier";
+import { ReflexTemplates } from "./reflex-templates";
+import { analyzeEmotion, emotionToPrompt, type EmotionResult } from "../cognitive-swarm/emotion-recognition";
+import { classifyRisk, type RiskLevel } from "../cognitive-swarm/ai-risk-classification";
+import { selectBestPersonality, personalityToModifiers } from "../cognitive-swarm/adaptive-personality";
+import { detectDomain, getRelevantKnowledge, generateCrossDomainInsight } from "../cognitive-swarm/cross-domain-learning";
+
+export type BrainSource = "Amygdala" | "Hippocampus" | "PrefrontalCortex" | "Fallback";
+
+export interface BrainAction {
+  response: string;
+  source: BrainSource;
+  intent?: string;
+  /** Thời gian định tuyến (ms) — phục vụ giám sát hiệu năng System 1 (<10ms). */
+  latencyMs?: number;
+}
+
+/** Ngưỡng chống-lạc-đề: dưới mức này, KHÔNG dùng template thương mại. */
+const LOW_CONFIDENCE = 0.35;
+/** Ngưỡng tin cậy tối thiểu để bắn template System 1. */
+const TEMPLATE_CONFIDENCE = 0.5;
+/** Ngưỡng khớp semantic memory (giữ nguyên hành vi cũ). */
+const SEMANTIC_THRESHOLD = 0.25;
 
 export class BasalGanglia {
   /**
-   * Action Selection Mechanism
-   * Routes the cognitive flow based on emotional urgency and memory availability.
+   * Action Selection Mechanism (đã tái thiết kế)
+   * Phân luồng theo Ý ĐỊNH (intent) thay vì độ dài câu:
+   *   L0 Boundary -> L1 Cache -> L2 Classify -> System1 (reflex/template)
+   *   -> L4 Semantic -> System2 (Arena, CHỈ khi intent nặng) -> Fallback chống lạc đề.
    */
   public static async selectAction(
     botId: string,
@@ -15,141 +41,197 @@ export class BasalGanglia {
     price: string,
     query: string,
     userId?: string,
-  ): Promise<{ response: string; source: "Amygdala" | "Hippocampus" | "PrefrontalCortex" | "Fallback" }> {
-    // 0. EXTREMAL PRINCIPLE (Nguyên lý cực hạn) - Boundary Condition Interceptor
-    // Toán học dạy rằng: Hãy xét các trường hợp biên (lớn nhất, nhỏ nhất, dị biệt) trước khi khảo sát không gian tổng thể.
-    const qLen = query.trim().length;
-    // Biên cực tiểu (Minimum Extreme): Chuỗi rỗng hoặc quá ngắn (VD: "?", "a", ".")
+  ): Promise<BrainAction> {
+    const t0 = performance.now();
+    const done = (a: Omit<BrainAction, "latencyMs">): BrainAction => ({
+      ...a,
+      latencyMs: +(performance.now() - t0).toFixed(2),
+    });
+
+    // ── L0: BOUNDARY GUARD (Nguyên lý cực hạn) ──────────────────────────
+    let q = query.trim();
+    const qLen = q.length;
     if (qLen < 2) {
-      return { response: `Dạ ${botName} nghe đây ạ, sếp cần em giúp gì không?`, source: "Amygdala" };
+      return done({ response: `Dạ ${botName} nghe đây ạ, sếp cần em giúp gì không?`, source: "Amygdala", intent: "GREETING" });
     }
-    // Biên cực đại (Maximum Extreme): Nâng lên 24000 ký tự theo yêu cầu cực hạn của Sếp.
-    if (qLen > 24000) {
-      // Truncate to maximum bound and append ellipsis
-      query = query.substring(0, 24000) + "...";
+    if (qLen > 24000) q = q.slice(0, 24000) + "...";
+
+    // ── L1: EMOTION RECOGNITION (System 1 Fast Path) ─────────────────────
+    const emotionResult = analyzeEmotion(q);
+    const emotionalPrefix = emotionToPrompt(emotionResult);
+
+    // ── L2: RISK CLASSIFICATION (Safety Gate) ─────────────────────────────
+    const risk = classifyRisk(query, "Rottra Local Inference");
+    if (risk.level === "critical") {
+      return done({
+        response: "Câu hỏi này vượt quá ngưỡng an toàn. Em không thể trả lời. Sếp cần em hỗ trợ việc khác không ạ?",
+        source: "PrefrontalCortex",
+        intent: "SAFETY_BLOCK",
+      });
     }
 
-    // 1. Check Episodic Memory (Cache) - The fastest known good response
-    const cachedMemory = Hippocampus.recallEpisodicMemory(botId, query);
-    if (cachedMemory) {
-      return { response: cachedMemory, source: "Hippocampus" };
+    // ── L4: INTENT CLASSIFICATION (đồng bộ, <1ms) ───────────────────────
+    const intent: IntentResult = IntentClassifier.classify(q);
+    const ctx = { botId, botName, prodName, price };
+
+    // Bỏ qua phản xạ nhanh của BasalGanglia đối với GREETING để đi vào bộ lọc chào hỏi đặc thù có xoay vòng
+    if (intent.intent === "GREETING") {
+      return done({ response: "", source: "Fallback", intent: "GREETING" });
     }
 
-    // 2. Amygdala Fast-Path (System 1) - High emotional entropy or simple reflex
-    const fastReflex = Amygdala.triggerFastReflex(botId, botName, prodName, price, query);
-    if (fastReflex) {
-      // Store to episodic memory for future identical situations
-      Hippocampus.storeEpisodicMemory(botId, query, fastReflex);
-      return { response: fastReflex, source: "Amygdala" };
+    // ── L3: EPISODIC CACHE (nhanh nhất, in-memory) ──────────────────────
+    const cached = Hippocampus.recallEpisodicMemory(botId, q);
+    if (cached) return done({ response: cached, source: "Hippocampus", intent: "CACHE_HIT" });
+
+    // ── ĐƯỜNG SYSTEM 1: phản xạ nhanh, TUYỆT ĐỐI không chạm LLM ──────────
+    if (intent.system === "SYSTEM_1" && intent.confidence >= TEMPLATE_CONFIDENCE) {
+      const emotionPolarity = emotionResult.sentiment.polarity;
+      const baseProfile: any = {
+        id: `dynamic_${botId}`,
+        name: botName,
+        openness: 0.6,
+        conscientiousness: 0.8,
+        extraversion: 0.4,
+        agreeableness: 0.7,
+        neuroticism: 0.2,
+        formality: emotionResult.urgency === "critical" ? 0.9 : 0.7,
+        verbosity: emotionResult.urgency === "critical" ? 0.8 : 0.6,
+        humor: emotionResult.urgency === "critical" ? 0.1 : emotionPolarity === "positive" ? 0.4 : 0.2,
+        empathy: emotionResult.suggestedResponse.empathy === "high" ? 0.9 : emotionPolarity === "negative" ? 0.8 : 0.5,
+        assertiveness: 0.5,
+        adaptationRate: 0.1,
+        confidence: 0.7,
+        interactionCount: 0,
+        lastUpdated: Date.now(),
+        expertise: { agriculture: 0.8 },
+      };
+      const personalityMods = personalityToModifiers(baseProfile);
+
+      // 1a. Amygdala reflex (persona đặc biệt: chào hỏi / giá / phàn nàn)
+      const reflex = Amygdala.triggerFastReflex(botId, botName, prodName, price, q, intent);
+      if (reflex) {
+        Hippocampus.storeEpisodicMemory(botId, q, reflex);
+        return done({ response: `${personalityMods.prefix}${reflex}${personalityMods.suffix}`, source: "Amygdala", intent: intent.intent });
+      }
+      // 1b. Ngân hàng template đa dạng (author, thanks, farewell, navigation...)
+      let tpl = ReflexTemplates.render(intent.intent, ctx);
+      if (tpl) {
+        Hippocampus.storeEpisodicMemory(botId, q, tpl);
+        return done({ response: `${personalityMods.prefix}${tpl}${personalityMods.suffix}`, source: "Amygdala", intent: intent.intent });
+      }
     }
 
-    // 3. Hippocampus Semantic Memory (System 2 - Memory Retrieval)
-    const semanticMemory = await Hippocampus.recallSemanticMemory(query);
-    if (semanticMemory && semanticMemory.score > 0.25) {
-      Hippocampus.storeEpisodicMemory(botId, query, semanticMemory.response);
-      return { response: semanticMemory.response, source: "Hippocampus" };
+    // ── L5: SEMANTIC MEMORY (TF-IDF, model đã cache trong RAM) ───────────
+    const semantic = await Hippocampus.recallSemanticMemory(q);
+    if (semantic && semantic.score > SEMANTIC_THRESHOLD) {
+      Hippocampus.storeEpisodicMemory(botId, q, semantic.response);
+      return done({ response: semantic.response, source: "Hippocampus", intent: intent.intent });
     }
 
-    // 3.5 Meta-Cognitive Arena (Đấu Trường Tư Duy)
-    // Nếu câu hỏi đủ phức tạp, đưa vào đấu trường để các Lối tư duy tự phân định thắng bại!
-    if (qLen >= 15) {
+    // L5.5: CROSS-DOMAIN LEARNING (Meta-harness transfer knowledge)
+    const domainInfo = detectDomain(q);
+    if (domainInfo.confidence > 0.3 && domainInfo.domain !== "agriculture") {
+      const crossInsight = generateCrossDomainInsight(q);
+      if (crossInsight) {
+        Hippocampus.storeEpisodicMemory(botId, q, crossInsight);
+        return done({ response: crossInsight, source: "Hippocampus", intent: intent.intent });
+      }
+    }
+
+    // ── L6: SYSTEM 2 NẶNG — CHỈ khi intent thực sự cần tính toán ─────────
+    if (intent.system === "SYSTEM_2" && IntentClassifier.needsHeavyReasoning(intent.intent)) {
       try {
-        // Giả lập baseParams cho các engine
         const baseParams = { x: 12, y: 16, z: 6, v: 4.5, mass: 180, battery: 95, temp: 45, ram: 48 };
-        const arenaResult = await runCognitiveArena(query, "auto-routing", baseParams, "");
-        if (arenaResult && arenaResult.response) {
-          Hippocampus.storeEpisodicMemory(botId, query, arenaResult.response);
-          return { response: arenaResult.response, source: "PrefrontalCortex" };
+        const arena = await runCognitiveArena(q, intent.intent, baseParams, emotionalPrefix);
+        if (arena?.response) {
+          Hippocampus.storeEpisodicMemory(botId, q, arena.response);
+          return done({ response: arena.response, source: "PrefrontalCortex", intent: intent.intent });
         }
-      } catch (err) {
-        console.error("[BASAL GANGLIA] Arena failed, falling back to basic Prefrontal Cortex", err);
+      } catch {
+        // Arena lỗi -> rơi xuống fallback nội sinh (KHÔNG bắn ra DuckDuckGo).
       }
     }
 
-    // 4. Fallback to Prefrontal Cortex (Native Generative Matrix with Dynamic Data)
-    // Generates a highly dynamic response based on query context, Chrono-Cognition, and Market Simulator
-    const dynamicPrice = MarketSimulator.getDynamicPrice(prodName);
-    const dynamicPriceStr = new Intl.NumberFormat("vi-VN").format(dynamicPrice);
+    // ── L7: FALLBACK NỘI SINH (chống lạc đề) ────────────────────────────
+    const resp = await this.safeFallback(ctx, intent, q, userId, emotionResult);
+    Hippocampus.storeEpisodicMemory(botId, q, resp);
+    return done({ response: resp, source: "PrefrontalCortex", intent: intent.intent });
+  }
 
-    const qLower = query.toLowerCase();
-    const getRand = (arr: string[]) => arr[Math.floor(Math.random() * arr.length)];
+  /**
+   * Fallback an toàn:
+   *  - Ngữ cảnh THƯƠNG MẠI rõ ràng (giá/sản phẩm/phàn nàn) -> template bán hàng.
+   *  - Ý định KHÔNG rõ hoặc confidence thấp -> HỎI LẠI để làm rõ (không chào hàng lạc đề).
+   */
+  private static async safeFallback(
+    ctx: { botId: string; botName: string; prodName: string; price: string },
+    intent: IntentResult,
+    q: string,
+    userId?: string,
+    emotionResult?: EmotionResult,
+  ): Promise<string> {
+    const commercial = new Set(["PRICE_QUERY", "PRODUCT_INFO", "COMPLAINT"]);
 
-    // Chrono-Cognition (Nhận thức dòng thời gian)
-    const hour = new Date().getHours();
-    let chronoGreeting = "Xin chào sếp";
-    let chronoContext = "";
-    if (hour >= 5 && hour < 11) {
-      chronoGreeting = "Chào buổi sáng sếp";
-      chronoContext = "Sáng nay thị trường đang giao dịch sôi động.";
-    } else if (hour >= 11 && hour < 14) {
-      chronoGreeting = "Chào buổi trưa sếp";
-      chronoContext = "Giờ nghỉ trưa nhưng em vẫn cập nhật giá liên tục ạ.";
-    } else if (hour >= 14 && hour < 18) {
-      chronoGreeting = "Chào buổi chiều sếp";
-      chronoContext = "Thị trường chiều nay có chút biến động nhẹ.";
-    } else if (hour >= 18 && hour < 22) {
-      chronoGreeting = "Chào buổi tối sếp";
-      chronoContext = "Tối rồi mà sếp vẫn sát sao công việc, em phục sát đất!";
+    let response: string;
+    if (commercial.has(intent.intent) && intent.confidence >= LOW_CONFIDENCE) {
+      response = this.commercialResponse(ctx, intent);
     } else {
-      chronoGreeting = "Dạ khuya rồi sếp vẫn thức ạ";
-      chronoContext = "Thị trường đêm nay khá tĩnh lặng.";
+      // SỰ NGU NGỐC BỊ LỘ RA: Khi AI không hiểu ý định hoặc confidence quá thấp.
+      // Sếp dặn KHÔNG ĐƯỢC GIẤU DỐT. Ghi log sự thất bại này vào DPO Training Data thông qua SQLite Buffer.
+      try {
+        const SQLiteBuffer = require("../../infra/database/sqlite-buffer").SQLiteBuffer;
+        SQLiteBuffer.push("dpoTrainingData", {
+          id: `dpo-fail-${Date.now()}-${crypto.randomUUID().split("-")[0]}`,
+          prompt: q,
+          chosenResponse: "", // Cần con người hoặc AI cấp cao điền vào sau
+          rejectedResponse: intent.intent, // Cái AI nghĩ sai
+          metadata: { botId: ctx.botId, confidence: intent.confidence, error: "STUPIDITY_EXPOSED" },
+        });
+      } catch (e) {
+        // Ignore if buffer not initialized
+      }
+
+      // Ý định lạ / confidence thấp -> làm rõ, tuyệt đối KHÔNG bịa hay chào hàng.
+      response = this.clarify(ctx.botName, q);
     }
 
-    const greetings = [
-      `${chronoGreeting}, em là ${botName}. ${chronoContext}`,
-      `Dạ ${botName} nghe đây sếp ơi. ${chronoContext}`,
-      `${chronoGreeting}, ${botName} đã sẵn sàng hỗ trợ!`,
-      `Sếp gọi em ạ? Em là ${botName} đây.`,
-      `${botName} xin kính chào sếp! ${chronoContext}`,
-    ];
-
-    const valueProps = [
-      `Sản phẩm ${prodName} bên em tự tin chất lượng nhất nhì thị trường.`,
-      `Lô ${prodName} đợt này hàng về cực đẹp, sếp xem qua là ưng ngay.`,
-      `Riêng dòng ${prodName} thì em đảm bảo chuẩn chỉnh từng chi tiết.`,
-      `${prodName} đang là best-seller bên em đó sếp.`,
-      `Hàng ${prodName} này được chọn lọc kỹ càng lắm sếp ạ.`,
-    ];
-
-    const ctas = [
-      `Sếp có muốn chốt luôn với giá động ${dynamicPriceStr}₫ không ạ?`,
-      `Mức giá ${dynamicPriceStr}₫ này đang rất tốt, sếp chốt đơn luôn cho nóng nhé!`,
-      `Sếp cần em tư vấn thêm gì về hàng họ không?`,
-      `Chốt deal giá ${dynamicPriceStr}₫ luôn nha sếp?`,
-      `Sếp xem xét lấy luôn lô này đi, giá chỉ ${dynamicPriceStr}₫ thôi ạ!`,
-    ];
-
-    const intents = {
-      price: ["giá", "nhiêu", "bao nhieu", "đắt", "re", "tiền"],
-      quality: ["chất", "tốt", "ngon", "xịn", "đẹp", "bền", "chuẩn"],
-      shipping: ["ship", "giao", "vận chuyển", "bao lâu", "gửi"],
-    };
-
-    let intentMatch = "general";
-    if (intents.price.some((w) => qLower.includes(w))) intentMatch = "price";
-    else if (intents.quality.some((w) => qLower.includes(w))) intentMatch = "quality";
-    else if (intents.shipping.some((w) => qLower.includes(w))) intentMatch = "shipping";
-
-    let dynamicResponse = "";
-
-    if (intentMatch === "price") {
-      dynamicResponse = `${getRand(greetings)} Sếp đang quan tâm về giá đúng không? Hiện tại mức giá niêm yết là ${dynamicPriceStr}₫. Mức này đã được tối ưu hết cỡ cho lô ${prodName} rồi sếp ạ. Sếp chốt luôn nhé?`;
-    } else if (intentMatch === "quality") {
-      dynamicResponse = `${getRand(greetings)} Về chất lượng thì sếp khỏi phải lo! ${getRand(valueProps)} Sếp cứ yên tâm xuống tiền với giá ${dynamicPriceStr}₫, đảm bảo đáng đồng tiền bát gạo!`;
-    } else if (intentMatch === "shipping") {
-      dynamicResponse = `${getRand(greetings)} Dạ bên em hỗ trợ giao hàng toàn quốc cực kỳ nhanh chóng. Lô ${prodName} này đóng gói cẩn thận lắm. Sếp để lại địa chỉ, em chốt deal ${dynamicPriceStr}₫ và cho đi hàng luôn nhé!`;
-    } else {
-      dynamicResponse = `${getRand(greetings)} ${getRand(valueProps)} ${getRand(ctas)}`;
+    // Emotion-aware personalization
+    if (emotionResult) {
+      const style = emotionResult.suggestedResponse;
+      if (style.empathy === "high") {
+        response = `Em hiểu cảm xúc của sếp. ${response}`;
+      } else if (style.tone === "enthusiastic") {
+        response = `Tuyệt vời! ${response}`;
+      } else if (style.tone === "apologetic") {
+        response = `Em xin lỗi. ${response}`;
+      }
     }
 
+    // Cá nhân hoá (giữ tính năng cũ): nhắc lại sở thích người dùng nếu có.
     if (userId && userId !== "guest") {
-      const userPref = await Hippocampus.getUserPreference(userId);
-      if (userPref) {
-        dynamicResponse += `\n\n(Dạ em luôn nhớ Sếp có dặn: "${userPref}" ạ! Em sẽ chú ý điểm này.)`;
-      }
+      const pref = await Hippocampus.getUserPreference(userId);
+      if (pref) response += `\n\n(Nhân tiện, em nhớ sếp dặn: "${pref}" ạ!)`;
     }
+    return response;
+  }
 
-    Hippocampus.storeEpisodicMemory(botId, query, dynamicResponse);
-    return { response: dynamicResponse, source: "PrefrontalCortex" };
+  /** Phản hồi thương mại (giữ Chrono-Cognition + giá động của bản cũ). */
+  private static commercialResponse(ctx: { prodName: string; price: string; botName: string }, intent: IntentResult): string {
+    const dynamicPrice = MarketSimulator.getDynamicPrice(ctx.prodName);
+    const priceStr = new Intl.NumberFormat("vi-VN").format(dynamicPrice);
+    const tpl = ReflexTemplates.render(intent.intent, { ...ctx, price: priceStr });
+    if (tpl) return tpl;
+    return `Dạ về ${ctx.prodName}, hiện giá tốt là ${priceStr}₫ ạ. Sếp cần em tư vấn thêm chi tiết nào không ạ?`;
+  }
+
+  /** Phản hồi "làm rõ" — bám sát câu hỏi, không lạc đề, không bịa. */
+  private static clarify(botName: string, q: string): string {
+    const topic = q.length > 60 ? q.slice(0, 60).trim() + "..." : q.trim();
+    const variants = [
+      `Dạ về "${topic}", em muốn hiểu đúng ý sếp trước khi trả lời. Sếp cho em thêm 1–2 chi tiết cụ thể được không ạ?`,
+      `Em chưa đủ dữ kiện để trả lời thật chính xác về "${topic}". Sếp mô tả rõ hơn giúp em nhé, em không muốn trả lời qua loa ạ.`,
+      `Câu "${topic}" của sếp khá rộng. Sếp đang cần em TÍNH TOÁN, TRA CỨU hay GIẢI THÍCH ạ?`,
+    ];
+    return variants[Math.floor(Deterministic.random() * variants.length)];
   }
 }

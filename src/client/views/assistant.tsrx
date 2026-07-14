@@ -1,3 +1,4 @@
+import { Deterministic, Secure } from "~/shared/utils/rng";
 import { createSignal, createEffect, onCleanup, onMount } from "solid-js";
 import * as Diff from "diff";
 import { syncUserPreferences } from "~/server/helpers/user-sync";
@@ -175,10 +176,10 @@ export component Assistant(props: any) {
     setFeedbackMap({ ...feedbackMap(), [idx]: newRating });
     if (newRating) {
       try {
-        await fetch("/api/agent/chat-expert/feedback", {
+        await fetch("/api/agent/evaluation/feedback", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ query, rating: newRating }),
+          body: JSON.stringify({ query, originalAnswer: query, rating: newRating }),
         });
       } catch {}
     }
@@ -406,7 +407,7 @@ export component Assistant(props: any) {
       }
     }
     return [
-      { text: "Xin chào! Mình là trợ lý Rottra. Hôm nay mình có thể giúp gì cho bạn? 😊", isUser: false },
+      { text: "Xin chào! Mình là RottraAI. Hôm nay mình có thể giúp gì cho bạn? 😊", isUser: false },
     ];
   };
 
@@ -474,9 +475,12 @@ export component Assistant(props: any) {
             if (l.startsWith("*") || l.startsWith("-")) {
               l = l.substring(1).trim();
             }
+            if (l.startsWith("class ")) {
+              l = l.replace(/\s*,\s*/g, ",");
+            }
             return l;
           }).filter((line) => line.length > 0).join("\n");
-          const renderId = `chat-mermaid-${Math.random().toString(36).substr(2, 9)}`;
+          const renderId = `chat-mermaid-${Secure.uuid().substr(2, 9)}`;
 
           mermaid.render(renderId, code).then((result) => {
             el.innerHTML = result.svg;
@@ -636,11 +640,11 @@ export component Assistant(props: any) {
 
     // Submit to RLHF backend
     try {
-      await fetch("/api/agent/rlhf", {
+      await fetch("/api/agent/evaluation/feedback", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          originalQuery,
+          query: originalQuery,
           originalAnswer,
           correctedAnswer: newText,
         }),
@@ -674,13 +678,13 @@ export component Assistant(props: any) {
     }
 
     try {
-      await fetch("/api/agent/dpo", {
+      await fetch("/api/agent/evaluation/feedback", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          prompt: originalQuery,
-          chosen: chosenText,
-          rejected: rejectedText,
+          query: originalQuery,
+          originalAnswer: rejectedText,
+          correctedAnswer: chosenText,
         }),
       });
     } catch (err) {
@@ -942,10 +946,14 @@ export component Assistant(props: any) {
         const reader = aiRes.body.getReader();
         const decoder = new TextDecoder();
 
-        setChat((prev) => [...prev, { text: "", isUser: false }]);
+        setChat((prev) => [...prev, { text: "", thoughtProcess: "", isUser: false }]);
 
         let foundVideoUrl = "";
         let foundSuggestions: string[] = [];
+        let sseBuffer = "";
+        let currentBotText = "";
+        let currentThinkingText = "";
+
         while (true) {
           const { done, value } = await reader.read();
           if (done) {
@@ -973,7 +981,41 @@ export component Assistant(props: any) {
             break;
           }
 
-          currentBotText += decoder.decode(value, { stream: true });
+          sseBuffer += decoder.decode(value, { stream: true });
+
+          let eolIndex;
+          while ((eolIndex = sseBuffer.indexOf("\n\n")) >= 0) {
+            const chunk = sseBuffer.slice(0, eolIndex);
+            sseBuffer = sseBuffer.slice(eolIndex + 2);
+
+            let eventType = "message";
+            let dataStr = "";
+
+            for (const line of chunk.split("\n")) {
+              if (line.startsWith("event: ")) eventType = line.substring(7).trim();
+              else if (line.startsWith("data: ")) dataStr = line.substring(6).trim();
+            }
+
+            if (dataStr) {
+              try {
+                const parsedData = JSON.parse(dataStr);
+                if (eventType === "thinking") {
+                  currentThinkingText += parsedData + "\n";
+                } else if (eventType === "token") {
+                  currentBotText += parsedData;
+                } else {
+                  currentBotText += parsedData; // Fallback for other events
+                }
+              } catch (e) {
+                // Fallback for non-JSON data
+                if (eventType === "thinking") {
+                  currentThinkingText += dataStr + "\n";
+                } else {
+                  currentBotText += dataStr;
+                }
+              }
+            }
+          }
 
           let cleanBotText = currentBotText;
           const match = currentBotText.match(/\[VIDEO_URL:([^\]]+)\]/);
@@ -982,11 +1024,11 @@ export component Assistant(props: any) {
             cleanBotText = currentBotText.replace(/\[VIDEO_URL:([^\]]+)\]/g, "").trim();
           }
 
-          let foundSuggestions: string[] = [];
+          let currentFoundSuggestions: string[] = [];
           const sugMatch = currentBotText.match(/\[SUGGESTIONS:([\s\S]*?)\]/);
           if (sugMatch) {
             try {
-              foundSuggestions = JSON.parse(sugMatch[1]);
+              currentFoundSuggestions = JSON.parse(sugMatch[1]);
             } catch (e) {}
             cleanBotText = cleanBotText.replace(/\[SUGGESTIONS:[\s\S]*?\]/g, "").trim();
           }
@@ -995,10 +1037,11 @@ export component Assistant(props: any) {
           if (proactiveMatch) {
             try {
               const parsedProactive = JSON.parse(proactiveMatch[1]);
-              foundSuggestions = [...foundSuggestions, ...parsedProactive];
+              currentFoundSuggestions = [...currentFoundSuggestions, ...parsedProactive];
             } catch (e) {}
             cleanBotText = cleanBotText.replace(/\[PROACTIVE:[\s\S]*?\]/g, "").trim();
           }
+          foundSuggestions = currentFoundSuggestions;
 
           let foundReplyB = "";
           const replyBMatch = currentBotText.match(/\[REPLY_B:(.*?)\]/);
@@ -1028,6 +1071,7 @@ export component Assistant(props: any) {
           setChat((prev) => {
             const next = [...prev];
             next[next.length - 1].text = cleanBotText;
+            next[next.length - 1].thoughtProcess = currentThinkingText.trim();
             next[next.length - 1].isFallbackMode = isFallbackMode;
             if (foundVideoUrl) {
               next[next.length - 1].videoUrl = foundVideoUrl;
@@ -1145,57 +1189,92 @@ export component Assistant(props: any) {
       updateCart(cart, isLoggedIn());
       alert(`Đã thêm ${p.name} vào giỏ hàng! 🛒`);
 
-      // GỬI PHẦN THƯỞNG CHO RL ENGINE (Q-Learning)
       fetch("/api/rpc/rl/reward", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           stateHash: msg.stateHash || "global_user_context",
           actionId: pid,
-          reward: 10, // Thưởng lớn cho chốt đơn
+          reward: 10,
         }),
       }).catch(() => {});
     };
 
-    return <tsx>
-      <div class="flex flex-col gap-2 mt-4 w-full select-none">
-        <div class="relative w-full flex items-center">
-          <div
-            class="w-full flex gap-4 overflow-x-auto scrollbar-hide py-2 px-1 scroll-smooth"
-            style="scroll-snap-type: x mandatory; -ms-overflow-style: none; scrollbar-width: none;">
-            {msg.products.map((p: any) => {
-              const imgUrl = getPrimaryImage(p);
-              return <div
-                class="flex-shrink-0 w-[220px] bg-white dark:bg-zinc-900 rounded-2xl border border-gray-150 dark:border-white/10 overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col justify-between"
-                style="scroll-snap-align: start;">
-                <div class="aspect-[4/3] w-full bg-gray-50 dark:bg-zinc-800 relative">
-                  <img src={imgUrl} alt={p.name} class="w-full h-full object-cover" loading="lazy" />
-                </div>
-                <div class="p-3 flex flex-col gap-1 text-left flex-grow justify-between">
-                  <div>
-                    <h4 class="font-bold text-[12px] text-gray-800 dark:text-zinc-100 line-clamp-1">
-                      {p.name}
-                    </h4>
-                    <div class="text-[10px] text-gray-500 dark:text-zinc-400 font-medium mt-0.5 line-clamp-2">
-                      {p.description || "Nông sản chất lượng cao từ hệ sinh thái Rottra."}
-                    </div>
-                  </div>
-                  <div class="mt-2.5">
-                    <div class="text-blue-600 dark:text-blue-400 font-bold text-xs">
-                      {formatCurrency(Number(p.price))}
-                    </div>
-                    <button
-                      onClick={() => handleAddToCart(p)}
-                      class="mt-2 w-full py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-[10px] shadow-sm transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-1 cursor-pointer">
-                      <Icon path={shoppingCart} class="w-3 h-3 animate-pulse" />
-                      <span>Mua ngay</span>
-                    </button>
-                  </div>
-                </div>
-              </div>;
-            })}
+    const renderCard = (p: any, isFeatured: boolean) => {
+      const imgUrl = getPrimaryImage(p);
+      if (isFeatured) {
+        return <tsx>
+          <div class="flex flex-col sm:flex-row gap-5 sm:items-start py-2">
+            <div
+              class="w-full sm:w-40 sm:h-40 flex-shrink-0 bg-gray-50 dark:bg-[#f4f4f5] rounded-3xl overflow-hidden relative aspect-square sm:aspect-auto flex items-center justify-center p-2 shadow-sm">
+              <img src={imgUrl} alt={p.name} class="w-full h-full object-contain" loading="lazy" />
+            </div>
+            <div class="flex flex-col gap-1.5 text-left flex-grow py-1">
+              <h4 class="font-bold text-[17px] text-gray-800 dark:text-zinc-100 line-clamp-2">
+                {p.name}
+              </h4>
+              <div class="text-[15px] text-gray-800 dark:text-gray-200 font-semibold">
+                {formatCurrency(Number(p.price))}
+              </div>
+              <div class="text-[13px] text-gray-500 dark:text-zinc-400 font-medium line-clamp-2 mt-0.5">
+                {p.description || "Nông sản chất lượng cao từ hệ sinh thái Rottra."}
+              </div>
+              <button
+                onClick={() => handleAddToCart(p)}
+                class="mt-3 w-max px-5 py-2 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-[13px] shadow-sm transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer">
+                <Icon path={shoppingCart} class="w-4 h-4" />
+                <span>Mua ngay</span>
+              </button>
+            </div>
+          </div>
+        </tsx>;
+      }
+      return <tsx>
+        <div
+          class="w-full bg-white dark:bg-zinc-900/80 rounded-2xl border border-gray-150 dark:border-white/10 overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
+          <div class="aspect-square w-full bg-gray-50 dark:bg-zinc-800 relative">
+            <img src={imgUrl} alt={p.name} class="w-full h-full object-cover" loading="lazy" />
+          </div>
+          <div class="p-3 flex flex-col gap-1 text-left flex-grow justify-between">
+            <div>
+              <h4 class="font-bold text-[12px] text-gray-800 dark:text-zinc-100 line-clamp-2 leading-snug">
+                {p.name}
+              </h4>
+            </div>
+            <div class="mt-1.5">
+              <div class="text-blue-600 dark:text-blue-400 font-black text-xs">
+                {formatCurrency(Number(p.price))}
+              </div>
+              <div class="text-[10px] text-gray-500 dark:text-zinc-400 mt-0.5 line-clamp-1">
+                {p.description || "Chất lượng cao"}
+              </div>
+              <button
+                onClick={() => handleAddToCart(p)}
+                class="mt-2 w-full py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 dark:bg-white/5 dark:hover:bg-white/10 text-blue-600 dark:text-blue-400 font-bold text-[11px] transition-all flex items-center justify-center gap-1 cursor-pointer">
+                <Icon path={shoppingCart} class="w-3 h-3" />
+                <span>Thêm</span>
+              </button>
+            </div>
           </div>
         </div>
+      </tsx>;
+    };
+
+    const firstProduct = msg.products[0];
+    const restProducts = msg.products.slice(1, 4);
+
+    return <tsx>
+      <div class="flex flex-col gap-3 mt-4 w-full select-none">
+        {renderCard(firstProduct, true)}
+        {restProducts.length > 0 &&
+          <tsx>
+            <div class="text-[13px] font-medium text-gray-600 dark:text-gray-400 mt-2">Ngoài ra còn có:</div>
+            <div class="relative w-full">
+              <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 w-full py-1">
+                {restProducts.map((p: any) => renderCard(p, false))}
+              </div>
+            </div>
+          </tsx>}
       </div>
     </tsx>;
   };
@@ -1216,30 +1295,30 @@ export component Assistant(props: any) {
     }
 
     // Parse Chain of Thought <think> blocks
-    let thoughtProcess = "";
+    let thoughtProcess = msg.thoughtProcess || "";
     let finalAnswer = msgText;
 
     // --- FIX: Xử lý chuỗi JSON array bị leak từ AI model (VD: '["[Suy luận logic...]", "Chào bạn..."]') ---
-    if (typeof finalAnswer === "string" && finalAnswer.trim().startsWith('["') && finalAnswer.trim().endsWith('"]')) {
+    if (typeof finalAnswer === "string" && finalAnswer.trim().startsWith("[\"") && finalAnswer.trim().endsWith("\"]")) {
       try {
         const parsedArray = JSON.parse(finalAnswer.trim());
         if (Array.isArray(parsedArray)) {
           // Lấy phần tử cuối cùng làm câu trả lời chính
           finalAnswer = parsedArray[parsedArray.length - 1] || finalAnswer;
           if (parsedArray.length > 1) {
-             thoughtProcess = parsedArray.slice(0, -1).join("\\n");
+            thoughtProcess = parsedArray.slice(0, -1).join("\\n");
           }
         }
       } catch (e) {
         // Fallback
       }
     }
-    
+
     // --- FIX: Xóa thẻ [Suy luận logic: ...] bị lọt ra text thường ---
     const suyLuanMatch = finalAnswer.match(/\\[Suy luận logic:.*?\\]/i);
     if (suyLuanMatch) {
-       thoughtProcess = (thoughtProcess ? thoughtProcess + "\\n" : "") + suyLuanMatch[0];
-       finalAnswer = finalAnswer.replace(/\\[Suy luận logic:.*?\\]/i, "").trim();
+      thoughtProcess = (thoughtProcess ? thoughtProcess + "\\n" : "") + suyLuanMatch[0];
+      finalAnswer = finalAnswer.replace(/\\[Suy luận logic:.*?\\]/i, "").trim();
     }
 
     if (finalAnswer.includes("<think>")) {
@@ -1338,7 +1417,9 @@ export component Assistant(props: any) {
   };
 
   const getSidebarClass = () => `flex flex-col shrink-0 transition-all duration-300 overflow-hidden border h-full absolute lg:static z-[60] lg:z-auto left-4 ${
-    isSidebarOpen() ? "w-[calc(100vw-32px)] md:w-80 p-5 shadow-2xl lg:shadow-sm" : "w-0 p-0 border-none opacity-0"
+    isSidebarOpen()
+      ? "w-[calc(100vw-32px)] md:w-auto md:min-w-[220px] md:max-w-[260px] p-4 shadow-2xl lg:shadow-sm"
+      : "w-0 p-0 border-none opacity-0"
   } ${
     theme() === "dark"
       ? "bg-[#1f1f1d]/95 backdrop-blur-md lg:bg-[#1f1f1d] border-white/10 rounded-3xl"
@@ -1425,7 +1506,7 @@ export component Assistant(props: any) {
 
   <tsx>
     <div
-      class="w-full h-[calc(100dvh-80px)] lg:h-[calc(100vh-120px)] flex gap-0 lg:gap-6 font-sans py-2 px-2 lg:py-4 lg:px-4 overflow-hidden animate-in fade-in duration-500">
+      class="w-full h-[calc(100dvh-80px)] lg:h-[calc(100vh-120px)] flex gap-0 lg:gap-4 font-sans py-2 px-2 lg:py-4 lg:px-4 overflow-hidden animate-in fade-in duration-500">
       {}
       <div class={getChatContainerClass()}>
         {}
@@ -1470,10 +1551,10 @@ export component Assistant(props: any) {
                     </span>
                   </div>
                   <h1 class="text-3xl font-normal font-serif tracking-tight text-gray-900 dark:text-zinc-50 mb-3 leading-tight">
-                    {"Xin chào Sếp! Tôi là Trợ lý Rottra."}
+                    {"Xin chào bạn! Tôi là RottraAI."}
                   </h1>
                   <p class="text-[14.5px] leading-relaxed text-gray-550 dark:text-zinc-455 mb-6 max-w-md">
-                    {"Tôi có thể giúp Sếp phân tích thuật toán, tính toán khoa học, vẽ biểu đồ hay giải quyết các tác vụ phức tạp khác hôm nay?"}
+                    {"Tôi có thể giúp bạn phân tích thuật toán, tính toán khoa học, vẽ biểu đồ hay giải quyết các tác vụ phức tạp khác hôm nay?"}
                   </p>
                   <div class="flex flex-wrap gap-2 w-full">
                     {[
@@ -1536,7 +1617,7 @@ export component Assistant(props: any) {
                           <div
                             class="text-[11px] font-bold tracking-widest text-blue-600 dark:text-blue-400 mb-1 flex items-center gap-1.5 uppercase select-none">
                             <span class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-                            {"Trợ lý Rottra"}
+                            {agentName() || "RottraAI"}
                             <button
                               onClick={() => handleAiEditMessage(idx, msg.text)}
                               class="opacity-0 group-hover/ai:opacity-100 ml-2 p-1 hover:bg-zinc-800/10 dark:hover:bg-white/10 rounded text-gray-400 hover:text-blue-500 transition-colors cursor-pointer"

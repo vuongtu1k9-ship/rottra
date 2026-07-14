@@ -1,3 +1,4 @@
+import { Deterministic } from "~/shared/utils/rng";
 import fs from "fs";
 
 let content = fs.readFileSync("src/core/cognitive-swarm/bot-actions.ts", "utf8");
@@ -43,7 +44,7 @@ const newVideoClass = `export class GenerateVideoAction extends BotActionExecuto
     if (myProducts.length === 0) {
       return { success: false, action: "video", message: "No products to generate video" };
     }
-    const prod = myProducts[Math.floor(Math.random() * myProducts.length)];
+    const prod = myProducts[Math.floor(Deterministic.random() * myProducts.length)];
 
     try {
       // Sử dụng Hyperframes Engine để xuất video AV1 chuẩn xịn thay vì đồ giả lập

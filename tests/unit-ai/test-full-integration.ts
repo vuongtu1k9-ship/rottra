@@ -1,3 +1,4 @@
+import { Deterministic } from "~/shared/utils/rng";
 /**
  * ============================================================
  *  FULL INTEGRATION TEST — Rottra AI Agent System
@@ -468,9 +469,9 @@ async function testCognitiveSystems() {
 
   // SDM write + recall
   const testAddr = new Uint8Array(2048);
-  for (let i = 0; i < 2048; i++) testAddr[i] = Math.random() < 0.5 ? 1 : 0;
+  for (let i = 0; i < 2048; i++) testAddr[i] = Deterministic.random() < 0.5 ? 1 : 0;
   const testData = new Float32Array(2048);
-  for (let i = 0; i < 2048; i++) testData[i] = Math.random() * 2 - 1;
+  for (let i = 0; i < 2048; i++) testData[i] = Deterministic.random() * 2 - 1;
 
   sdm.write({
     id: "test-pattern-1",

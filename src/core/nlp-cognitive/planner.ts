@@ -1,6 +1,7 @@
 import { generateTextLocal } from "./ai-sdk";
 import { getAgentTools } from "~/core/cognitive-swarm/game-theory";
 import { db, pgClient } from "~/infra/database/db-pool";
+import { IntentClassifier } from "./intent-classifier";
 
 export interface Task {
   step: number;
@@ -12,68 +13,49 @@ export interface Task {
 }
 
 /**
- * 1. Planner: Phân rã truy vấn của người dùng thành các bước tác vụ riêng biệt (JSON format)
+ * Trích xuất & vá JSON an toàn (best-effort) từ output tự do.
+ * Chống các lỗi phổ biến của LLM nhỏ: bọc ```json, có text thừa 2 đầu,
+ * dấu phẩy treo. KHÔNG ném lỗi — trả null nếu không cứu được.
+ */
+export function safeParseJsonArray(raw: string): any[] | null {
+  if (!raw) return null;
+  let s = raw
+    .replace(/```json/gi, "")
+    .replace(/```/g, "")
+    .trim();
+  // Cắt lấy đoạn từ '[' đầu tiên đến ']' cuối cùng (bỏ preamble/hậu tố).
+  const start = s.indexOf("[");
+  const end = s.lastIndexOf("]");
+  if (start === -1 || end === -1 || end <= start) return null;
+  s = s.slice(start, end + 1);
+  // Xoá dấu phẩy treo trước ] hoặc }.
+  s = s.replace(/,\s*([\]}])/g, "$1");
+  try {
+    const parsed = JSON.parse(s);
+    return Array.isArray(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * 1. Planner (DETERMINISTIC — không dùng LLM sinh JSON)
+ * ------------------------------------------------------------------
+ * Lõi Rottra chạy cục bộ KHÔNG có LLM sinh token thật, nên việc yêu cầu
+ * mô hình xuất JSON luôn thất bại -> trước đây rơi xuống WEB_SEARCH ->
+ * DuckDuckGo. Nay ta suy diễn kế hoạch trực tiếp từ IntentClassifier và
+ * map sang tool key hợp lệ của getAgentTools(). Nhanh, ổn định, 0% lỗi JSON.
  */
 export async function generatePlan(query: string): Promise<Task[]> {
-  const systemPrompt = `You are the Master AI Planner of Rottra. 
-Given a complex user query, break it down into a sequence of sub-tasks.
-Each task must target one of these specific intents:
-- NPV: Calculate NPV, cash flows, financial metrics.
-- TSP: Route optimization, shortest path traveling salesperson.
-- WARDROP: Traffic flow balance, route equilibrium.
-- FORECAST: Trend forecasting, ARIMA, crop predictions.
-- STATISTICS: Risk math, probabilities, variances.
-- ACADEMIC: Algebra, geometry, calculus, hard math problems.
-- WEB_SEARCH: Search the internet for real-time data.
-- SEARCH: General search on products, prices.
-- RAG_INGESTION: Ingest documentation.
-- NAVIGATION: Redirect to parts of the site (Gio hang, Profile, Cuoc hop).
-- GREETING: Welcoming or general talk.
+  const intent = IntentClassifier.classify(query);
+  const toolKey = IntentClassifier.toToolKey(intent.intent);
 
-Format the output strictly as a JSON array of task objects (no markdown wrappers like \`\`\`json, just pure raw JSON):
-[
-  { "step": 1, "intent": "NPV", "subQuery": "tính NPV cho dòng tiền [100, 200, 300] lãi suất 10%", "description": "Tính NPV dự án" },
-  { "step": 2, "intent": "ACADEMIC", "subQuery": "giải nghĩa kết quả NPV", "description": "Giải trình hiệu quả tài chính" }
-]`;
-
-  try {
-    const { text } = await generateTextLocal({
-      system: systemPrompt,
-      prompt: `User query: "${query}"`,
-      isInternalReasoning: true,
-    });
-
-    // Remove markdown codeblock tags if LLM outputs them despite system prompt
-    const cleanedText = text
-      .replace(/```json/g, "")
-      .replace(/```/g, "")
-      .trim();
-
-    try {
-      const tasks: any[] = JSON.parse(cleanedText);
-      if (Array.isArray(tasks)) {
-        return tasks.map((t, index) => ({
-          step: t.step || index + 1,
-          intent: t.intent,
-          subQuery: t.subQuery || query,
-          description: t.description || `Execute ${t.intent}`,
-          status: "pending",
-        }));
-      }
-    } catch (parseErr) {
-      // Quietly fall back to single step without throwing noisy errors in the console
-    }
-  } catch (err) {
-    console.error("[PLANNER ERROR] Failed to generate plan, falling back to single task:", err);
-  }
-
-  // Fallback to a single task using general search or web search
   return [
     {
       step: 1,
-      intent: "WEB_SEARCH",
+      intent: toolKey,
       subQuery: query,
-      description: "Fallback single step execution",
+      description: `Thực thi intent ${intent.intent} (tool: ${toolKey}, confidence: ${intent.confidence.toFixed(2)})`,
       status: "pending",
     },
   ];
@@ -142,23 +124,19 @@ If we need to adjust the plan, return a brand new JSON array for the remaining t
         .trim();
 
       if (!cleanedReplan.includes("[NO_CHANGE]")) {
-        try {
-          const newRemainingTasks = JSON.parse(cleanedReplan);
-          if (Array.isArray(newRemainingTasks)) {
-            console.log(`[REPLANNER] Plan updated! Appending ${newRemainingTasks.length} new tasks.`);
-            currentTasks = [
-              ...currentTasks.slice(0, stepIndex + 1),
-              ...newRemainingTasks.map((t, idx) => ({
-                step: stepIndex + 2 + idx,
-                intent: t.intent,
-                subQuery: t.subQuery,
-                description: t.description,
-                status: "pending" as const,
-              })),
-            ];
-          }
-        } catch (e) {
-          // Ignore parse errors, continue with original plan
+        const newRemainingTasks = safeParseJsonArray(cleanedReplan);
+        if (newRemainingTasks) {
+          console.log(`[REPLANNER] Plan updated! Appending ${newRemainingTasks.length} new tasks.`);
+          currentTasks = [
+            ...currentTasks.slice(0, stepIndex + 1),
+            ...newRemainingTasks.map((t, idx) => ({
+              step: stepIndex + 2 + idx,
+              intent: t.intent,
+              subQuery: t.subQuery,
+              description: t.description,
+              status: "pending" as const,
+            })),
+          ];
         }
       }
     } catch (err: any) {

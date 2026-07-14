@@ -1,3 +1,4 @@
+import { Deterministic } from "~/shared/utils/rng";
 /**
  * Differential Evolution (DE)
  * Phương pháp mạnh mẽ cho tối ưu hóa tham số thực
@@ -56,7 +57,7 @@ function initializePopulation(dimension: number, populationSize: number, bounds:
     const individual: number[] = [];
     for (let d = 0; d < dimension; d++) {
       const [min, max] = bounds[d];
-      individual[d] = min + Math.random() * (max - min);
+      individual[d] = min + Deterministic.random() * (max - min);
     }
     population.push(individual);
   }
@@ -76,7 +77,7 @@ function evaluatePopulation(population: number[][], fitnessFn: (x: number[]) => 
 function selectRandomIndices(populationSize: number, excludeIndex: number, count: number): number[] {
   const indices: number[] = [];
   while (indices.length < count) {
-    const idx = Math.floor(Math.random() * populationSize);
+    const idx = Math.floor(Deterministic.random() * populationSize);
     if (idx !== excludeIndex && !indices.includes(idx)) {
       indices.push(idx);
     }
@@ -142,10 +143,10 @@ function crossover(target: number[], mutant: number[], CR: number): number[] {
   const trial = [...target];
 
   // Chọn至少 1 chiều từ mutant
-  const jRand = Math.floor(Math.random() * dim);
+  const jRand = Math.floor(Deterministic.random() * dim);
 
   for (let j = 0; j < dim; j++) {
-    if (Math.random() < CR || j === jRand) {
+    if (Deterministic.random() < CR || j === jRand) {
       trial[j] = mutant[j];
     }
   }

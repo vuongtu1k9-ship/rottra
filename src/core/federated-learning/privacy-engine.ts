@@ -1,3 +1,4 @@
+import { Deterministic } from "~/shared/utils/rng";
 /**
  * 🧠 ROTTRA — PRIVACY ENGINE
  * Differential privacy and secure aggregation for FL.
@@ -191,8 +192,8 @@ export class PrivacyEngine {
    * Gaussian random using Box-Muller transform
    */
   private gaussianRandom(): number {
-    const u1 = Math.random();
-    const u2 = Math.random();
+    const u1 = Deterministic.random();
+    const u2 = Deterministic.random();
     return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
   }
 }

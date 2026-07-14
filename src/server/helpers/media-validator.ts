@@ -1,10 +1,14 @@
 import { z } from "zod";
+import { createLogger } from "~/shared/logger";
+
+const log = createLogger("helpers/media-validator");
 
 // Schema kiểm duyệt URL: Bắt buộc là đường dẫn nội bộ (bắt đầu bằng /)
 // HOẶC là URL chính thức của hệ thống (rottra.pages.dev)
 const safeUrlSchema = z.string().refine((url) => {
   if (url.startsWith("/")) return true; // Cục bộ (vd: /images/logo.png)
-  
+  if (url.startsWith("data:image/")) return true; // Hỗ trợ ảnh nhúng trực tiếp data URI (vd: SVG, PNG)
+
   if (url.startsWith("http")) {
     try {
       const parsed = new URL(url);
@@ -15,7 +19,7 @@ const safeUrlSchema = z.string().refine((url) => {
       return false;
     }
   }
-  
+
   return false;
 }, "Ảnh ngoại lai không được phép! Chỉ chấp nhận ảnh nội bộ của Rottra.");
 
@@ -37,17 +41,19 @@ export function sanitizeProductMedia(mediaInput: any): { link: string; name?: st
     return [{ link: "/images/no-image.avif", type: "image" }];
   }
 
-  const safeMedia = mediaInput.filter((m: any) => {
-    const link = typeof m === "string" ? m : m.link;
-    const result = safeUrlSchema.safeParse(link);
-    if (!result.success) {
-      console.warn(`[SECURITY] Phóng lợn chặn đứng ảnh ngoại lai: ${link}`);
-      return false;
-    }
-    return true;
-  }).map((m: any) => {
-    return typeof m === "string" ? { link: m, type: "image" } : m;
-  });
+  const safeMedia = mediaInput
+    .filter((m: any) => {
+      const link = typeof m === "string" ? m : m.link;
+      const result = safeUrlSchema.safeParse(link);
+      if (!result.success) {
+        log.warn(`[SECURITY] Phóng lợn chặn đứng ảnh ngoại lai: ${link}`);
+        return false;
+      }
+      return true;
+    })
+    .map((m: any) => {
+      return typeof m === "string" ? { link: m, type: "image" } : m;
+    });
 
   if (safeMedia.length === 0) {
     return [{ link: "/images/no-image.avif", type: "image" }];

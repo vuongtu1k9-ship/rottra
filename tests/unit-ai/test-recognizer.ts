@@ -1,3 +1,4 @@
+import { Deterministic } from "~/shared/utils/rng";
 // Test Script for $P Whiteboard Drawing Recognizer
 // Run with: bun src/lib/test-recognizer.ts
 
@@ -10,8 +11,8 @@ console.log("===================================================================
 // Helper to add minor noise to points
 function addNoise(points: Point[], noiseLevel: number = 0.05): Point[] {
   return points.map((p) => ({
-    x: p.x + (Math.random() - 0.5) * noiseLevel,
-    y: p.y + (Math.random() - 0.5) * noiseLevel,
+    x: p.x + (Deterministic.random() - 0.5) * noiseLevel,
+    y: p.y + (Deterministic.random() - 0.5) * noiseLevel,
   }));
 }
 

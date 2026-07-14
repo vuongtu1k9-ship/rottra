@@ -1,3 +1,6 @@
+import { Deterministic } from "~/shared/utils/rng";
+import type { IntentResult } from "./intent-classifier";
+
 export class Amygdala {
   /**
    * Tính toán độ biến động cảm xúc (Entropy) dựa trên tần suất ký tự
@@ -25,22 +28,28 @@ export class Amygdala {
 
   /**
    * Phản xạ cực nhanh (System 1 Fast-Path)
-   * Kích hoạt khi khách hàng quá tức giận, chê đắt hoặc hỏi câu đơn giản (Chào hỏi, Giá)
+   * Kích hoạt khi khách hàng quá tức giận, chê đắt hoặc hỏi câu đơn giản (Chào hỏi, Giá).
+   *
+   * Nhận `intent` đã được IntentClassifier phân loại (không dùng regex ^...$ cứng nữa)
+   * để bắt được mọi biến thể tự nhiên. Vẫn giữ persona đặc biệt (Tiểu Cửu).
    */
-  public static triggerFastReflex(botId: string, botName: string, prodName: string, price: string, query: string): string | null {
-    const qClean = query.toLowerCase().trim();
-
-    // Fast Path 1: Chào hỏi đơn giản
-    const isGreeting = /^(xin chào|chào|hello|hi|helo|alo|chào bạn|chào sếp|chào nha|hihi chao)\s*$/i.test(qClean);
-    // Fast Path 2: Hỏi thông tin sản phẩm
-    const isProductInfo = /^(giá bao nhiêu|còn hàng không|còn bao nhiêu|sản phẩm gì|bán gì đó|sản phẩm là gì)\s*$/i.test(qClean);
-
-    // Fast Path 3: Cảm xúc tiêu cực (Chê đắt)
-    const isComplaint = this.detectEmotionalIntent(query) === "COMPLAINT";
+  public static triggerFastReflex(
+    botId: string,
+    botName: string,
+    prodName: string,
+    price: string,
+    query: string,
+    intent?: IntentResult,
+  ): string | null {
+    // Ưu tiên nhãn intent từ classifier; fallback về heuristic cảm xúc nếu thiếu.
+    const label = intent?.intent;
+    const isGreeting = label === "GREETING";
+    const isProductInfo = label === "PRODUCT_INFO" || label === "PRICE_QUERY";
+    const isComplaint = label === "COMPLAINT" || this.detectEmotionalIntent(query) === "COMPLAINT";
 
     if (!isGreeting && !isProductInfo && !isComplaint) return null;
 
-    const getRand = (arr: string[]): string => arr[Math.floor(Math.random() * arr.length)];
+    const getRand = (arr: string[]): string => arr[Math.floor(Deterministic.random() * arr.length)];
     const productAdjectives = [
       "thượng hạng, được thu hoạch trực tiếp từ nông trại",
       "đạt chuẩn chất lượng hữu cơ, chăm sóc tỉ mỉ",

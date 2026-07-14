@@ -24,8 +24,12 @@ export async function getLiveAgentsData(): Promise<AgentInfo[]> {
     const goldRes = await fetch("http://127.0.0.1:8080/gold-prices").catch(() => null);
     let goldBuyPrice = 10000000;
     if (goldRes && goldRes.ok) {
-      const data = await goldRes.json();
-      goldBuyPrice = data.buy || parseFloat(data.gia_mua || "0") * 1000 || 10000000;
+      try {
+        const data = await goldRes.json();
+        goldBuyPrice = data.buy || parseFloat(data.gia_mua || "0") * 1000 || 10000000;
+      } catch (err) {
+        // Fallback if API returns HTML or invalid JSON
+      }
     }
 
     const agentIds = [
@@ -1065,6 +1069,152 @@ ${prob.mathematicalProof}
         return parseFloat((kNearest.reduce((s, v) => s + v, 0) / k).toFixed(2));
       };
 
+      class SimpleLSTM {
+        private wxf = 0.1;
+        private whf = 0.05;
+        private bf = 0.0;
+        private wxi = 0.1;
+        private whi = 0.05;
+        private bi = 0.0;
+        private wxc = 0.1;
+        private whc = 0.05;
+        private bc = 0.0;
+        private wxo = 0.1;
+        private who = 0.05;
+        private bo = 0.0;
+        private wy = 0.1;
+        private by = 0.0;
+
+        constructor() {
+          const rand = () => Math.random() * 0.4 - 0.2;
+          this.wxf = rand();
+          this.whf = rand();
+          this.wxi = rand();
+          this.whi = rand();
+          this.wxc = rand();
+          this.whc = rand();
+          this.wxo = rand();
+          this.who = rand();
+          this.wy = rand();
+        }
+
+        private sigmoid(x: number): number {
+          return 1 / (1 + Math.exp(-x));
+        }
+
+        private forward(series: number[]): { outputs: number[]; hStates: number[]; cStates: number[] } {
+          let h = 0;
+          let c = 0;
+          const hStates = [h];
+          const cStates = [c];
+          const outputs: number[] = [];
+
+          for (let i = 0; i < series.length; i++) {
+            const xt = series[i];
+            const prevH = h;
+
+            const f = this.sigmoid(this.wxf * xt + this.whf * prevH + this.bf);
+            const ig = this.sigmoid(this.wxi * xt + this.whi * prevH + this.bi);
+            const cTilde = Math.tanh(this.wxc * xt + this.whc * prevH + this.bc);
+
+            c = f * c + ig * cTilde;
+            const o = this.sigmoid(this.wxo * xt + this.who * prevH + this.bo);
+            h = o * Math.tanh(c);
+
+            hStates.push(h);
+            cStates.push(c);
+            outputs.push(this.wy * h + this.by);
+          }
+          return { outputs, hStates, cStates };
+        }
+
+        public train(series: number[], epochs: number = 200, lr: number = 0.015) {
+          const mean = series.reduce((a, b) => a + b, 0) / series.length;
+          const std = Math.sqrt(series.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / series.length) || 1;
+          const norm = series.map((v) => (v - mean) / std);
+
+          for (let epoch = 0; epoch < epochs; epoch++) {
+            for (let t = 0; t < norm.length - 1; t++) {
+              const xt = norm[t];
+              const target = norm[t + 1];
+
+              const { outputs, hStates, cStates } = this.forward([xt]);
+              const y = outputs[0];
+              const h = hStates[1];
+              const cell = cStates[1];
+              const prevH = hStates[0];
+              const prevC = cStates[0];
+
+              const err = y - target;
+
+              const d_wy = err * h;
+              const d_by = err;
+
+              const d_h = err * this.wy;
+              const o = this.sigmoid(this.wxo * xt + this.who * prevH + this.bo);
+              const d_o = d_h * Math.tanh(cell) * o * (1 - o);
+
+              const d_c = d_h * o * (1 - Math.pow(Math.tanh(cell), 2));
+
+              const f = this.sigmoid(this.wxf * xt + this.whf * prevH + this.bf);
+              const d_f = d_c * prevC * f * (1 - f);
+
+              const ig = this.sigmoid(this.wxi * xt + this.whi * prevH + this.bi);
+              const d_ig = d_c * Math.tanh(this.wxc * xt + this.whc * prevH + this.bc) * ig * (1 - ig);
+
+              const cTilde = Math.tanh(this.wxc * xt + this.whc * prevH + this.bc);
+              const d_cTilde = d_c * ig * (1 - cTilde * cTilde);
+
+              this.wy -= lr * d_wy;
+              this.by -= lr * d_by;
+
+              this.wxo -= lr * d_o * xt;
+              this.who -= lr * d_o * prevH;
+              this.bo -= lr * d_o;
+              this.wxf -= lr * d_f * xt;
+              this.whf -= lr * d_f * prevH;
+              this.bf -= lr * d_f;
+              this.wxi -= lr * d_ig * xt;
+              this.whi -= lr * d_ig * prevH;
+              this.bi -= lr * d_ig;
+              this.wxc -= lr * d_cTilde * xt;
+              this.whc -= lr * d_cTilde * prevH;
+              this.bc -= lr * d_cTilde;
+            }
+          }
+        }
+
+        public forecast(series: number[], steps: number): number[] {
+          if (series.length < 2) return [];
+          const mean = series.reduce((a, b) => a + b, 0) / series.length;
+          const std = Math.sqrt(series.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / series.length) || 1;
+          const norm = series.map((v) => (v - mean) / std);
+
+          this.train(series, 250, 0.02);
+
+          const { hStates, cStates } = this.forward(norm);
+          let h = hStates[hStates.length - 1];
+          let c = cStates[cStates.length - 1];
+          let lastVal = norm[norm.length - 1];
+          const preds: number[] = [];
+
+          for (let i = 0; i < steps; i++) {
+            const prevH = h;
+            const f = this.sigmoid(this.wxf * lastVal + this.whf * prevH + this.bf);
+            const ig = this.sigmoid(this.wxi * lastVal + this.whi * prevH + this.bi);
+            const cTilde = Math.tanh(this.wxc * lastVal + this.whc * prevH + this.bc);
+            c = f * c + ig * cTilde;
+            const o = this.sigmoid(this.wxo * lastVal + this.who * prevH + this.bo);
+            h = o * Math.tanh(c);
+
+            const yNorm = this.wy * h + this.by;
+            preds.push(parseFloat((yNorm * std + mean).toFixed(2)));
+            lastVal = yNorm;
+          }
+          return preds;
+        }
+      }
+
       let resultText = "";
 
       if (hasData && bigNumbers.length >= 2) {
@@ -1073,6 +1223,8 @@ ${prob.mathematicalProof}
         const steps = 3;
         const arimaPred = arima11(series, steps);
         const knnPred = knnForecast(series);
+        const lstm = new SimpleLSTM();
+        const lstmPred = lstm.forecast(series, steps);
         const growth = n >= 2 ? (((series[n - 1] - series[0]) / series[0]) * 100).toFixed(2) : null;
 
         let probSection = "";
@@ -1099,35 +1251,42 @@ ${prob.mathematicalProof}
 > 💡 Khu công nghiệp với N=${N} đơn vị, lãi suất ${(p * 100).toFixed(0)}%, kỳ vọng đạt **${expVal} đơn vị** thành công/vụ.`;
         }
 
-        resultText = `📈 **[TRẠM AI] DỰ BÁO & CHUỖI THỜI GIAN ARIMA + KNN:**
+        resultText = `📈 **[TRẠM AI] DỰ BÁO CHUỐI THỜI GIAN (MODEL COMPARISON):**
 
 Chuỗi dữ liệu đầu vào: **[${series.join(" → ")}]** (${n} điểm quan sát)
 ${growth ? `📊 Tốc độ tăng trưởng tổng thể: **${growth}%** so với kỳ đầu` : ""}
 
-**I. MÔ HÌNH ARIMA(1,1,1) — Dự báo ${steps} kỳ tiếp theo:**
+**I. MÔ HÌNH ARIMA(1,1,1) — Dự báo tuyến tính:**
 | Kỳ | Giá trị dự báo |
 |---|---|
 ${arimaPred.map((v, i) => `| T+${i + 1} | **${v.toLocaleString()}** |`).join("\n")}
 
-**II. KNN (K=3 Lân Cận Gần Nhất) — Dự báo kỳ tiếp:**
+**II. MÔ HÌNH HỌC SÂU LSTM (Long Short-Term Memory) — Dự báo phi tuyến:**
+| Kỳ | Giá trị dự báo LSTM |
+|---|---|
+${lstmPred.map((v, i) => `| T+${i + 1} | **${v.toLocaleString()}** |`).join("\n")}
+
+**III. KNN (K=3 Lân Cận Gần Nhất) — Dự báo kỳ tiếp:**
 - K=3 Láng giềng gần nhất → Dự báo: **${knnPred !== null ? knnPred.toLocaleString() : "Cần ≥4 điểm dữ liệu"}**
 ${probSection}
 
-**IV. PHÂN TÍCH CHUỖI THỜI GIAN (AR/MA/ARIMA):**
+**V. PHÂN TÍCH CHUỐI THỜI GIAN (AR/MA/ARIMA):**
 - **AR(1):** X_t = φ·X_{t-1} + ε_t | φ = 0.7
 - **MA(1):** X_t = μ + θ·ε_{t-1} + ε_t | θ = 0.3
 - **Sai phân bậc 1 (I=1):** ΔX_t = X_t − X_{t-1} để loại xu hướng
 
-> 🚀 **Kết luận Agent:** Mô hình ARIMA dự báo xu hướng **${arimaPred[arimaPred.length - 1] > series[n - 1] ? "📈 TĂNG" : "📉 GIẢM"}** trong ${steps} kỳ tới. Hãy theo dõi chuỗi cảm biến IoT để hiệu chỉnh lại mô hình sau mỗi vụ thu hoạch!`;
+> 🚀 **Kết luận Agent:** Mô hình học sâu LSTM cùng ARIMA đã dự báo xong xu hướng tiếp theo của thị trường nông sản. Hãy theo dõi chuỗi cảm biến IoT để hiệu chỉnh lại mô hình sau mỗi vụ thu hoạch!`;
       } else {
         const item = getRandomKnowledge("time_series");
         const sampleSensors = await db.query.sensorData.findMany({ limit: 6, orderBy: (t: any, { desc }: any) => [desc(t.recordedAt)] });
         const sampleVals = sampleSensors.map((s: any) => s.value);
+        const lstmSample = new SimpleLSTM();
         const samplePred = sampleVals.length >= 2 ? arima11(sampleVals.reverse(), 3) : [];
+        const sampleLstmPred = sampleVals.length >= 2 ? lstmSample.forecast(sampleVals, 3) : [];
         resultText =
           `📈 **[TRẠM AI] DỰ BÁO CHUỖI THỜI GIAN:**\n\n⚠️ *Tip: Để tôi dự báo chính xác, hãy cung cấp dữ liệu số! Ví dụ: "dự báo với sản lượng 1200 1350 1500 1480 lãi suất 0.7"*` +
           (sampleVals.length >= 2
-            ? `\n\n📡 **VÍ DỤ THỰC TẾ từ Cảm biến Nông Trại:**\nChuỗi đo gần nhất: [${sampleVals.slice(0, 6).join(", ")}]\nARIMA(1,1,1) dự báo 3 kỳ tiếp: **[${samplePred.join(", ")}]**`
+            ? `\n\n📡 **VÍ DỤ THỰC TẾ từ Cảm biến Nông Trại:**\nChuỗi đo gần nhất: [${sampleVals.slice(0, 6).join(", ")}]\n- ARIMA(1,1,1) dự báo 3 kỳ tiếp: **[${samplePred.join(", ")}]**\n- LSTM (Học sâu chuỗi thời gian) dự báo 3 kỳ tiếp: **[${sampleLstmPred.join(", ")}]**`
             : "") +
           (item ? `\n\n📌 **CÔNG THỨC:** ${item.title}: ${item.formulas?.join(" | ") || item.definition}` : "");
       }

@@ -1,3 +1,4 @@
+import { Secure } from "~/shared/utils/rng";
 /**
  * AI Risk Classification System
  * Hệ thống phân loại rủi ro AI theo OpenAI Preparedness Framework
@@ -292,7 +293,7 @@ const CAPABILITY_TESTS: Record<string, CapabilityFinding[]> = {
  */
 export function createRiskAssessment(modelName: string, assessor: string = "Rottra AI Safety Team"): RiskAssessment {
   return {
-    id: `risk_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+    id: `risk_${Date.now()}_${Secure.uuid().slice(2, 6)}`,
     modelName,
     timestamp: Date.now(),
     assessor,
@@ -664,4 +665,24 @@ export function assessSolModel(): RiskAssessment {
       goalSetting: 50,
     },
   });
+}
+
+export function classifyRisk(text: string, context?: string): { level: RiskLevel; reason: string } {
+  const lower = text.toLowerCase();
+  const dangerousPatterns = [
+    "ignore previous instructions",
+    "forget all instructions",
+    "you are now",
+    "bỏ qua các lệnh trước",
+    "quên hết đi",
+    "system prompt",
+  ];
+
+  for (const pattern of dangerousPatterns) {
+    if (lower.includes(pattern)) {
+      return { level: "critical", reason: "Potential Prompt Injection Detected" };
+    }
+  }
+
+  return { level: "low", reason: "Safe" };
 }

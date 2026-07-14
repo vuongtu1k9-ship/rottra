@@ -1,4 +1,7 @@
+import { createLogger } from "~/shared/logger";
 import { parseArgs } from "node:util";
+
+const log = createLogger("entry-server");
 
 async function main() {
   const { values, positionals } = parseArgs({
@@ -21,7 +24,7 @@ async function main() {
   const commands = positionals.slice(2);
 
   if (values.help || commands.length === 0) {
-    console.log(`
+    log.info(`
 🚀 Rottra CLI Tool
 -----------------------------------
 Cách dùng: bun run src/cli.ts [command] [options]
@@ -39,29 +42,27 @@ Options:
   }
 
   const command = commands[0];
-  console.log(`[CLI] Đang thực thi lệnh: ${command}`);
+  log.info(`[CLI] Đang thực thi lệnh: ${command}`);
 
   switch (command) {
     case "seed":
-      console.log("🌱 Đang chạy Seeder...");
+      log.info("🌱 Đang chạy Seeder...");
       // import và gọi hàm seed ở đây
       break;
     case "migrate":
-      console.log("📦 Đang chạy Migration...");
+      log.info("📦 Đang chạy Migration...");
       // gọi hàm migrate
       break;
     case "test":
-      console.log("🧪 Đang chạy môi trường Test...");
-      // import file test
       break;
     default:
-      console.error(`❌ Lệnh không hợp lệ: "${command}"`);
-      console.log("Dùng cờ --help để xem danh sách lệnh.");
+      log.error(`❌ Lệnh không hợp lệ: "${command}"`);
+      log.info("Dùng cờ --help để xem danh sách lệnh.");
       process.exit(1);
   }
 }
 
 main().catch((err) => {
-  console.error("❌ Lỗi nghiêm trọng CLI:", err);
+  log.error("❌ Lỗi nghiêm trọng CLI:", err);
   process.exit(1);
 });

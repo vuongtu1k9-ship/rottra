@@ -7,11 +7,24 @@
  * 3. Periodically merge learned data → retrain local model
  */
 
+import { createLogger } from "~/shared/logger";
 import { db } from "~/infra/database/db-pool";
 import { agentTraining, feedbackLog, dpoTrainingData } from "~/infra/database/schema";
 import { eq, sql, desc } from "drizzle-orm";
 import crypto from "node:crypto";
+import fs from "node:fs";
+import path from "node:path";
 import { recordIntentOverride } from "~/core/nlp-cognitive/tokenizer";
+import {
+  judgeResponseConfidence,
+  updatePatternReward,
+  pruneLowRewardPatterns,
+  getPatternReward,
+  bootstrapRewardsFromHistory,
+  getRLAIFStats,
+} from "~/core/nlp-cognitive/rlaif-feedback";
+
+const log = createLogger("api/self-learner");
 
 // ══════════════════════════════════════════════════════════════
 // 1. AUTO-TEACH: Tự dạy khi classifier score thấp
@@ -22,6 +35,15 @@ const LEARN_COOLDOWN_MS = 5 * 60 * 1000; // 5 phút giữa 2 lần học cùng q
 const recentlyLearned = new Map<string, number>();
 
 export async function autoTeachOnLowConfidence(query: string, score: number, existingAnswer?: string): Promise<boolean> {
+  // RLAIF-V: Check if this pattern has negative reward (should NOT teach bad patterns)
+  const existingReward = getPatternReward(query);
+  if (existingReward && existingReward.reward < -2.0 && existingReward.negativeCount >= 3) {
+    log.info(
+      `[RLAIF-V] Skipping auto-teach for low-reward pattern: "${query.slice(0, 40)}..." (reward: ${existingReward.reward.toFixed(2)})`,
+    );
+    return false;
+  }
+
   if (score >= LOW_CONFIDENCE_THRESHOLD) return false;
 
   const normalizedQuery = query.trim().toLowerCase();
@@ -47,10 +69,10 @@ export async function autoTeachOnLowConfidence(query: string, score: number, exi
       answer,
     });
 
-    console.log(`[SelfLearner] ✅ Tự học: "${query.slice(0, 60)}..." (score: ${score.toFixed(3)})`);
+    log.info(`[SelfLearner] ✅ Tự học: "${query.slice(0, 60)}..." (score: ${score.toFixed(3)})`);
     return true;
   } catch (err: any) {
-    console.error(`[SelfLearner] Lỗi tự học:`, err.message);
+    log.error(`[SelfLearner] Lỗi tự học:`, err.message);
     return false;
   }
 }
@@ -88,7 +110,7 @@ export async function recordFeedback(query: string, intent: string, score: numbe
     timestamp: Date.now(),
   });
 
-  console.log(`[SelfLearner] 📝 Feedback: "${query.slice(0, 40)}..." → ${rating} (score: ${score.toFixed(3)})`);
+  log.info(`[SelfLearner] 📝 Feedback: "${query.slice(0, 40)}..." → ${rating} (score: ${score.toFixed(3)})`);
 
   // Persist individual feedback immediately (fire-and-forget)
   try {
@@ -102,6 +124,18 @@ export async function recordFeedback(query: string, intent: string, score: numbe
     });
   } catch {
     // Buffer will catch it on flush anyway
+  }
+
+  // RLAIF-V: Update pattern reward (self-judgment feedback loop)
+  const confidence = score || 0.5;
+  const reward = updatePatternReward(query, intent || "UNKNOWN", confidence, rating);
+
+  // Auto-prune low reward patterns periodically
+  if (reward.feedbackCount % 10 === 0) {
+    const pruneResult = pruneLowRewardPatterns();
+    if (pruneResult.pruned > 0) {
+      log.info("[RLAIF-V] Pruned " + pruneResult.pruned + " low-reward patterns, " + pruneResult.remaining + " remaining");
+    }
   }
 
   // Online learning: record intent override for instant classification improvement
@@ -125,7 +159,7 @@ export async function recordFeedback(query: string, intent: string, score: numbe
             .update(agentTraining)
             .set({ answer: "🧠 [Rottra Học Lại]: " + betterAnswer })
             .where(eq(agentTraining.id, existing.id));
-          console.log(`[SelfLearner] 🔄 Cập nhật câu trả lời cho: "${query.slice(0, 40)}..."`);
+          log.info(`[SelfLearner] 🔄 Cập nhật câu trả lời cho: "${query.slice(0, 40)}..."`);
 
           // LƯU CẶP DỮ LIỆU DPO (Direct Preference Optimization)
           // Câu bị chê (rejected) vs Câu tốt hơn (chosen)
@@ -135,7 +169,7 @@ export async function recordFeedback(query: string, intent: string, score: numbe
             chosenResponse: betterAnswer,
             rejectedResponse: existing.answer,
           });
-          console.log(`[SelfLearner] 📊 Đã lưu cặp DPO cho câu hỏi: "${query.slice(0, 40)}..."`);
+          log.info(`[SelfLearner] 📊 Đã lưu cặp DPO cho câu hỏi: "${query.slice(0, 40)}..."`);
         } else {
           await db.insert(agentTraining).values({
             id: crypto.randomUUID(),
@@ -143,11 +177,11 @@ export async function recordFeedback(query: string, intent: string, score: numbe
             utterance: query.trim(),
             answer: "🧠 [Rottra Học Lại]: " + betterAnswer,
           });
-          console.log(`[SelfLearner] ✅ Học mới từ feedback: "${query.slice(0, 40)}..."`);
+          log.info(`[SelfLearner] ✅ Học mới từ feedback: "${query.slice(0, 40)}..."`);
         }
       }
     } catch (err: any) {
-      console.error(`[SelfLearner] Lỗi học từ feedback:`, err.message);
+      log.error(`[SelfLearner] Lỗi học từ feedback:`, err.message);
     }
   }
 }
@@ -160,7 +194,7 @@ async function flushFeedback(): Promise<void> {
   const downs = batch.filter((f) => f.rating === "down").length;
   const avgScore = batch.reduce((sum, f) => sum + f.score, 0) / batch.length;
 
-  console.log(`[SelfLearner] 📊 Flush ${batch.length} feedback: ${ups}👍 ${downs}👎 (avg score: ${avgScore.toFixed(3)})`);
+  log.info(`[SelfLearner] 📊 Flush ${batch.length} feedback: ${ups}👍 ${downs}👎 (avg score: ${avgScore.toFixed(3)})`);
 
   // Persist feedback to DB for analytics
   try {
@@ -174,7 +208,7 @@ async function flushFeedback(): Promise<void> {
     }));
     await db.insert(feedbackLog).values(values);
   } catch (err: any) {
-    console.error(`[SelfLearner] Lỗi flush feedback to DB:`, err.message);
+    log.error(`[SelfLearner] Lỗi flush feedback to DB:`, err.message);
   }
 }
 
@@ -191,8 +225,7 @@ export async function syncLearnedToLocalModel(): Promise<{ synced: number; total
     }
 
     // Merge vào extra_training_data.jsonl
-    const fs = await import("node:fs");
-    const path = await import("node:path");
+
     const datasetPath = path.join(process.cwd(), "finetune", "data", "extra_training_data.jsonl");
 
     // Đọc existing entries
@@ -201,7 +234,7 @@ export async function syncLearnedToLocalModel(): Promise<{ synced: number; total
       existingContent
         .split("\n")
         .filter(Boolean)
-        .map((line) => {
+        .map((line: string) => {
           try {
             const parsed = JSON.parse(line);
             return parsed.messages?.[1]?.content?.toLowerCase() || "";
@@ -231,7 +264,7 @@ export async function syncLearnedToLocalModel(): Promise<{ synced: number; total
     }
 
     if (syncedCount > 0) {
-      console.log(`[SelfLearner] 🔄 Synced ${syncedCount} learned entries → extra_training_data.jsonl`);
+      log.info(`[SelfLearner] 🔄 Synced ${syncedCount} learned entries → extra_training_data.jsonl`);
 
       // Re-merge và retrain
       const datasetMain = path.join(process.cwd(), "finetune", "data", "rottra_dataset.jsonl");
@@ -239,12 +272,12 @@ export async function syncLearnedToLocalModel(): Promise<{ synced: number; total
       const mainData = fs.readFileSync(datasetMain, "utf-8");
       fs.writeFileSync(datasetMain, mainData + "\n" + extraData);
 
-      console.log(`[SelfLearner] 🎯 Retraining local model...`);
+      log.info(`[SelfLearner] 🎯 Retraining local model...`);
     }
 
     return { synced: syncedCount, total: learnedRecords.length };
   } catch (err: any) {
-    console.error(`[SelfLearner] Lỗi sync:`, err.message);
+    log.error(`[SelfLearner] Lỗi sync:`, err.message);
     return { synced: 0, total: 0 };
   }
 }
@@ -277,12 +310,14 @@ export async function getLearningStats(): Promise<{
   autoLearned: number;
   feedbackLearned: number;
   recentFeedback: { ups: number; downs: number };
+  rlaif: { totalPatterns: number; verifiedPatterns: number; averageReward: number; averageConfidence: number; needsPruning: number };
 }> {
   try {
     const all = await db.query.agentTraining.findMany();
     const autoLearned = all.filter((r: any) => r.intent?.startsWith("AUTO_LEARNED")).length;
     const feedbackLearned = all.filter((r: any) => r.intent?.startsWith("FEEDBACK_LEARNED")).length;
 
+    const rlaifStats = getRLAIFStats();
     return {
       totalLearned: all.length,
       autoLearned,
@@ -291,9 +326,16 @@ export async function getLearningStats(): Promise<{
         ups: feedbackBuffer.filter((f) => f.rating === "up").length,
         downs: feedbackBuffer.filter((f) => f.rating === "down").length,
       },
+      rlaif: rlaifStats,
     };
   } catch {
-    return { totalLearned: 0, autoLearned: 0, feedbackLearned: 0, recentFeedback: { ups: 0, downs: 0 } };
+    return {
+      totalLearned: 0,
+      autoLearned: 0,
+      feedbackLearned: 0,
+      recentFeedback: { ups: 0, downs: 0 },
+      rlaif: { totalPatterns: 0, verifiedPatterns: 0, averageReward: 0, averageConfidence: 0, needsPruning: 0 },
+    };
   }
 }
 
@@ -416,8 +458,7 @@ export async function retrainModel(): Promise<{
     }
 
     // 2. Read extra training data
-    const fs = await import("node:fs");
-    const path = await import("node:path");
+
     const datasetPath = path.join(process.cwd(), "finetune", "data", "extra_training_data.jsonl");
 
     const existingContent = fs.existsSync(datasetPath) ? fs.readFileSync(datasetPath, "utf-8") : "";
@@ -425,7 +466,7 @@ export async function retrainModel(): Promise<{
       existingContent
         .split("\n")
         .filter(Boolean)
-        .map((line) => {
+        .map((line: string) => {
           try {
             const parsed = JSON.parse(line);
             return parsed.messages?.[1]?.content?.toLowerCase() || "";
@@ -478,7 +519,7 @@ export async function retrainModel(): Promise<{
     lastRetrainTime = Date.now();
     isRetraining = false;
 
-    console.log(`[SelfLearner] 🎯 Retrain complete: ${newPairsAdded} new pairs, ${uniqueKeywords.length} new keywords`);
+    log.info(`[SelfLearner] 🎯 Retrain complete: ${newPairsAdded} new pairs, ${uniqueKeywords.length} new keywords`);
 
     return {
       success: true,
@@ -488,7 +529,7 @@ export async function retrainModel(): Promise<{
     };
   } catch (err: any) {
     isRetraining = false;
-    console.error(`[SelfLearner] Retrain error:`, err.message);
+    log.error(`[SelfLearner] Retrain error:`, err.message);
     return { success: false, newPairsAdded: 0, vocabularySize: 0, duration: Date.now() - startTime, error: err.message };
   }
 }
@@ -496,3 +537,22 @@ export async function retrainModel(): Promise<{
 export function getRetrainStatus(): { inProgress: boolean; lastRetrainTime: number } {
   return { inProgress: isRetraining, lastRetrainTime };
 }
+
+// ══════════════════════════════════════════════════════════════
+// RLAIF-V: Bootstrap rewards từ history khi module load
+// ══════════════════════════════════════════════════════════════
+// Bootstrap after DB is likely ready — retry up to 3 times
+(async () => {
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      await bootstrapRewardsFromHistory();
+      return;
+    } catch (e) {
+      if (attempt < 3) {
+        await new Promise((r) => setTimeout(r, attempt * 3000));
+      } else {
+        console.warn("[RLAIF-V] Bootstrap failed after 3 attempts:", e);
+      }
+    }
+  }
+})();

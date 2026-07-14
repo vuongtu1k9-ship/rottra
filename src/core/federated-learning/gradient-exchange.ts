@@ -193,7 +193,7 @@ export class GradientExchange {
    */
   private async getEncryptionKey(): Promise<Buffer> {
     // Simple key derivation (in production, use proper key management)
-    const { createHash } = await import("node:crypto");
+    const { createHash } = require("node:crypto");
     return createHash("sha256").update(`fl-key-${this.nodeId}`).digest();
   }
 
@@ -201,7 +201,7 @@ export class GradientExchange {
    * Generate key pair for node
    */
   private async generateKeyPair(): Promise<string> {
-    const { createHash } = await import("node:crypto");
+    const { createHash } = require("node:crypto");
     return createHash("sha256").update(`pubkey-${this.nodeId}-${Date.now()}`).digest("hex");
   }
 }

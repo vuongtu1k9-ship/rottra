@@ -1,3 +1,4 @@
+import { Secure } from "~/shared/utils/rng";
 import { createSignal } from "solid-js";
 
 export type ToastType = "success" | "error" | "warning" | "info";
@@ -13,7 +14,7 @@ const [toasts, setToasts] = createSignal<ToastMessage[]>([]);
 export { toasts };
 
 export function showToast(type: ToastType, message: string) {
-  const id = Math.random().toString(36).substring(7);
+  const id = Secure.uuid().split("-")[0];
   setToasts((prev) => {
     const filtered = prev.filter((t) => t.message !== message);
     return [...filtered, { id, type, message }];

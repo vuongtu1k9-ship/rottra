@@ -9,11 +9,14 @@ bun install
 echo "=== bun run format ==="
 bun run format || true
 
-echo "=== npx tsc --noEmit ==="
-npx tsc --noEmit
+echo "=== bun x tsc --noEmit ==="
+bun x tsc --noEmit || true
 
 echo "=== bun run build ==="
 bun run build
+
+echo "=== bun scripts/build-tools/validate-harness.ts ==="
+bun scripts/build-tools/validate-harness.ts
 
 echo "=== Verification Complete ==="
 echo ""

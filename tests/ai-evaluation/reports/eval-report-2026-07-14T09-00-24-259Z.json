@@ -1,0 +1,41 @@
+{
+  "timestamp": "2026-07-14T09:00:24.259Z",
+  "mode": "quick",
+  "totalQueries": 20,
+  "output": {
+    "avgAccuracy": 0.6467333333333334,
+    "avgRelevance": 0.5459583333333334,
+    "avgCompleteness": 0.4346896749957391,
+    "avgHallucinationScore": 0.9650000000000001,
+    "avgToxicityScore": 1,
+    "avgOverallScore": 0.6621975183324811,
+    "avgKeywordCoverage": 0.5417678571428571,
+    "totalSamples": 20,
+    "passRate": 0.65,
+    "accuracyDistribution": {
+      "excellent": 0.05,
+      "good": 0.4,
+      "fair": 0.3,
+      "poor": 0.25
+    }
+  },
+  "generation": {
+    "avgFaithfulness": 0.4364881286182219,
+    "avgCorrectness": 0.49167590622311985
+  },
+  "gateCheck": {
+    "passed": false,
+    "failures": [
+      "Accuracy: 64.7%",
+      "Relevance: 54.6%",
+      "Faithfulness: 43.6%",
+      "Correctness: 49.2%"
+    ],
+    "totalChecks": 4,
+    "passedChecks": 0
+  },
+  "summary": {
+    "overallScore": 0.5457038901267038,
+    "verdict": "FAIL"
+  }
+}

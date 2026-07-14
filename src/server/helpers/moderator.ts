@@ -1,4 +1,7 @@
-import { generateTextLocal } from "~/core/nlp-cognitive/ai-sdk";
+﻿import { generateTextLocal } from "~/core/nlp-cognitive/ai-sdk";
+import { createLogger } from "~/shared/logger";
+
+const log = createLogger("helpers/moderator");
 
 export const DEFAULT_SAFE_IMAGE = "/assets/Rottra-default-agri.avif";
 
@@ -23,7 +26,7 @@ export async function isTextSafeAI(text: string): Promise<boolean> {
     }
     return true;
   } catch (error) {
-    console.error("Text Moderation AI failed, defaulting to safe:", error);
+    log.error("Text Moderation AI failed, defaulting to safe:", error);
     return true;
   }
 }

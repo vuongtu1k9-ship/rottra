@@ -1,19 +1,24 @@
 import { db } from "~/infra/database/db-pool";
+import { createLogger } from "~/shared/logger";
 import { user } from "~/infra/database/schema";
 import { auth } from "~/server/auth";
 import { eq } from "drizzle-orm";
+import type { Context } from "hono";
+
+const log = createLogger("middlewares/auth-guard");
 
 /**
  * AI Auth Middleware
  * Xác thực và phân quyền cho toàn bộ các endpoints liên quan tới AI & Agent
  */
-export const aiAuthMiddleware = async (c: any, next: any) => {
+export const aiAuthMiddleware = async (c: Context, next: () => Promise<void>) => {
   const path = c.req.path;
 
   // Bỏ qua các API phục vụ webhook, sinh ảnh hoặc giả lập chạy ngầm của bot, và cấu hình public
   const isPublicOrAutomated =
     path.includes("/webhook-changedetection") ||
     path.includes("/generate-local-image") ||
+    path.includes("/market-forecast") ||
     path.includes("/meeting-chat") ||
     path.includes("/trigger-bot-action") ||
     path.includes("/sabotage") ||
@@ -24,6 +29,7 @@ export const aiAuthMiddleware = async (c: any, next: any) => {
     path.includes("/rerank") ||
     path.includes("/heartbeat-tick") ||
     path.includes("/cron-tick") ||
+    path.includes("/tree-of-life-status") ||
     (path.includes("/system-profile") && c.req.method === "GET");
 
   if (isPublicOrAutomated) {
@@ -72,7 +78,7 @@ export const aiAuthMiddleware = async (c: any, next: any) => {
       );
     }
 
-    if (dbUser.profile && (dbUser.profile as any).banned) {
+    if (dbUser.profile && (dbUser.profile as Record<string, unknown>)?.banned) {
       return c.json(
         {
           success: false,
@@ -98,7 +104,7 @@ export const aiAuthMiddleware = async (c: any, next: any) => {
       return c.json(
         {
           success: false,
-          reply: "Dạ thưa Sếp, thao tác quản trị AI này yêu cầu tài khoản quyền Quản trị viên (Admin) ạ!",
+          reply: "Xin lỗi, thao tác quản trị AI này yêu cầu tài khoản quyền Quản trị viên (Admin)!",
           text: "⚠️ Quyền truy cập bị từ chối. Chỉ Quản trị viên mới được thực hiện thao tác này.",
         },
         403,
@@ -106,12 +112,12 @@ export const aiAuthMiddleware = async (c: any, next: any) => {
     }
 
     await next();
-  } catch (err: any) {
-    console.error("❌ AI Auth Middleware Error:", err);
+  } catch (err: unknown) {
+    log.error("❌ AI Auth Middleware Error:", err);
     return c.json(
       {
         success: false,
-        reply: "Lỗi hệ thống kiểm soát và xác thực AI: " + err.message,
+        reply: "Lỗi hệ thống kiểm soát và xác thực AI. Vui lòng thử lại sau.",
       },
       500,
     );
@@ -123,6 +129,20 @@ interface Bucket {
   lastRefill: number;
 }
 
+// Periodic cleanup for rate-limit maps to prevent memory leaks
+const CLEANUP_INTERVAL_MS = 60_000;
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, bucket] of ipBuckets) {
+    if (now - bucket.lastRefill > 120_000) ipBuckets.delete(key);
+  }
+  for (const [key, bucket] of userBuckets) {
+    if (now - bucket.lastRefill > 120_000) userBuckets.delete(key);
+  }
+  for (const [key, entry] of aiWindowMap) {
+    if (now > entry.resetAt) aiWindowMap.delete(key);
+  }
+}, CLEANUP_INTERVAL_MS).unref();
 const ipBuckets = new Map<string, Bucket>();
 const RATE_LIMIT_CAPACITY = 5;
 const REFILL_RATE_MS = 10000;
@@ -136,7 +156,7 @@ const USER_REFILL_RATE_MS = 3000;
 const aiWindowMap = new Map<string, { count: number; resetAt: number }>();
 const AI_LIMIT_PER_MINUTE = 30;
 
-export const guestRateLimiter = async (c: any, next: any) => {
+export const guestRateLimiter = async (c: Context, next: () => Promise<void>) => {
   const path = c.req.path;
   const isGeneralChatOrExpert = path.endsWith("/agent/chat") || path.includes("/chat-expert");
 
@@ -211,8 +231,8 @@ export const guestRateLimiter = async (c: any, next: any) => {
 
     bucket.tokens -= 1;
     await next();
-  } catch (err: any) {
-    console.error("❌ Rate Limiter Error:", err);
+  } catch (err: unknown) {
+    log.error("❌ Rate Limiter Error:", err);
     await next();
   }
 };

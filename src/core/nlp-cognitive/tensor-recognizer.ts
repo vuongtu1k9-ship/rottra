@@ -6,7 +6,36 @@ let labels: Record<string, string> = {};
 let isInitializing = false;
 
 async function getOrt(): Promise<any> {
-  console.warn("ONNX Runtime Web has been purged from RottraAI. Running in Native Fallback mode.");
+  if (ortInstance) return ortInstance;
+
+  if (typeof window !== "undefined") {
+    if ((window as any).ort) {
+      ortInstance = (window as any).ort;
+      return ortInstance;
+    }
+
+    console.log("📥 Loading ONNX Runtime Web from CDN...");
+    await new Promise<void>((resolve, reject) => {
+      const script = document.createElement("script");
+      script.src = "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.18.0/dist/ort.min.js";
+      script.onload = () => {
+        ortInstance = (window as any).ort;
+        if (ortInstance) {
+          ortInstance.env.wasm.wasmPaths = "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.18.0/dist/";
+          console.log("✅ ONNX Runtime Web loaded successfully from CDN.");
+        }
+        resolve();
+      };
+      script.onerror = (err) => {
+        console.error("❌ Failed to load ONNX Runtime Web script:", err);
+        reject(err);
+      };
+      document.head.appendChild(script);
+    });
+
+    return ortInstance;
+  }
+
   return null;
 }
 

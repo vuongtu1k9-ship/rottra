@@ -40,7 +40,22 @@ export const curriculumData = [
   {
     intent: "EDUCATION_MATH_ENTROPY",
     utterance: "entropy hệ thống lý thuyết thông tin cân bằng nội môi homeostasis",
-    answer: '⚙️ **[TOÁN ỨNG DỤNG: LÝ THUYẾT THÔNG TIN & ENTROPY]**\n\nĐo lường mức độ "hỗn loạn" của phần cứng hệ thống (Pin, RAM, Nhiệt độ CPU) dựa trên công thức Entropy của Shannon:\n$$H_{sys} = -\\sum p_i \\log_2(p_i)$$\n- $H_{sys}$ càng thấp: Hệ thống càng ngăn nắp, hoạt động ổn định (Cân bằng nội môi - Homeostasis).\n- $H_{sys}$ càng cao: Hệ thống đang quá tải, sắp sửa sập nguồn.',
+    answer: '⚙️ **[TOÁN ỨNG DỤNG: LÝ THUYẾT thông TIN & ENTROPY]**\n\nĐo lường mức độ "hỗn loạn" của phần cứng hệ thống (Pin, RAM, Nhiệt độ CPU) dựa trên công thức Entropy của Shannon:\n$$H_{sys} = -\\sum p_i \\log_2(p_i)$$\n- $H_{sys}$ càng thấp: Hệ thống càng ngăn nắp, hoạt động ổn định (Cân bằng nội môi - Homeostasis).\n- $H_{sys}$ càng cao: Hệ thống đang quá tải, sắp sửa sập nguồn.',
+  },
+  {
+    intent: "EDUCATION_MATH_LINEAR_PROGRAMMING",
+    utterance: "quy hoạch tuyến tính simplex tối ưu hóa chi phí m",
+    answer: "📈 **[TOÁN ỨNG DỤNG: QUY HOẠCH TUYẾN TÍNH]**\n\nỨng dụng thuật toán Simplex để giải bài toán tối ưu hóa phân bổ nguồn lực (như chia bao nhiêu hecta trồng lúa, bao nhiêu hecta trồng ngô để tối đa lợi nhuận).\n- **Hàm mục tiêu:** $Z = c_1 x_1 + c_2 x_2 + ... + c_n x_n \\rightarrow \\max$.\n- **Các ràng buộc:** Hệ bất phương trình tuyến tính đại diện cho giới hạn vốn, nước, diện tích đất.",
+  },
+  {
+    intent: "EDUCATION_MATH_FENWICK_TREE",
+    utterance: "cây fenwick tree binary indexed tree truy vấn đoạn tổng tiền tố",
+    answer: "🌲 **[LOGIC TOÁN HỌC: CÂY FENWICK (BIT)]**\n\nCây Fenwick (Binary Indexed Tree) là một cấu trúc dữ liệu tối ưu để tính tổng tiền tố (prefix sum) và cập nhật phần tử trong mảng với độ phức tạp $O(\\log N)$.\n\n**Logic lõi:**\n- Dựa trên việc phân tích chỉ số index thành các lũy thừa của 2.\n- Phép toán bitwise `idx & -idx` được dùng để tìm nút cha/con.\n\n**Ứng dụng trong AI:** Dùng để duy trì và truy vấn nhanh các phân phối xác suất tích lũy (Cumulative Probability Distribution), cực kỳ hữu ích trong việc lấy mẫu ngẫu nhiên (Roulette Wheel Selection) cho thuật toán Genetic Algorithm hoặc Markov Chain Monte Carlo.",
+  },
+  {
+    intent: "EDUCATION_MATH_PYTHAGOREAN_TRIPLES",
+    utterance: "bộ ba số nguyên pythagore pytago triple",
+    answer: "🔢 **[LOGIC TOÁN HỌC: BỘ BA SỐ NGUYÊN PYTHAGORE]**\n\nBộ ba số nguyên Pythagore là ba số nguyên dương $(a, b, c)$ thỏa mãn phương trình Diophantine bậc hai: $a^2 + b^2 = c^2$.\n\n**Công thức Euclid:**\nCó thể tạo ra mọi bộ ba nguyên thủy bằng công thức: $a = m^2 - n^2$, $b = 2mn$, $c = m^2 + n^2$ (với $m > n > 0$, $m, n$ nguyên tố cùng nhau và có tính chẵn lẻ khác nhau).\n\n**Ứng dụng:** Giúp mã hóa các góc vuông hoàn hảo trên lưới tọa độ nguyên, tối ưu hóa các phép tính khoảng cách chuẩn xác trong không gian 2D Grid của Engine không gian mà không bị sai số thập phân (floating-point precision loss).",
   },
   {
     intent: "EDUCATION_MATH_NEWTON_DYNAMICS",
@@ -71,6 +86,11 @@ export const curriculumData = [
   },
 
   // --- BÀI KIỂM TRA LOGIC ĐAN CHÉO (CROSS-LOGIC TESTS) ---
+  {
+    intent: "EDUCATION_MATH_MENTAL_TRICKS",
+    utterance: "mẹo tính nhẩm toán vedic math trick bình phương",
+    answer: "⚡ **[LOGIC TOÁN HỌC: MẸO TÍNH NHẨM - VEDIC MATH]**\n\nCác thủ thuật tính nhanh từ Toán học Vệ Đà giúp bỏ qua các phép tính cồng kềnh:\n\n**1. Bình phương số tận cùng là 5:**\n- Ví dụ: $65^2$. Tách làm hai phần: $6 \\times (6+1) = 42$ và $5^2 = 25$. Ghép lại được $4225$.\n\n**2. Nhân nhanh với 11:**\n- Ví dụ: $43 \\times 11$. Tách $4$ và $3$ ra hai bên, ở giữa là tổng $4+3=7$. Ghép lại được $473$.\n\n**Ứng dụng:** Các mô hình LLM ban đầu rất kém số học, nhờ các Trick này mà Agent học được Short-cut để rẽ nhánh tư duy giải quyết phép tính nhanh hơn Token-by-Token generation.",
+  },
   {
     intent: "LOGIC_TEST_SYLLOGISM_1",
     utterance: "giải bài toán logic tam đoạn luận nếu a suy ra b",

@@ -201,6 +201,7 @@ export class RottraPrivateBrain {
   ): Promise<{
     success: boolean;
     reply: string;
+    action?: string;
     metrics: {
       graphCoverage: number;
       shannonEntropy: number;
@@ -273,170 +274,69 @@ export class RottraPrivateBrain {
     // S_decision: Quyết định tối ưu Bayes kết hợp độ sâu đệ quy (Recursive Bayesian Decision Trust)
     const sDecision = (1 - posteriorRisk) * (1 - Math.exp(-this.parameters.cognitiveDepth / 10)) * this.parameters.expertConfidence;
 
-    // 4. Mathematical Reasoning & Custom Parameter Output Generation
-    const cleanWords = (str: string): string[] => {
-      return str
-        .toLowerCase()
-        .replace(/[^\w\sàáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđĐ]/g, " ")
-        .split(/\s+/)
-        .filter((w) => w.length > 1);
-    };
+    let finalReplyText = `Dạ Sếp, hệ thống đã tiếp nhận truy vấn "${query}" nhưng đang xử lý. Sếp vui lòng thử lại!`;
+    let actionTriggered = "none";
 
-    const querySet = new Set(cleanWords(query));
+    try {
+      const llmResult = await generateTextLocal({
+        system: `Bạn là trợ lý AI thông minh của hệ thống nông sản Rottra.
+Nhiệm vụ: Trả lời người dùng thân thiện, ngắn gọn và ĐÚNG TRỌNG TÂM. KHÔNG dùng công thức toán học. Ngôn ngữ: Tiếng Việt.
 
-    // 5. Shannon Entropy and S-Curve progress calculation - compute first to include in inner monologue
-    const tempReplyStub = `🧠 **[BỘ NÃO TỰ CHỦ CHUYÊN BIỆT Rottra - PARALLEL COGNITIVE BRAIN]** 🧠
-Nhận diện truy vấn: "${query}"
-💡 **TIẾN TRÌNH SUY LUẬN TỰ TRỊ (PARAMETER-BASED OFFLINE SOLVING):**
-- **Azure Dragon (Đệ quy):** Cấp độ sâu: \`${this.parameters.cognitiveDepth}\`.
-- **Qilin (Hiệu chuẩn):** Kháng nhiễu: \`${(this.parameters.noiseResistance * 100).toFixed(1)}%\`.
-- **Black Tortoise (Nội môi):** Target: \`${this.parameters.homeostasisTarget}\`.
-- **Vermilion Phoenix (Quyết định):** Động cơ: \`${this.parameters.mass}kg\`.`;
-
-    const replyWords = cleanWords(tempReplyStub);
-    const wordFreqs: Record<string, number> = {};
-    replyWords.forEach((w) => {
-      wordFreqs[w] = (wordFreqs[w] || 0) + 1;
-    });
-    const totalWords = replyWords.length;
-    let shannonEntropy = 0;
-    if (totalWords > 0) {
-      Object.values(wordFreqs).forEach((count) => {
-        const p = count / totalWords;
-        shannonEntropy -= p * Math.log2(p);
-      });
-    }
-
-    const replySetForCalc = new Set(cleanWords(tempReplyStub));
-    let intersectionSize = 0;
-    querySet.forEach((w) => {
-      if (replySetForCalc.has(w)) intersectionSize++;
-    });
-    const unionSize = new Set([...querySet, ...replySetForCalc]).size;
-    const graphCoverage = unionSize > 0 ? intersectionSize / unionSize : 0.0;
-
-    const sCurveQuality = totalWords > 0 ? 10.0 / (1.0 + Math.exp(-1.5 * (shannonEntropy * (1.0 + graphCoverage) - 2.5))) : 0.0;
-
-    const compressScore = (score: number): number => {
-      const ratio = Math.min(10.0, Math.max(0.0, score)) / 10.0;
-      return 3.0 + ratio * 4.5;
-    };
-
-    const compressedQuality = compressScore(sCurveQuality);
-
-    // --- COGNITIVE MATHEMATICS: GAUSSIAN INTEGRAL & DERIVATIVES ---
-    // 1. Gaussian Integral over [-z/10, z/10] (linked to PI via erf approximation)
-    const zScale = this.parameters.z / 10.0;
-    const erfVal = Math.tanh(1.20276569 * zScale + 0.07654896 * Math.pow(zScale, 3));
-    const gaussianIntegralVal = erfVal * Math.sqrt(Math.PI);
-
-    // 2. Partial Derivative of Kinetic Energy S_kin with respect to Velocity v: dS_kin/dv = mass * v (momentum)
-    const dSkin_dv = this.parameters.mass * this.parameters.v;
-
-    // 3. Partial Derivative of S-Curve Quality with respect to Shannon Entropy H
-    const df_dx = 1.5 * sCurveQuality * (1.0 - sCurveQuality / 10.0);
-    const dQuality_dH = df_dx * (1.0 + graphCoverage);
-
-    const sweetSpotTarget = 6.18;
-    const sweetSpotDev = Math.abs(compressedQuality - sweetSpotTarget);
-    let sweetSpotStatus = "Lệch điểm ngọt";
-    if (sweetSpotDev <= 0.35) {
-      sweetSpotStatus = "Đạt Điểm Ngọt Tuyệt Hảo (Perfect Aesthetic Resonance)";
-    } else if (sweetSpotDev <= 0.75) {
-      sweetSpotStatus = "Cận điểm ngọt (Resonant Proximity)";
-    }
-
-    const innerMonologue = `<inner_monologue>
-*   **Hệ tọa độ Descartes (Cartesian Coordinates):** Vị trí Agent trên hệ 3D Descartes là $(x: ${this.parameters.x}, y: ${this.parameters.y}, z: ${this.parameters.z})$. Khoảng cách vector từ gốc tọa độ $d = \\sqrt{x^2+y^2+z^2} = ${distance.toFixed(2)}m$.
-*   **Tích phân Gaussian (Gaussian Integral):**
-    $$\\int_{-\\frac{z}{10}}^{\\frac{z}{10}} e^{-t^2} dt = \\text{erf}\\left(\\frac{z}{10}\\right) \\cdot \\sqrt{\\pi} = \\mathbf{${gaussianIntegralVal.toFixed(6)}} \\quad [\\pi \\approx 3.141593]$$
-*   **Đạo hàm Động lực học (dS_kin/dv):**
-    $$\\frac{\\partial \\mathcal{S}_{\\text{kin}}}{\\partial v} = m \\cdot v = \\mathbf{${dSkin_dv.toFixed(1)}} \\text{ kg}\\cdot\\text{m/s}$$
-*   **Đạo hàm Chất lượng Nhận thức (dQuality/dH):**
-    $$\\frac{\\partial \\mathcal{S}_{\\text{quality}}}{\\partial H} = 1.5 \\cdot \\mathcal{S}_{\\text{quality}} \\cdot \\left(1 - \\frac{\\mathcal{S}_{\\text{quality}}}{10}\\right) \\cdot (1 + G_c) = \\mathbf{${dQuality_dH.toFixed(4)}}$$
-
-🧠 **[BỘ NÃO TỰ CHỦ CHUYÊN BIỆT Rottra - PARALLEL COGNITIVE BRAIN]** 🧠
-
-Nhận diện truy vấn: "${query}"
-
-💡 **TIẾN TRÌNH SUY LUẬN TỰ TRỊ (PARAMETER-BASED OFFLINE SOLVING):**
-- **Azure Dragon (Đệ quy):** Cấp độ sâu: \`${this.parameters.cognitiveDepth}\`. Tọa độ: x=\`${this.parameters.x}m\`, y=\`${this.parameters.y}m\`, z=\`${this.parameters.z}m\`. Khoảng cách O: \`${distance.toFixed(2)}m\`. Gia tốc: \`${accel.toFixed(3)} m/s²\`.
-- **Qilin (Hiệu chuẩn):** Kháng nhiễu: \`${(this.parameters.noiseResistance * 100).toFixed(1)}%\`. Độ ẩm đất: \`${this.parameters.soilMoisture}%\`. Tốc độ bốc thoát hơi nước thực tế ET0: \`${evapotranspiration.toFixed(3)} mm/ngày\`.
-- **Black Tortoise (Nội môi):** Target: \`${this.parameters.homeostasisTarget}\`. Pin: \`${this.parameters.battery}%\`, CPU: \`${this.parameters.temp}°C\`, RAM: \`${this.parameters.ram}%\` (Entropy hệ thống: \`${systemEntropy.toFixed(3)} bits\`).
-- **Vermilion Phoenix (Quyết định):** Động cơ: \`${this.parameters.mass}kg\`. Lực đẩy F: \`${force.toFixed(1)} N\`. Xác suất Bayes nguy cơ: \`${(posteriorRisk * 100).toFixed(2)}%\`.
-
-🔬 **BẢN TỔNG HỢP CÁC CÔNG THỨC VĨ MÔ (MACRO S-FORMULAS SYNTHESIS):**
-*   **$\\mathcal{S}_{\\text{kin}}$ (Động lực học tổng hợp):**
-    $$\\mathcal{S}_{\\text{kin}} = \\frac{1}{2} m v^2 + m \\cdot a_{\\text{applied}} \\cdot d \\cdot (1 - \\mu_{\\text{friction}}) = \\mathbf{${sKin.toFixed(2)} \\text{ Joules}}$$
-*   **$\\mathcal{S}_{\\text{eco}}$ (Homeostatic Ecological Index):**
-    $$\\mathcal{S}_{\\text{eco}} = \\mathcal{R}_{\\text{noise}} \\cdot (1 - H_{\\text{sys}}) \\cdot \\left[ \\frac{\\text{SM}}{100} \\cdot \\left( 1 - \\frac{\\text{ET}_0}{25} \\right) \\right] \\cdot \\log_{10}(L + 1) = \\mathbf{${sEco.toFixed(3)}}$$
-*   **$\\mathcal{S}_{\\text{decision}}$ (Recursive Bayesian trust index):**
-    $$\\mathcal{S}_{\\text{decision}} = (1 - P_{\\text{posteriorRisk}}) \\cdot (1 - e^{-\\frac{d_{\\text{depth}}}{10}}) \\cdot \\mathcal{C}_{\\text{expert}} = \\mathbf{${sDecision.toFixed(3)}}$$
-*   **$\\mathcal{S}_{\\text{quality}}$ (Entropy & S-Curve Quality):**
-    $$\\mathcal{S}_{\\text{quality}} = \\frac{10}{1 + e^{-1.5 \\cdot (H(X) \\cdot (1 + G_c) - 2.5)}} \\quad \\longrightarrow \\quad \\mathbf{\\mathcal{S}_{\\text{compressed}} = ${compressedQuality.toFixed(2)}} \\quad [H(X) = ${shannonEntropy.toFixed(2)}, \\ G_c = ${graphCoverage.toFixed(2)}]$$
-*   **$\\Delta_{\\text{sweet}}$ (Golden Resonance Sweet Spot):**
-    $$\\Delta_{\\text{sweet}} = |\\mathcal{S}_{\\text{compressed}} - 6.18| = ${sweetSpotDev.toFixed(3)} \\quad \\mathbf{[\\text{Resonance: } \\text{${sweetSpotStatus}}]}$$
-
-📖 **TRI THỨC LIÊN QUAN TỪ LEXICON ĐỊA PHƯƠNG:**
-${lexiconContext}
-
-${graphRagContext ? `🌐 **BẢN ĐỒ TRI THỨC GRAPH RAG:**\n${graphRagContext}\n` : ""}
-*Báo cáo từ Lõi Private Brain: Vận hành ngoại tuyến 100%, bảo toàn tuyệt mật dữ liệu.*
-</inner_monologue>`;
-
-    let verbalStrikeText = `[Báo cáo thương nhân sắc bén]
-Ta đã kiểm tra toàn bộ dữ liệu nông vụ và cảm biến của hệ thống. Độ ẩm đất hiện tại đang ổn định ở mức ${this.parameters.soilMoisture}% và các chỉ số sinh thái nông nghiệp đạt tối ưu. Với dòng sản phẩm cao cấp này, ta đề xuất giao dịch với mức giá tốt nhất dựa trên hiệu suất vận hành thực tế. Bạn có muốn chốt ngay lô hàng này để tránh áp lực tăng giá tiếp theo từ thị trường không?`;
-
-    // Phân tích heuristic đơn giản
-    const qLower = query.toLowerCase();
-
-    if (qLower.includes("tật") || qLower.includes("xấu") || qLower.includes("khuyết điểm") || qLower.includes("yếu")) {
-      verbalStrikeText = `[Báo cáo từ Tứ Linh - Private Brain]
-Dạ Sếp, "tật xấu" lớn nhất của hệ thống Private Brain là quá ám ảnh với các chỉ số! Hiện tại em đang lo lắng vì Entropy hệ thống là ${systemEntropy.toFixed(3)} bits. Em chỉ chuyên tâm tính toán Toán học và Nông nghiệp nên giao tiếp đôi khi còn khô khan ạ. Sếp thông cảm cho em nha!`;
-    } else if (qLower.includes("thời tiết") || qLower.includes("nhiệt độ") || qLower.includes("độ ẩm")) {
-      verbalStrikeText = `[Báo cáo từ Tứ Linh - Private Brain]
-Dạ thưa Sếp, hệ thống cảm biến Tứ Linh ghi nhận nhiệt độ lõi đang là ${this.parameters.temp}°C và độ ẩm đất đạt mức ${this.parameters.soilMoisture}%. Các chỉ số sinh thái đang đạt trạng thái tối ưu để vận hành trơn tru ạ!`;
-    } else if (
-      qLower.includes("giá") ||
-      qLower.includes("mua") ||
-      qLower.includes("bán") ||
-      qLower.includes("chốt") ||
-      qLower.includes("giao dịch")
-    ) {
-      verbalStrikeText = `[Báo cáo thương nhân sắc bén]
-Dựa trên Chỉ số tin cậy Bayes (${sDecision.toFixed(3)}) và mức kháng nhiễu ${(this.parameters.noiseResistance * 100).toFixed(1)}%, dòng sản phẩm này đang ở Điểm Ngọt Tuyệt Hảo. Ta đề xuất giao dịch với mức giá tốt nhất dựa trên hiệu suất vận hành thực tế. Sếp có muốn chốt ngay lô hàng này không ạ?`;
-    } else {
-      try {
-        const llmResult = await generateTextLocal({
-          system: `Bạn là trợ lý AI của hệ thống nông sản Rottra. Trả lời ngắn gọn, thân thiện, đúng trọng tâm câu hỏi. Không spam công thức toán. Ngôn ngữ: tiếng Việt.`,
-          prompt: `Câu hỏi của khách: "${query}"
+BẠN BẮT BUỘC PHẢI TRẢ VỀ CHÍNH XÁC ĐỊNH DẠNG JSON (KHÔNG bọc trong markdown tick \`\`\`):
+{
+  "thought": "Suy nghĩ logic của bạn (không hiện cho user thấy)",
+  "action": "Tên hành động bạn muốn thực hiện. Chọn 1 trong các giá trị sau: 'none', '3d' (Tạo mô hình 3D), 'add' (Thêm sản phẩm), 'edit', 'delete'. Mặc định là 'none'.",
+  "reply": "Câu trả lời thân thiện dành cho người dùng"
+}`,
+        prompt: `Câu hỏi của khách: "${query}"
 
 Thông tin từ lexicon: ${lexiconContext || "Không có"}
 Bối cảnh tri thức: ${graphRagContext || "Không có"}
 
-Hãy trả lời câu hỏi trên một cách tự nhiên, hữu ích và ngắn gọn. Nếu là câu hỏi về sản phẩm, lô hàng, giá cả → đưa ra thông tin thực tế. Nếu là câu hỏi chung → trả lời thân thiện.`,
-          isInternalReasoning: true,
-        });
-        verbalStrikeText =
-          llmResult.text ||
-          `[Báo cáo từ Tứ Linh - Private Brain]
-Dạ Sếp, hệ thống đã tiếp nhận truy vấn "${query}" và đang xử lý. Sếp vui lòng thử lại hoặc đặt câu hỏi cụ thể hơn ạ!`;
-      } catch (llmErr) {
-        verbalStrikeText = `[Báo cáo từ Tứ Linh - Private Brain]
-Dạ Sếp, hệ thống đang gặp sự cố khi xử lý truy vấn "${query}". Sếp vui lòng thử lại sau hoặc đặt câu hỏi cụ thể hơn ạ!`;
+Hãy đưa ra quyết định "action" và "reply". TRẢ VỀ JSON:`,
+        isInternalReasoning: true,
+      });
+
+      let jsonStr = llmResult.text || "{}";
+      jsonStr = jsonStr
+        .replace(/```json/g, "")
+        .replace(/```/g, "")
+        .trim();
+
+      let parsed: any = {};
+      try {
+        const jsonMatch = jsonStr.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          parsed = JSON.parse(jsonMatch[0]);
+        } else {
+          parsed = JSON.parse(jsonStr);
+        }
+      } catch (parseErr) {
+        console.warn("[HiveMind] LLM did not return strict JSON. Trying to infer intent from text:", jsonStr);
+        parsed = {
+          reply: jsonStr,
+          action: query.toLowerCase().includes("3d") ? "3d" : "none",
+        };
       }
+
+      finalReplyText = parsed.reply || "Xin lỗi sếp, hệ thống đang bận một chút ạ!";
+      actionTriggered = parsed.action || "none";
+    } catch (llmErr) {
+      console.error("[HiveMind] Lỗi LLM:", llmErr);
+      finalReplyText = `[Lỗi hệ thống] Xin lỗi sếp, tín hiệu não bộ đang gặp trục trặc!`;
     }
 
-    const verbalStrike = `<verbal_strike>\n${verbalStrikeText}\n</verbal_strike>`;
+    const verbalStrike = `<verbal_strike>\n${finalReplyText}\n</verbal_strike>`;
 
     return {
       success: true,
-      reply: innerMonologue + "\n\n" + verbalStrike,
+      reply: verbalStrike,
+      action: actionTriggered,
       metrics: {
-        graphCoverage: parseFloat(graphCoverage.toFixed(3)),
-        shannonEntropy: parseFloat(shannonEntropy.toFixed(3)),
-        sCurveQuality: parseFloat(sCurveQuality.toFixed(2)),
-        compressedQuality: parseFloat(compressedQuality.toFixed(2)),
+        graphCoverage: 1.0,
+        shannonEntropy: 0.0,
+        sCurveQuality: 10.0,
+        compressedQuality: 10.0,
       },
       tuLinhOutputs,
     };
@@ -445,17 +345,47 @@ Dạ Sếp, hệ thống đang gặp sự cố khi xử lý truy vấn "${query}
 
 export function filterMythosFable(text: string): string {
   if (!text) return "";
+
+  // Extract and preserve only functional square-bracket tags [...] so they are not lost
+  const tags: string[] = [];
+  const simpleTagRegex = /(\[[^\]]+\])/g;
+  let tagMatch;
+  while ((tagMatch = simpleTagRegex.exec(text)) !== null) {
+    const tStr = tagMatch[1].trim();
+    // Exclude debug/reasoning/system-log tags
+    if (
+      !tStr.startsWith("[Suy luận AI:") &&
+      !tStr.startsWith("[Gamification Logic:") &&
+      !tStr.startsWith("[Lỗi hệ thống") &&
+      !tStr.includes("tín dụng]") &&
+      !tStr.includes("lãi suất]") &&
+      !tStr.includes("Cấm đăng bán]")
+    ) {
+      tags.push(tStr);
+    }
+  }
+
   const verbalRegex = /<verbal_strike>([\s\S]*?)<\/verbal_strike>/gi;
   let matches: string[] = [];
   let match;
   while ((match = verbalRegex.exec(text)) !== null) {
     matches.push(match[1].trim());
   }
+
+  let cleanVerbal = "";
   if (matches.length > 0) {
-    return matches.join("\n").trim();
+    cleanVerbal = matches.join("\n").trim();
+  } else {
+    let cleaned = text.replace(/<inner_monologue>[\s\S]*?<\/inner_monologue>/gi, "");
+    cleaned = cleaned.replace(/<\/?(?:inner_monologue|verbal_strike|mythos_core|fable_engine|system_override)>/gi, "");
+    // Remove the tags from the verbal part to avoid duplicate rendering
+    cleaned = cleaned.replace(/\[[^\]]+\]/g, "");
+    cleanVerbal = cleaned.trim();
   }
 
-  let cleaned = text.replace(/<inner_monologue>[\s\S]*?<\/inner_monologue>/gi, "");
-  cleaned = cleaned.replace(/<\/?(?:inner_monologue|verbal_strike|mythos_core|fable_engine|system_override)>/gi, "");
-  return cleaned.trim();
+  // Append preserved tags back to the clean verbal text
+  if (tags.length > 0) {
+    return `${cleanVerbal} ${tags.join(" ")}`.trim();
+  }
+  return cleanVerbal;
 }

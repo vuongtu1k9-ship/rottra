@@ -1,3 +1,4 @@
+import { Deterministic } from "~/shared/utils/rng";
 // Rottra Agent - Lõi Casio Lượng Tử (Advanced Mathematical Calculator)
 // Phục vụ tính toán cơ bản và vĩ mô nâng cao (Lượng giác, Hyperbolic, Giai thừa, Tổ hợp & Chỉnh hợp)
 
@@ -440,6 +441,20 @@ export function solveCustomAlgorithm(query: string): { success: boolean; text?: 
     .replace(/Đ/g, "D")
     .toLowerCase();
 
+  // 0. MENTAL MATH / VEDIC MATH TRICKS
+  if (
+    qClean.includes("nham") ||
+    qClean.includes("meo") ||
+    qClean.includes("vedic") ||
+    qClean.includes("trick") ||
+    qClean.includes("tinh nhanh")
+  ) {
+    const res = solveMentalMathTricks(query);
+    if (res.success) {
+      return { success: true, text: res.text };
+    }
+  }
+
   // 1. GAUSSIAN SOLVER (ELIMINATION & MULTIVARIATE DENSITY)
   if (
     qClean.includes("gauss") ||
@@ -707,6 +722,19 @@ export function solveCustomAlgorithm(query: string): { success: boolean; text?: 
     };
   }
 
+  // 8.5 PYTHAGOREAN TRIPLES SOLVER
+  if (
+    qClean.includes("bo ba") ||
+    qClean.includes("pythagore") ||
+    qClean.includes("triple") ||
+    qClean.includes("so nguyen")
+  ) {
+    return {
+      success: true,
+      text: solvePythagoreanTriples(query),
+    };
+  }
+
   // 9. FFT / POLY MULTIPLICATION SOLVER (KARATSUBA, TOOM-COOK, FFT)
   if (
     qClean.includes("fft") ||
@@ -754,6 +782,39 @@ export function solveCustomAlgorithm(query: string): { success: boolean; text?: 
       success: true,
       text: solveSystemsThinking(query),
     };
+  }
+
+  // 13. LENNARD-JONES POTENTIAL SOLVER
+  if (qClean.includes("lennard") || qClean.includes("jones") || qClean.includes("the nang lien ket") || qClean.includes("tuong tac hat")) {
+    const epsMatch = query.match(/(?:epsilon|eps|ε)\s*[=:]\s*(\d+(?:\.\d+)?)/i) || query.match(/ho\s*the\s*[=:]?\s*(\d+(?:\.\d+)?)/i);
+    const sigMatch =
+      query.match(/(?:sigma|sig|σ)\s*[=:]\s*(\d+(?:\.\d+)?)/i) || query.match(/khoang\s*cach\s*0\s*[=:]?\s*(\d+(?:\.\d+)?)/i);
+    const rMatch = query.match(/\br\b\s*[=:]\s*(\d+(?:\.\d+)?)/i) || query.match(/khoang\s*cach\s*hat\s*[=:]?\s*(\d+(?:\.\d+)?)/i);
+
+    const eps = epsMatch ? parseFloat(epsMatch[1]) : 0.0103;
+    const sig = sigMatch ? parseFloat(sigMatch[1]) : 3.405;
+    const r = rMatch ? parseFloat(rMatch[1]) : 3.8;
+
+    return solveLennardJones(eps, sig, r);
+  }
+
+  // 14. SARRUS RULE MATRIX DETERMINANT SOLVER
+  if (
+    qClean.includes("sarrus") ||
+    qClean.includes("dinh thuc ma tran 3x3") ||
+    qClean.includes("det 3x3") ||
+    qClean.includes("ma tran 3x3")
+  ) {
+    const matrix = parseMatrix(query);
+    if (matrix && matrix.length === 3 && matrix.every((row) => row.length === 3)) {
+      return solveSarrusDeterminant(matrix);
+    }
+    const defaultMatrix = [
+      [1, 2, 3],
+      [0, 1, 4],
+      [5, 6, 0],
+    ];
+    return solveSarrusDeterminant(defaultMatrix);
   }
 
   return { success: false };
@@ -918,8 +979,8 @@ function simulateCoinGuessing(rounds = 100, probA = 0.5, probB = 0.5): string {
   let scoreA = 0;
 
   for (let i = 0; i < rounds; i++) {
-    const choiceA = Math.random() < probA ? "H" : "T";
-    const choiceB = Math.random() < probB ? "H" : "T";
+    const choiceA = Deterministic.random() < probA ? "H" : "T";
+    const choiceB = Deterministic.random() < probB ? "H" : "T";
     if (choiceA === choiceB) {
       winsA++;
       scoreA += 1;
@@ -1191,8 +1252,8 @@ export function solveRbfPomdpCombined(query: string): string {
   const probB = 0.5; // opponent Nash mixed strategy
 
   for (let i = 0; i < rounds; i++) {
-    const choiceA = Math.random() < p_rbf ? "H" : "T";
-    const choiceB = Math.random() < probB ? "H" : "T";
+    const choiceA = Deterministic.random() < p_rbf ? "H" : "T";
+    const choiceB = Deterministic.random() < probB ? "H" : "T";
     if (choiceA === choiceB) {
       winsA++;
       scoreA += 1;
@@ -1275,8 +1336,8 @@ export function solveMasterPipelineCombined(query: string, problem: string): str
   const rounds = 100;
 
   for (let i = 0; i < rounds; i++) {
-    const choiceA = Math.random() < p_rbf ? "H" : "T";
-    const choiceB = Math.random() < probB ? "H" : "T";
+    const choiceA = Deterministic.random() < p_rbf ? "H" : "T";
+    const choiceB = Deterministic.random() < probB ? "H" : "T";
     if (choiceA === choiceB) {
       winsA++;
       scoreA += 1;
@@ -1577,6 +1638,45 @@ ${queryLSteps.join("\n")}
 
 ---
 *Thuật toán Cây Fenwick đã hoàn tất mô phỏng truy vấn và cập nhật chỉ với $O(\\log N)$ phép tính!*`;
+}
+
+function gcd(a: number, b: number): number {
+  return b === 0 ? a : gcd(b, a % b);
+}
+
+function solvePythagoreanTriples(query: string): string {
+  let nLimit = 5;
+  const match = query.match(/\b(\d+)\b/);
+  if (match) {
+    nLimit = Math.min(parseInt(match[1], 10), 20);
+  }
+
+  let steps = `🧮 **[BỘ BA SỐ NGUYÊN PYTHAGORE - PYTHAGOREAN TRIPLES]**\n\n`;
+  steps += `Sử dụng công thức Euclid để tạo các bộ ba số nguyên $(a, b, c)$ thỏa mãn $a^2 + b^2 = c^2$:\n`;
+  steps += `- $a = m^2 - n^2$\n`;
+  steps += `- $b = 2mn$\n`;
+  steps += `- $c = m^2 + n^2$\n`;
+  steps += `*(với $m > n > 0$, $m, n$ nguyên tố cùng nhau và có tính chẵn lẻ khác nhau)*\n\n`;
+
+  steps += `**Kết quả sinh ${nLimit} bộ ba nguyên thủy đầu tiên:**\n\n`;
+
+  let count = 0;
+  let m = 2;
+  while (count < nLimit) {
+    for (let n = 1; n < m; n++) {
+      if (count >= nLimit) break;
+      if (gcd(m, n) === 1 && (m - n) % 2 === 1) {
+        const a = m * m - n * n;
+        const b = 2 * m * n;
+        const c = m * m + n * n;
+        steps += `- Bộ ${count + 1}: **(${a}, ${b}, ${c})** *(m=${m}, n=${n})* $\\rightarrow ${a}^2 + ${b}^2 = ${c}^2$\n`;
+        count++;
+      }
+    }
+    m++;
+  }
+
+  return steps;
 }
 
 function solvePolynomialMultiplication(query: string): string {
@@ -2050,4 +2150,122 @@ ${svgVisual}
 
 ### 🌌 KẾT LUẬN VỀ HỆ PHỨC TẠP RỐI LOẠN:
 Thị trường Rottra là kết quả giao thoa của hàng vạn vòng lặp **R** và **B** chạy đan xen ở cường độ cao. Một **hiệu ứng bươm bướm (Lorenz)** cực nhỏ có thể là mồi lửa kích hoạt Vòng lặp R1 chạy vượt tầm kiểm soát, trước khi bị Vòng lặp B1 tàn nhẫn kéo sập. Áp dụng Tư duy Hệ thống giúp các Quỹ Định lượng nhìn thấy bức tranh toàn cảnh (Holistic View) thay vì chỉ chạy theo tín hiệu nhiễu kỹ thuật!`;
+}
+
+export function solveLennardJones(epsilon: number, sigma: number, r: number): { success: boolean; text: string } {
+  const r6 = Math.pow(sigma / r, 6);
+  const r12 = r6 * r6;
+  const V = 4 * epsilon * (r12 - r6);
+  const F = ((24 * epsilon) / r) * (2 * r12 - r6);
+  const r_eq = Math.pow(2, 1 / 6) * sigma;
+
+  return {
+    success: true,
+    text:
+      `⚛️ **[TÍNH TOÁN THẾ NĂNG LENNARD-JONES - LENNARD-JONES POTENTIAL SOLVER]**\n\n` +
+      `**Công thức Thế năng tương tác:**\n` +
+      `$$V_{LJ}(r) = 4\\epsilon \\left[ \\left( \\frac{\\sigma}{r} \\right)^{12} - \\left( \\frac{\\sigma}{r} \\right)^{6} \\right]$$\n` +
+      `**Công thức Lực tương tác liên phân tử:**\n` +
+      `$$F_{LJ}(r) = \\frac{24\\epsilon}{r} \\left[ 2\\left( \\frac{\\sigma}{r} \\right)^{12} - \\left( \\frac{\\sigma}{r} \\right)^{6} \\right]$$\n\n` +
+      `**Thông số đã nhập/nhận diện:**\n` +
+      `- Độ sâu hố thế ($\\epsilon$): **${epsilon} eV**\n` +
+      `- Khoảng cách thế năng bằng 0 ($\\sigma$): **${sigma} Å**\n` +
+      `- Khoảng cách thực tế giữa 2 hạt ($r$): **${r} Å**\n\n` +
+      `**Kết quả tính toán:**\n` +
+      `- Tỷ lệ khoảng cách $\\sigma/r$: **${(sigma / r).toFixed(4)}**\n` +
+      `- Thế năng tương tác $V_{LJ}$: **${V.toFixed(6)} eV**\n` +
+      `- Lực tương tác liên phân tử $F_{LJ}$: **${F.toFixed(6)} eV/Å** (${F > 0 ? "Lực đẩy (Repulsive)" : F < 0 ? "Lực hút (Attractive)" : "Cân bằng"})\n` +
+      `- Khoảng cách cân bằng bền ($r_{eq}$): **${r_eq.toFixed(4)} Å**\n\n` +
+      `*Nhận xét:* Ở khoảng cách $r = ${r} Å$, hai hạt đang chịu ${F > 0 ? "lực đẩy mạnh do lớp vỏ electron chồng chéo" : "lực hút van der Waals kéo lại gần nhau"}.`,
+  };
+}
+
+export function solveSarrusDeterminant(matrix: number[][]): { success: boolean; text: string } {
+  const [[a, b, c], [d, e, f], [g, h, i]] = matrix;
+
+  const term1 = a * e * i;
+  const term2 = b * f * g;
+  const term3 = c * d * h;
+  const sumMain = term1 + term2 + term3;
+
+  const term4 = c * e * g;
+  const term5 = a * f * h;
+  const term6 = b * d * i;
+  const sumCounter = term4 + term5 + term6;
+
+  const det = sumMain - sumCounter;
+
+  return {
+    success: true,
+    text:
+      `🧮 **[TÍNH ĐỊNH THỨC MA TRẬN 3x3 - QUY TẮC SARRUS SOLVER]**\n\n` +
+      `**Ma trận đã cho:**\n` +
+      `$$A = \\begin{pmatrix} ${a} & ${b} & ${c} \\\\ ${d} & ${e} & ${f} \\\\ ${g} & ${h} & ${i} \\end{pmatrix}$$\n\n` +
+      `**Các bước tính toán theo quy tắc Sarrus:**\n` +
+      `1. Nhân các đường chéo xuôi (Từ trên-trái xuống dưới-phải):\n` +
+      `   - Đường chéo 1: $${a} \\cdot ${e} \\cdot ${i} = ${term1}$\n` +
+      `   - Đường chéo 2: $${b} \\cdot ${f} \\cdot ${g} = ${term2}$\n` +
+      `   - Đường chéo 3: $${c} \\cdot ${d} \\cdot ${h} = ${term3}$\n` +
+      `   - **Tổng các đường chéo xuôi:** $S_1 = ${sumMain}$\n` +
+      `2. Nhân các đường chéo ngược (Từ dưới-trái lên trên-phải):\n` +
+      `   - Đường chéo 1: $${c} \\cdot ${e} \\cdot ${g} = ${term4}$\n` +
+      `   - Đường chéo 2: $${a} \\cdot ${f} \\cdot ${h} = ${term5}$\n` +
+      `   - Đường chéo 3: $${b} \\cdot ${d} \\cdot ${i} = ${term6}$\n` +
+      `   - **Tổng các đường chéo ngược:** $S_2 = ${sumCounter}$\n` +
+      `3. Định thức cuối cùng:\n` +
+      `   $$\\det(A) = S_1 - S_2 = ${sumMain} - ${sumCounter} = ${det}$$\n\n` +
+      `🏆 **KẾT LUẬN:** Định thức ma trận $A$ tính theo quy tắc Sarrus là **${det}**.`,
+  };
+}
+
+export function solveMentalMathTricks(query: string): { success: boolean; text: string } {
+  // Regex to detect "bình phương của số tận cùng bằng 5" (e.g. 65^2)
+  const squareMatch = query.match(/(\d+)5(?:\^2|²|\s+binh\s+phuong)/i);
+  if (squareMatch) {
+    const tens = parseInt(squareMatch[1]);
+    const num = parseInt(`${tens}5`);
+    const part1 = tens * (tens + 1);
+    const result = `${part1}25`;
+    return {
+      success: true,
+      text: 
+        `⚡ **[VEDIC MATH TRICK: BÌNH PHƯƠNG SỐ TẬN CÙNG LÀ 5]**\n\n` +
+        `Bạn muốn tính $${num}^2$ siêu tốc không cần máy tính? Áp dụng ngay thủ thuật Vedic:\n` +
+        `1. Lấy phần đầu của số đó là $${tens}$.\n` +
+        `2. Nhân nó với số liền kề: $${tens} \\times (${tens} + 1) = ${part1}$.\n` +
+        `3. Luôn nối thêm đuôi $25$ vào sau kết quả.\n\n` +
+        `🏆 **KẾT QUẢ:** $${num}^2 = ${result}$`
+    };
+  }
+
+  // Regex to detect "nhân với 11" (e.g. 43 * 11)
+  const elevenMatch = query.match(/(\d{2,})\s*(?:\*|x|nhan)\s*11/i) || query.match(/11\s*(?:\*|x|nhan)\s*(\d{2,})/i);
+  if (elevenMatch) {
+    const num = elevenMatch[1];
+    if (num.length === 2) {
+      const a = parseInt(num[0]);
+      const b = parseInt(num[1]);
+      const sum = a + b;
+      let result = '';
+      if (sum < 10) {
+        result = `${a}${sum}${b}`;
+      } else {
+        result = `${a + 1}${sum % 10}${b}`;
+      }
+      return {
+        success: true,
+        text: 
+          `⚡ **[VEDIC MATH TRICK: NHÂN NHANH VỚI 11]**\n\n` +
+          `Bạn muốn tính $${num} \\times 11$ cực nhanh?\n` +
+          `1. Tách hai chữ số của $${num}$ ra: $${a}$ và $${b}$.\n` +
+          `2. Tính tổng hai số: $${a} + ${b} = ${sum}$.\n` +
+          (sum < 10 
+            ? `3. Chèn tổng $${sum}$ vào giữa $${a}$ và $${b}$.\n` 
+            : `3. Vì tổng là $${sum} \\ge 10$, ta nhớ 1 sang chữ số hàng trăm: $${a} + 1 = ${a + 1}$, giữ lại $${sum % 10}$ ở giữa.\n`) +
+          `\n🏆 **KẾT QUẢ:** $${num} \\times 11 = ${result}$`
+      };
+    }
+  }
+
+  return { success: false, text: "" };
 }

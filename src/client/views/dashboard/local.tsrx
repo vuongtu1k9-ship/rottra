@@ -1,3 +1,4 @@
+import { Deterministic } from "~/shared/utils/rng";
 import { createEffect, onMount, onCleanup, createSignal } from "solid-js";
 import { render } from "solid-js/web";
 import { Icon } from "solid-heroicons";
@@ -196,7 +197,7 @@ export component Local() {
         setTimeout(() => {
           setSimState("DISPATCHED");
           addLog("TỐI ƯU HOÀN TẤT: Chọn lộ trình Kho B -> Trạm -> Kho A (Tổng: 25km).");
-          addLog(`SINH LỆNH ĐIỀU PHỐI: #ORD-AG-${Math.floor(Math.random() * 10000)}`);
+          addLog(`SINH LỆNH ĐIỀU PHỐI: #ORD-AG-${Math.floor(Deterministic.random() * 10000)}`);
           addLog("HÀNH ĐỘNG: Đã gửi thông báo cho Tài xế Nguyễn Văn A. Xe tải đang di chuyển!");
 
           // Vẽ icon xe tải trên bản đồ thực bằng SolidJS Component

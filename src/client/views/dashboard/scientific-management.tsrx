@@ -310,6 +310,25 @@ export component ScientificManagement() {
     return { gain: gain.toFixed(3), est: est.toFixed(2) };
   });
 
+  // 5. Hairy Ball Theorem
+  const [hairyRadius, setHairyRadius] = createSignal(8);
+  const [hairyDensity, setHairyDensity] = createSignal(4); // Lông/đơn vị
+  const hairyResult = createMemo(() => {
+    // Đặc trưng Euler của mặt cầu S^2 luôn bằng 2
+    const eulerChar = 2;
+    // Tổng chỉ số các điểm kỳ dị (hố xoáy) bằng Đặc trưng Euler
+    const totalIndexSum = 2;
+    return { eulerChar, totalIndexSum };
+  });
+
+  // 6. Coin Rotation Paradox
+  const [coinRadius1, setCoinRadius1] = createSignal(4); // Đồng xu cố định R1
+  const [coinRadius2, setCoinRadius2] = createSignal(4); // Đồng xu di chuyển R2
+  const coinResult = createMemo(() => {
+    const rotations = 1 + coinRadius1() / coinRadius2();
+    return rotations.toFixed(2);
+  });
+
   // Chuỗi công thức LaTeX động
   const sFormulaText = () => `$$\\mathcal{S} = \\frac{10}{1 + e^{-1.5 \\cdot (${sFormulaHx().toFixed(2)} \\cdot (1 + ${sFormulaGc().toFixed(
     2,
@@ -317,6 +336,8 @@ export component ScientificManagement() {
   const hargreavesText = () => `$$ET_0 = 0.0023 \\cdot (${hargreavesTemp()} + 17.8) \\cdot \\sqrt{\\frac{${hargreavesLight()}}{150}} = ${hargreavesResult()}\\text{ mm/ngày}$$`;
   const entropyText = () => `$$H_{\\text{sys}} = -\\sum p_i \\log_2 p_i = ${entropyResult()}\\text{ bits}$$`;
   const kalmanText = () => `$$\\hat{x}_{k} = 50.0 + ${kalmanResult().gain} \\cdot (${kalmanZ()} - 50.0) = ${kalmanResult().est}$$`;
+  const hairyText = () => `$$\\chi(S^2) = V - E + F = 2 \\implies \\sum_{i} \\text{Index}(\\vec{v}, x_i) = \\chi(S^2) = ${hairyResult().eulerChar} \\neq 0$$`;
+  const coinText = () => `$$N = 1 + \\frac{R_1}{R_2} = 1 + \\frac{${coinRadius1()}}{${coinRadius2()}} = ${coinResult()}\\text{ vòng}$$`;
 
   let mathContainerRef: HTMLDivElement | undefined;
 
@@ -324,7 +345,7 @@ export component ScientificManagement() {
   createEffect(() => {
     if (!isPlaying()) return;
     const interval = setInterval(() => {
-      setActiveSlideIndex((prev) => (prev + 1) % 4);
+      setActiveSlideIndex((prev) => (prev + 1) % 6);
     }, 5000);
     onCleanup(() => clearInterval(interval));
   });
@@ -336,6 +357,8 @@ export component ScientificManagement() {
     hargreavesResult();
     entropyResult();
     kalmanResult();
+    hairyResult();
+    coinResult();
 
     setTimeout(() => {
       if (mathContainerRef && typeof window !== "undefined" && (window as any).renderMathInElement) {
@@ -355,6 +378,269 @@ export component ScientificManagement() {
         }
       }
     }, 50);
+  });
+
+  let canvasRef: HTMLCanvasElement | undefined;
+  let animationFrameId: number | null = null;
+
+  createEffect(() => {
+    const slide = activeSlideIndex();
+
+    // Read signals to trigger reactivity
+    const sHx = sFormulaHx();
+    const sGc = sFormulaGc();
+    const hTemp = hargreavesTemp();
+    const hLight = hargreavesLight();
+    const ePin = entropyPin();
+    const eCpu = entropyCpu();
+    const eRam = entropyRam();
+    const kZ = kalmanZ();
+    const kR = kalmanR();
+    const hRad = hairyRadius();
+    const hDen = hairyDensity();
+    const cRad1 = coinRadius1();
+    const cRad2 = coinRadius2();
+
+    const draw = () => {
+      if (!canvasRef) return;
+      const ctx = canvasRef.getContext("2d");
+      if (!ctx) return;
+
+      const width = canvasRef.clientWidth || 400;
+      const height = canvasRef.clientHeight || 140;
+      if (canvasRef.width !== width || canvasRef.height !== height) {
+        canvasRef.width = width;
+        canvasRef.height = height;
+      }
+
+      ctx.clearRect(0, 0, width, height);
+
+      const themeVal = theme();
+      const isDark = themeVal === "dark";
+      const primaryColor = isDark ? "#818cf8" : "#4f46e5";
+      const gridColor = isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)";
+      const textColor = isDark ? "#9ca3af" : "#4b5563";
+
+      if (slide === 0) {
+        // Draw Sigmoid function graph for S
+        ctx.strokeStyle = gridColor;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(0, height / 2);
+        ctx.lineTo(width, height / 2);
+        ctx.moveTo(width / 2, 0);
+        ctx.lineTo(width / 2, height);
+        ctx.stroke();
+
+        ctx.strokeStyle = primaryColor;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        for (let x = 0; x < width; x++) {
+          const normX = (x - width / 2) / 30;
+          const rawS = 10 / (1 + Math.exp(-1.5 * (normX * (1 + sGc) - 2.5)));
+          const y = height - (rawS / 10) * (height - 20) - 10;
+          if (x === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+
+        const currentNormX = (sHx - 2.5) * 30 + width / 2;
+        const currentRawS = 10 / (1 + Math.exp(-1.5 * ((sHx - 2.5) * (1 + sGc) - 2.5)));
+        const currentY = height - (currentRawS / 10) * (height - 20) - 10;
+        ctx.fillStyle = "#ef4444";
+        ctx.beginPath();
+        ctx.arc(currentNormX, currentY, 5, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (slide === 1) {
+        // Draw Evapotranspiration
+        const time = Date.now() * 0.003;
+        ctx.fillStyle = isDark ? "#3f2d20" : "#a16207";
+        ctx.fillRect(0, height - 20, width, 20);
+
+        ctx.strokeStyle = "rgba(129, 140, 248, 0.4)";
+        ctx.lineWidth = 1.5;
+        const lineCount = Math.floor(hLight / 100) + 2;
+        for (let i = 0; i < lineCount; i++) {
+          const x = (width / (lineCount + 1)) * (i + 1);
+          const offset = Math.sin(time + i) * 8;
+          ctx.beginPath();
+          ctx.moveTo(x + offset, height - 20);
+          ctx.lineTo(x + offset - (hTemp - 15) * 0.5, height - 50 - Math.sin(time * 0.5 + i) * 20);
+          ctx.stroke();
+        }
+
+        const sunRad = 15 + (hLight / 1500) * 15;
+        ctx.fillStyle = "#f59e0b";
+        ctx.shadowColor = "#f59e0b";
+        ctx.shadowBlur = 15;
+        ctx.beginPath();
+        ctx.arc(width - 40, 40, sunRad, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      } else if (slide === 2) {
+        // Draw Shannon System Entropy
+        const time = Date.now() * 0.002;
+        ctx.strokeStyle = "rgba(147, 51, 234, 0.3)";
+        ctx.lineWidth = 1.5;
+
+        ctx.beginPath();
+        for (let x = 0; x < width; x++) {
+          const amp1 = (eCpu / 100) * 15;
+          const amp2 = (eRam / 100) * 10;
+          const y = height / 2 + Math.sin(x * 0.05 + time) * amp1 + Math.cos(x * 0.1 - time * 0.8) * amp2;
+          if (x === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+
+        ctx.fillStyle = isDark ? "#1f2937" : "#e5e7eb";
+        ctx.fillRect(20, height / 2 - 15, 60, 30);
+        ctx.fillStyle = ePin > 30 ? "#10b981" : "#ef4444";
+        ctx.fillRect(22, height / 2 - 13, 56 * (ePin / 100), 26);
+      } else if (slide === 3) {
+        // Draw Kalman filter simulation
+        ctx.strokeStyle = "rgba(239, 68, 68, 0.3)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        const ptsCount = 30;
+        const step = width / (ptsCount - 1);
+
+        for (let i = 0; i < ptsCount; i++) {
+          const noise = Math.sin(i * 0.5) * 15 + Math.sin(i * 1.5 + kZ) * kR * 4;
+          const y = height / 2 + noise;
+          if (i === 0) ctx.moveTo(i * step, y);
+          else ctx.lineTo(i * step, y);
+        }
+        ctx.stroke();
+
+        ctx.strokeStyle = primaryColor;
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        let currentEst = 50;
+        const Q = 1;
+        let prevP = 5;
+        for (let i = 0; i < ptsCount; i++) {
+          const predP = prevP + Q;
+          const gain = predP / (predP + kR);
+          const rawVal = 50 + Math.sin(i * 0.5) * 15 + Math.sin(i * 1.5 + kZ) * kR * 4;
+          currentEst = currentEst + gain * (rawVal - currentEst);
+          prevP = (1 - gain) * predP;
+
+          const y = height / 2 + (currentEst - 50);
+          if (i === 0) ctx.moveTo(i * step, y);
+          else ctx.lineTo(i * step, y);
+        }
+        ctx.stroke();
+      } else if (slide === 4) {
+        // Hairy Ball Theorem
+        const time = Date.now() * 0.001;
+        const centerX = width / 2;
+        const centerY = height / 2;
+        const radius = hRad * 4 + 10;
+
+        ctx.strokeStyle = isDark ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.15)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.strokeStyle = isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)";
+        for (let i = 1; i < 4; i++) {
+          ctx.beginPath();
+          ctx.ellipse(centerX, centerY, radius * (i / 4), radius, 0, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+
+        ctx.strokeStyle = primaryColor;
+        ctx.lineWidth = 1;
+        const density = hDen + 2;
+        for (let lat = -Math.PI / 2 + 0.2; lat < Math.PI / 2; lat += Math.PI / density) {
+          for (let lon = 0; lon < Math.PI * 2; lon += (Math.PI * 2) / (density * 2)) {
+            const x3d = radius * Math.cos(lat) * Math.sin(lon + time);
+            const y3d = radius * Math.sin(lat);
+            const z3d = radius * Math.cos(lat) * Math.cos(lon + time);
+
+            if (z3d >= 0) {
+              const px = centerX + x3d;
+              const py = centerY + y3d;
+
+              const angle = Math.atan2(-y3d, x3d) + time;
+              const len = 8;
+              ctx.beginPath();
+              ctx.moveTo(px, py);
+              ctx.lineTo(px + Math.cos(angle) * len, py + Math.sin(angle) * len);
+              ctx.stroke();
+            }
+          }
+        }
+
+        ctx.fillStyle = "#ef4444";
+        ctx.beginPath();
+        ctx.arc(centerX, centerY - radius, 3, 0, Math.PI * 2);
+        ctx.arc(centerX, centerY + radius, 3, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (slide === 5) {
+        // Coin Rotation Paradox
+        const time = Date.now() * 0.001;
+        const centerX = width / 2;
+        const centerY = height / 2;
+
+        const scale = 12;
+        const r1 = cRad1 * scale;
+        const r2 = cRad2 * scale;
+
+        ctx.fillStyle = isDark ? "#374151" : "#d1d5db";
+        ctx.strokeStyle = isDark ? "#4b5563" : "#9ca3af";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, r1, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = isDark ? "#ffffff" : "#000000";
+        ctx.font = "bold 10px sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("A", centerX, centerY);
+
+        const orbitAngle = time % (Math.PI * 2);
+        const distance = r1 + r2;
+        const bX = centerX + Math.cos(orbitAngle) * distance;
+        const bY = centerY + Math.sin(orbitAngle) * distance;
+
+        ctx.fillStyle = "#818cf8";
+        ctx.strokeStyle = "#4f46e5";
+        ctx.beginPath();
+        ctx.arc(bX, bY, r2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        const selfRotationAngle = (1 + cRad1 / cRad2) * orbitAngle;
+
+        ctx.strokeStyle = "#ef4444";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(bX, bY);
+        ctx.lineTo(bX + Math.cos(selfRotationAngle) * r2, bY + Math.sin(selfRotationAngle) * r2);
+        ctx.stroke();
+
+        ctx.fillStyle = "#f59e0b";
+        ctx.beginPath();
+        ctx.arc(bX + Math.cos(selfRotationAngle) * r2, bY + Math.sin(selfRotationAngle) * r2, 3, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    };
+
+    const loop = () => {
+      draw();
+      animationFrameId = requestAnimationFrame(loop);
+    };
+
+    loop();
+
+    onCleanup(() => {
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
+    });
   });
 
   <tsx>
@@ -406,13 +692,15 @@ export component ScientificManagement() {
               <span class="text-[10px] font-black uppercase tracking-wider text-indigo-500">
                 Mô hình
                 {activeSlideIndex() + 1}
-                / 4
+                / 6
               </span>
               <h3 class="text-lg font-black tracking-tight">
                 {activeSlideIndex() === 0 && "1. Siêu Công Thức S (Quality Evaluator)"}
                 {activeSlideIndex() === 1 && "2. Bốc Thoát Hơi Nước Hargreaves"}
                 {activeSlideIndex() === 2 && "3. Entropy Shannon Hệ Thống"}
                 {activeSlideIndex() === 3 && "4. Lọc Nhiễu Kalman Tối Ưu"}
+                {activeSlideIndex() === 4 && "5. Định Lý Quả Cầu Lông (Hairy Ball Theorem)"}
+                {activeSlideIndex() === 5 && "6. Nghịch Lý Đồng Xu Xoay (Coin Rotation)"}
               </h3>
               <p class="text-xs text-gray-400 leading-relaxed">
                 {activeSlideIndex() === 0 &&
@@ -423,6 +711,10 @@ export component ScientificManagement() {
                   "Đo lường mức độ hỗn loạn (Entropy) của hệ thống phần cứng dựa trên phân bổ tải CPU, RAM và dung lượng Pin hiện tại."}
                 {activeSlideIndex() === 3 &&
                   "Loại bỏ sai số và nhiễu ngẫu nhiên từ cảm biến môi trường bằng cách tối ưu hóa trọng số tăng Kalman qua từng chu kỳ."}
+                {activeSlideIndex() === 4 &&
+                  "Chứng minh sự tồn tại của điểm kỳ dị trong trường vectơ tiếp xúc trên mặt cầu. Áp dụng định vị hướng xoay 3D qua Tứ nguyên số (Quaternion)."}
+                {activeSlideIndex() === 5 &&
+                  "Mô phỏng góc tự quay bù trừ của camera hoặc vật thể khi lăn không trượt xung quanh một tâm cố định khác hệ quy chiếu."}
               </p>
             </div>
             {}
@@ -604,6 +896,82 @@ export component ScientificManagement() {
                   </div>
                 </div>
               </Show>
+              <Show when={activeSlideIndex() === 4}>
+                <div class="space-y-2">
+                  <div>
+                    <div class="flex justify-between text-[11px] font-bold mb-1">
+                      <span>Bán kính mặt cầu (R):</span>
+                      <span class="font-mono text-indigo-400">
+                        {hairyRadius()}
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="2"
+                      max="20"
+                      step="1"
+                      value={hairyRadius()}
+                      onInput={(e) => setHairyRadius(parseInt(e.target.value))}
+                      class="w-full h-1 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <div class="flex justify-between text-[11px] font-bold mb-1">
+                      <span>Mật độ lông phủ (d):</span>
+                      <span class="font-mono text-indigo-400">
+                        {hairyDensity()}
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="1"
+                      max="10"
+                      step="1"
+                      value={hairyDensity()}
+                      onInput={(e) => setHairyDensity(parseInt(e.target.value))}
+                      class="w-full h-1 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                    />
+                  </div>
+                </div>
+              </Show>
+              <Show when={activeSlideIndex() === 5}>
+                <div class="space-y-2">
+                  <div>
+                    <div class="flex justify-between text-[11px] font-bold mb-1">
+                      <span>Bán kính đồng xu A (R1):</span>
+                      <span class="font-mono text-indigo-400">
+                        {coinRadius1()}
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="1"
+                      max="10"
+                      step="1"
+                      value={coinRadius1()}
+                      onInput={(e) => setCoinRadius1(parseInt(e.target.value))}
+                      class="w-full h-1 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <div class="flex justify-between text-[11px] font-bold mb-1">
+                      <span>Bán kính đồng xu B (R2):</span>
+                      <span class="font-mono text-indigo-400">
+                        {coinRadius2()}
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="1"
+                      max="10"
+                      step="1"
+                      value={coinRadius2()}
+                      onInput={(e) => setCoinRadius2(parseInt(e.target.value))}
+                      class="w-full h-1 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                    />
+                  </div>
+                </div>
+              </Show>
             </div>
           </div>
           {}
@@ -614,6 +982,13 @@ export component ScientificManagement() {
               {activeSlideIndex() === 1 && hargreavesText()}
               {activeSlideIndex() === 2 && entropyText()}
               {activeSlideIndex() === 3 && kalmanText()}
+              {activeSlideIndex() === 4 && hairyText()}
+              {activeSlideIndex() === 5 && coinText()}
+            </div>
+            {}
+            <div
+              class="mt-2 flex justify-center items-center bg-black/20 dark:bg-black/40 rounded-xl border border-white/5 overflow-hidden min-h-[140px] relative">
+              <canvas ref={canvasRef} class="w-full max-w-[420px] h-[140px] block" />
             </div>
             <div class="mt-4 pt-4 border-t border-white/5 flex justify-between items-center text-[10px] text-gray-400">
               <div>
@@ -648,6 +1023,21 @@ export component ScientificManagement() {
                     {kalmanResult().gain}
                   </span>
                 </Show>
+                <Show when={activeSlideIndex() === 4}>
+                  <span class="ml-2 font-mono text-indigo-400">
+                    Đặc trưng Euler: χ =
+                    {hairyResult().eulerChar}
+                    | Tổng Index điểm cực =
+                    {hairyResult().totalIndexSum}
+                  </span>
+                </Show>
+                <Show when={activeSlideIndex() === 5}>
+                  <span class="ml-2 font-mono text-indigo-400">
+                    Số vòng tự quay N =
+                    {coinResult()}
+                    vòng
+                  </span>
+                </Show>
               </div>
               <span class="font-mono text-[9px]">Calculated: WebAssembly PostgreSQL Sandbox</span>
             </div>
@@ -657,7 +1047,7 @@ export component ScientificManagement() {
         <div class="flex justify-between items-center mt-5 pt-3 border-t border-gray-500/10">
           <div class="flex gap-2">
             <button
-              onClick={() => setActiveSlideIndex((prev) => (prev === 0 ? 3 : prev - 1))}
+              onClick={() => setActiveSlideIndex((prev) => (prev === 0 ? 5 : prev - 1))}
               class="p-2 rounded-xl bg-gray-500/5 hover:bg-indigo-500 hover:text-white transition-colors cursor-pointer border border-white/5"
               aria-label="Slide trước">
               <svg class="w-4 h-4 fill-none stroke-current stroke-2" viewBox="0 0 24 24">
@@ -681,7 +1071,7 @@ export component ScientificManagement() {
                   </svg>}
             </button>
             <button
-              onClick={() => setActiveSlideIndex((prev) => (prev + 1) % 4)}
+              onClick={() => setActiveSlideIndex((prev) => (prev + 1) % 6)}
               class="p-2 rounded-xl bg-gray-500/5 hover:bg-indigo-500 hover:text-white transition-colors cursor-pointer border border-white/5"
               aria-label="Slide tiếp">
               <svg class="w-4 h-4 fill-none stroke-current stroke-2" viewBox="0 0 24 24">
@@ -691,7 +1081,7 @@ export component ScientificManagement() {
           </div>
           {}
           <div class="flex gap-2">
-            <For each={[0, 1, 2, 3]}>
+            <For each={[0, 1, 2, 3, 4, 5]}>
               {(index) => <button
                 onClick={() => setActiveSlideIndex(index)}
                 class={`w-2 h-2 rounded-full transition-all duration-300 ${
@@ -796,14 +1186,8 @@ export component ScientificManagement() {
                       <div class="pt-5">
                         <div class="flex items-center justify-between mb-4">
                           <div class="flex -space-x-3">
-                            <img
-                              class="w-8 h-8 rounded-full border-2 border-[#e0ccdf] object-cover"
-                              src="/images/default-avatar.avif"
-                            />
-                            <img
-                              class="w-8 h-8 rounded-full border-2 border-[#e0ccdf] object-cover"
-                              src="/images/default-avatar.avif"
-                            />
+                            <img class="w-8 h-8 rounded-full border-2 border-[#e0ccdf] object-cover" src="/images/default-avatar.avif" />
+                            <img class="w-8 h-8 rounded-full border-2 border-[#e0ccdf] object-cover" src="/images/default-avatar.avif" />
                             <div
                               class="w-8 h-8 rounded-full border-2 border-[#e0ccdf] bg-black/20 flex items-center justify-center text-[10px] font-bold text-[#1a2133]">+</div>
                           </div>
@@ -872,14 +1256,8 @@ export component ScientificManagement() {
                       <div class="pt-5">
                         <div class="flex items-center justify-between mb-4">
                           <div class="flex -space-x-3">
-                            <img
-                              class="w-8 h-8 rounded-full border-2 border-[#30d5c8] object-cover"
-                              src="/images/default-avatar.avif"
-                            />
-                            <img
-                              class="w-8 h-8 rounded-full border-2 border-[#30d5c8] object-cover"
-                              src="/images/default-avatar.avif"
-                            />
+                            <img class="w-8 h-8 rounded-full border-2 border-[#30d5c8] object-cover" src="/images/default-avatar.avif" />
+                            <img class="w-8 h-8 rounded-full border-2 border-[#30d5c8] object-cover" src="/images/default-avatar.avif" />
                             <div
                               class="w-8 h-8 rounded-full border-2 border-[#30d5c8] bg-black/20 flex items-center justify-center text-[10px] font-bold text-[#1a2133]">+</div>
                           </div>
@@ -948,14 +1326,8 @@ export component ScientificManagement() {
                       <div class="pt-5">
                         <div class="flex items-center justify-between mb-4">
                           <div class="flex -space-x-3">
-                            <img
-                              class="w-8 h-8 rounded-full border-2 border-[#d4ed9e] object-cover"
-                              src="/images/default-avatar.avif"
-                            />
-                            <img
-                              class="w-8 h-8 rounded-full border-2 border-[#d4ed9e] object-cover"
-                              src="/images/default-avatar.avif"
-                            />
+                            <img class="w-8 h-8 rounded-full border-2 border-[#d4ed9e] object-cover" src="/images/default-avatar.avif" />
+                            <img class="w-8 h-8 rounded-full border-2 border-[#d4ed9e] object-cover" src="/images/default-avatar.avif" />
                             <div
                               class="w-8 h-8 rounded-full border-2 border-[#d4ed9e] bg-black/20 flex items-center justify-center text-[10px] font-bold text-[#1a2133]">+</div>
                           </div>

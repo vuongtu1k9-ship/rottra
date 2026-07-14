@@ -1,3 +1,4 @@
+import { Deterministic } from "~/shared/utils/rng";
 import { createSignal, createEffect, onCleanup, For, Show } from "solid-js";
 import { theme } from "~/client/stores/theme-store";
 import { Icon } from "solid-heroicons";
@@ -63,7 +64,7 @@ export component AgenticDispatch() {
           // Giai đoạn 3: Phân lệnh
           setSimState("DISPATCHED");
           addLog("TỐI ƯU HOÀN TẤT: Chọn lộ trình Kho B -> Trạm -> Kho A (Tổng: 35km).");
-          addLog(`SINH LỆNH ĐIỀU PHỐI: #ORD-AG-${Math.floor(Math.random() * 10000)}`);
+          addLog(`SINH LỆNH ĐIỀU PHỐI: #ORD-AG-${Math.floor(Deterministic.random() * 10000)}`);
           addLog("HÀNH ĐỘNG: Đã gửi thông báo cho Tài xế Nguyễn Văn A. Xe tải đang di chuyển!");
         }, 3000);
       }

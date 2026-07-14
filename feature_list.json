@@ -159,6 +159,110 @@
       "dependencies": ["feat-019"],
       "status": "completed",
       "evidence": "emotion-recognition.ts (350+ lines): 8 emotions, Vietnamese lexicon, sentiment analysis, intent inference, urgency detection. adaptive-personality.ts (300+ lines): Big Five model, 5 presets, real-time adaptation. cross-domain-learning.ts (280+ lines): 5 domains, knowledge transfer, concept similarity. autonomous-goal-setting.ts (320+ lines): goal generation, plan execution, self-monitoring. Build 42.59s, Harness 100/100, zero type errors."
+    },
+    {
+      "id": "feat-021",
+      "name": "AI Studio & AWS SST Bun Integration",
+      "description": "Migrated Next.js AI Studio to SolidJS, integrated it as a modal within the product form, and configured AWS SST v3 deployment with Bun runtime",
+      "dependencies": ["feat-020"],
+      "status": "completed",
+      "evidence": "Added studio.tsrx, button and modal in form.tsrx, verified build, and configured runtime: 'bun' in sst.config.ts."
+    },
+    {
+      "id": "feat-022",
+      "name": "RAG Evaluation System",
+      "description": "Complete RAG evaluation pipeline with golden dataset (105 queries), automated metrics (Precision@k, Recall@k, MRR, NDCG), and CLI runner with JSON report generation",
+      "dependencies": ["feat-006"],
+      "status": "completed",
+      "evidence": "tests/rag-evaluation/golden-dataset.ts: 105 agricultural Q&A pairs across 15 domains, 3 difficulty levels. tests/rag-evaluation/rag-metrics.ts: Precision@k, Recall@k, MRR, NDCG@k, category accuracy, keyword overlap metrics. tests/rag-evaluation/run-evaluation.ts: CLI runner with --top-k, --difficulty, --domain filters. Build 59.05s, zero new type errors."
+    },
+    {
+      "id": "feat-023",
+      "name": "SSE Streaming Upgrade",
+      "description": "Upgraded chat streaming from text/plain to proper SSE (Server-Sent Events) format with structured event types for better client-side handling",
+      "dependencies": ["feat-022"],
+      "status": "completed",
+      "evidence": "src/server/api/chat-stream.ts: SSE format with event types (thinking, token, suggestions, products, proactive, reply_b, error, done). Proper headers: Content-Type: text/event-stream, Cache-Control: no-cache, X-Accel-Buffering: no. Build 59.05s, zero new type errors."
+    },
+    {
+      "id": "feat-024",
+      "name": "Session Handoff & Cross-Device Transfer",
+      "description": "Session state serialization/deserialization for cross-device transfer, backup/restore, and session expiry handling",
+      "dependencies": ["feat-022"],
+      "status": "completed",
+      "evidence": "src/core/cognitive-swarm/conversation-memory.ts: serializeSession(), restoreSession(), transferSession(), exportUserSessions(), importUserSessions() methods. SessionHandoff interface with messages, summary, topicKeywords, sessionContext. Build 59.05s, zero new type errors."
+    },
+    {
+      "id": "feat-025",
+      "name": "Multi-modal RAG — Product Recognition + Audio",
+      "description": "CLIP-based zero-shot image classification for agricultural products (45 labels), Whisper audio transcription, multi-modal text+image fusion, zero-shot intent classification",
+      "dependencies": ["feat-006"],
+      "status": "completed",
+      "evidence": "src/core/neural-memory/multimodal-embedding.ts: CLIP classifier, audio transcriber, multi-modal fusion, intent classifier. 45 Vietnamese+English product labels (coffee, rice, fruits, spices). Build 30.94s, zero new type errors."
+    },
+    {
+      "id": "feat-026",
+      "name": "Real-time Sensor Integration",
+      "description": "IoT sensor ingestion engine with 10 sensor types, batch DB flush, threshold-based anomaly detection, time-series aggregation, and Z-score statistical anomaly detection",
+      "dependencies": ["feat-012"],
+      "status": "completed",
+      "evidence": "src/infra/network/sensor-ingestion.ts: SensorIngestionEngine singleton, 10 sensor types, WebSocket client registration, time-series bucketing, statistical anomaly detection. 7 REST endpoints in sensor-api.ts. Build 30.94s, zero new type errors."
+    },
+    {
+      "id": "feat-027",
+      "name": "Federated Learning Byzantine Fault Tolerance + API",
+      "description": "Production-grade Byzantine fault detection (IQR, Z-score, norm-based, sign-flip), 15+ FL REST API endpoints, coordinator integration with pre-aggregation filtering, node reputation system",
+      "dependencies": ["feat-017"],
+      "status": "completed",
+      "evidence": "byzantine-fault-tolerance.ts: 6 detection methods, severity levels, trust scoring. fl-api.ts: 15+ endpoints. Coordinator filters Byzantine gradients before FedAvg. Node reputation updates. Build 30.94s, zero new type errors."
+    },
+    {
+      "id": "feat-028",
+      "name": "A2A Protocol + MCP Server + Agent Auth",
+      "description": "Agent-to-Agent standard (A2A), Model Context Protocol (MCP) server with 5 tools, and API key auth with rate limiting and 8 granular permissions",
+      "dependencies": ["feat-017"],
+      "status": "completed",
+      "evidence": "a2a-core.ts: Agent Card, task lifecycle, JSON-RPC handler. mcp-server.ts: 5 tools (query, sensor, classify, market, FL), resources, prompts. agent-auth.ts: API key gen, 8 permissions, rate limiting, Hono middleware. Build 75s, zero new type errors."
+    },
+    {
+      "id": "feat-029",
+      "name": "Knowledge Graph Visualizer",
+      "description": "Interactive graph data structure with 7 node types, 7 edge types, BFS traversal, shortest path, fuzzy search, subgraph filtering, and real-time update listeners",
+      "dependencies": ["feat-006"],
+      "status": "completed",
+      "evidence": "kg-core.ts: 7 node/edge types, BFS, shortest path, fuzzy search, filter, onKGUpdate listeners, agricultural seed data (15 nodes, 14 edges). kg-api.ts: 10 REST endpoints. Build 75s, zero new type errors."
+    },
+    {
+      "id": "feat-030",
+      "name": "Autonomous Supply Chain",
+      "description": "HMM demand forecasting (3-state regime), dynamic pricing (elasticity model + competitive range), automated order fulfillment, supply chain health metrics",
+      "dependencies": ["feat-011"],
+      "status": "completed",
+      "evidence": "autonomous-supply-chain.ts: HMM (Baum-Welch, forward prediction), price elasticity optimization, order pipeline with logistics, health scoring. 4 REST endpoints (forecast, price, order, health). Build 75s, zero new type errors."
+    },
+    {
+      "id": "feat-031",
+      "name": "White-label SaaS Engine",
+      "description": "Multi-tenant isolation with 5 DB tables, 4 subscription plans, usage limits, billing/invoicing, custom branding, and Hono tenant middleware",
+      "dependencies": ["feat-017"],
+      "status": "completed",
+      "evidence": "white-label-engine.ts: Tenant, TenantBranding, Subscription, Invoice, UsageMetrics tables. 4 plans (Free/Starter/Pro/Enterprise). Usage tracking, invoice creation, plan upgrade, branding customization. Tenant middleware. Build 32s, zero new type errors."
+    },
+    {
+      "id": "feat-032",
+      "name": "Mobile App Backend",
+      "description": "Offline-first sync protocol, push notifications (single/bulk), and WebAuthn biometric authentication with credential management",
+      "dependencies": ["feat-017"],
+      "status": "completed",
+      "evidence": "mobile-backend.ts: Bidirectional sync, conflict detection, push subscription/send/history, WebAuthn biometric register/verify/credentials. 8 REST endpoints. Build 32s, zero new type errors."
+    },
+    {
+      "id": "feat-033",
+      "name": "Marketplace Analytics",
+      "description": "Price prediction (exponential smoothing + linear regression), supply-demand visualization, farmer performance metrics, and market overview dashboard",
+      "dependencies": ["feat-030"],
+      "status": "completed",
+      "evidence": "marketplace-analytics.ts: Price prediction with trend/confidence, supply-demand 30-day data, farmer metrics (revenue/ratings/fulfillment/growth), market overview with categories and price indices. 4 REST endpoints. Build 32s, zero new type errors."
     }
   ]
 }

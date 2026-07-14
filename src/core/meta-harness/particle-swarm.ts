@@ -1,3 +1,4 @@
+import { Deterministic } from "~/shared/utils/rng";
 /**
  * Particle Swarm Optimization (PSO)
  * Trí tuệ bầy đàn - mô phỏng hành vi di chuyển của đàn chim/đàn cá
@@ -63,7 +64,7 @@ export interface PSOResult {
 function initVelocity(dimension: number, bounds: [number, number][]): number[] {
   return bounds.map(([min, max]) => {
     const range = max - min;
-    return (Math.random() - 0.5) * range * 0.1; // 10% của range
+    return (Deterministic.random() - 0.5) * range * 0.1; // 10% của range
   });
 }
 
@@ -82,7 +83,7 @@ function createSwarm(dimension: number, swarmSize: number, bounds: [number, numb
 
   for (let i = 0; i < swarmSize; i++) {
     // Vị trí ngẫu nhiên trong bounds
-    const position = bounds.map(([min, max]) => min + Math.random() * (max - min));
+    const position = bounds.map(([min, max]) => min + Deterministic.random() * (max - min));
     const velocity = initVelocity(dimension, bounds);
     const currentFitness = fitnessFn(position);
 
@@ -294,8 +295,8 @@ export function psoOptimize(config: PSOConfig, fitnessFn: (x: number[]) => numbe
 
       // Cập nhật vận tốc
       for (let d = 0; d < n; d++) {
-        const r1 = Math.random();
-        const r2 = Math.random();
+        const r1 = Deterministic.random();
+        const r2 = Deterministic.random();
 
         const cognitiveComponent = c1 * r1 * (particle.pbest[d] - particle.position[d]);
         const socialComponent = c2 * r2 * (reference[d] - particle.position[d]);
@@ -451,7 +452,7 @@ export function mopsoOptimize(
   // Chọn leader từ repository
   const selectLeader = (): number[] => {
     if (repository.length === 0) {
-      return bounds.map(([min, max]) => min + Math.random() * (max - min));
+      return bounds.map(([min, max]) => min + Deterministic.random() * (max - min));
     }
 
     const fits = repository.map((r) => r.fitness);
@@ -459,7 +460,7 @@ export function mopsoOptimize(
 
     // Roulette wheel trên crowding distance
     const totalCD = cd.reduce((a, b) => a + (b === Infinity ? 1000 : b), 0);
-    let r = Math.random() * totalCD;
+    let r = Deterministic.random() * totalCD;
     for (let i = 0; i < repository.length; i++) {
       r -= cd[i] === Infinity ? 1000 : cd[i];
       if (r <= 0) {
@@ -519,8 +520,8 @@ export function mopsoOptimize(
 
       // Cập nhật vận tốc
       for (let d = 0; d < n; d++) {
-        const r1 = Math.random();
-        const r2 = Math.random();
+        const r1 = Deterministic.random();
+        const r2 = Deterministic.random();
         particle.velocity[d] =
           w * particle.velocity[d] + c1 * r1 * (particle.pbest[d] - particle.position[d]) + c2 * r2 * (leader[d] - particle.position[d]);
         particle.velocity[d] = clamp(particle.velocity[d], -1, 1);

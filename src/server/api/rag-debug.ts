@@ -1,5 +1,8 @@
-import { Hono } from "hono";
+﻿import { Hono } from "hono";
+import { createLogger } from "~/shared/logger";
 import { hybridRetrieve } from "~/core/neural-memory/vector-rag";
+
+const log = createLogger("api/rag-debug");
 
 export const ragDebugRouter = new Hono();
 
@@ -16,7 +19,7 @@ ragDebugRouter.post("/test-hit", async (c) => {
     const candidates = await hybridRetrieve(query, topK, null, false);
     return c.json({ success: true, candidates });
   } catch (error: any) {
-    console.error("[RAG Debug Error]", error);
-    return c.json({ success: false, error: error.message }, 500);
+    log.error("[RAG Debug Error]", error);
+    return c.json({ success: false, error: "Internal server error" }, 500);
   }
 });

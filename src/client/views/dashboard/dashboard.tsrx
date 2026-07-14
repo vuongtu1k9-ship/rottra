@@ -1,6 +1,8 @@
 import { createMemo, Suspense, createEffect, createSignal, lazy } from "solid-js";
 import { Dynamic } from "solid-js/web";
 import { A, useSearchParams } from "@solidjs/router";
+import { authClient } from "~/client/utils/auth-client";
+import { theme } from "~/client/stores/theme-store";
 import { Icon } from "solid-heroicons";
 import {
   userGroup,
@@ -13,6 +15,8 @@ import {
   lockClosed,
   academicCap,
   chartBar,
+  share,
+  cpuChip,
 } from "solid-heroicons/outline";
 
 const ManageUsers = lazy(() => import("./manage-user.tsrx").then((m) => ({ default: m.ManageUsers })));
@@ -21,9 +25,12 @@ const SettingSystem = lazy(() => import("./setting-system.tsrx").then((m) => ({ 
 const Activity = lazy(() => import("./activity.tsrx").then((m) => ({ default: m.Activity })));
 const Local = lazy(() => import("./local.tsrx").then((m) => ({ default: m.Local })));
 const HeavyChart = lazy(() => import("./heavy-chart.tsrx").then((m) => ({ default: m.HeavyChart })));
-const EducateAi = lazy(() => import("./follow-ai.tsrx").then((m) => ({ default: m.EducateAi })));
-import { authClient } from "~/client/utils/auth-client";
-import { theme } from "~/client/stores/theme-store";
+const FollowAI = lazy(() => import("./follow-ai.tsrx").then((m) => ({ default: m.FollowAI })));
+const EvaluationView = lazy(() => import("./evaluation.tsrx").then(m => ({ default: m.EvaluationView })));
+const AIFlowView = lazy(() => import("./ai-flow.tsrx").then((m) => ({ default: m.HyperbolicTreeOfLife })));
+const MLTrainingView = lazy(() => import("../ai/ml-training.tsrx").then((m) => ({ default: m.MLTraining })));
+const VectorView = lazy(() => import("./vector-viewer.tsrx").then((m) => ({ default: m.VectorViewer })));
+const LLMVisualizerView = lazy(() => import("./llm-visualizer.tsrx").then((m) => ({ default: m.LlmVisualizer })));
 
 export component Dashboard(props: any) {
   const session = authClient.useSession();
@@ -35,8 +42,13 @@ export component Dashboard(props: any) {
     "system-setting": SettingSystem,
     local: Local,
     activity: Activity,
-    "follow-ai": EducateAi,
+    "follow-ai": FollowAI,
     "heavy-chart": HeavyChart,
+    evaluation: EvaluationView,
+    "ai-flow": AIFlowView,
+    "ml-training": MLTrainingView,
+    "vector-viewer": VectorView,
+    "llm-visualizer": LLMVisualizerView,
   };
 
   const activeTab = createMemo(() => {
@@ -153,6 +165,76 @@ export component Dashboard(props: any) {
               }`}>
               <Icon path={chartBar} class="w-5 h-5 min-w-[20px]" />
               {"Biểu đồ"}
+            </A>
+          </li>
+          <li>
+            <A
+              href="/dashboard?tab=evaluation"
+              class={`flex items-center gap-3 px-4 py-3 rounded-2xl font-bold transition-all ${
+                activeTab() === "evaluation"
+                  ? "bg-blue-600 text-white shadow-md shadow-blue-500/20"
+                  : (theme() === "dark"
+                    ? "text-gray-400 hover:bg-white/5 hover:text-white"
+                    : "text-gray-600 hover:bg-gray-50 hover:text-blue-600")
+              }`}>
+              <Icon path={chartPie} class="w-5 h-5 min-w-[20px]" />
+              {"AI Evaluation"}
+            </A>
+          </li>
+          <li>
+            <A
+              href="/dashboard?tab=ai-flow"
+              class={`flex items-center gap-3 px-4 py-3 rounded-2xl font-bold transition-all ${
+                activeTab() === "ai-flow"
+                  ? "bg-blue-600 text-white shadow-md shadow-blue-500/20"
+                  : (theme() === "dark"
+                    ? "text-gray-400 hover:bg-white/5 hover:text-white"
+                    : "text-gray-600 hover:bg-gray-50 hover:text-blue-600")
+              }`}>
+              <Icon path={share} class="w-5 h-5 min-w-[20px]" />
+              {"AI Flow Tree"}
+            </A>
+          </li>
+          <li>
+            <A
+              href="/dashboard?tab=ml-training"
+              class={`flex items-center gap-3 px-4 py-3 rounded-2xl font-bold transition-all ${
+                activeTab() === "ml-training"
+                  ? "bg-blue-600 text-white shadow-md shadow-blue-500/20"
+                  : (theme() === "dark"
+                    ? "text-gray-400 hover:bg-white/5 hover:text-white"
+                    : "text-gray-600 hover:bg-gray-50 hover:text-blue-600")
+              }`}>
+              <Icon path={academicCap} class="w-5 h-5 min-w-[20px]" />
+              {"ML Training"}
+            </A>
+          </li>
+          <li>
+            <A
+              href="/dashboard?tab=vector-viewer"
+              class={`flex items-center gap-3 px-4 py-3 rounded-2xl font-bold transition-all ${
+                activeTab() === "vector-viewer"
+                  ? "bg-blue-600 text-white shadow-md shadow-blue-500/20"
+                  : (theme() === "dark"
+                    ? "text-gray-400 hover:bg-white/5 hover:text-white"
+                    : "text-gray-600 hover:bg-gray-50 hover:text-blue-600")
+              }`}>
+              <Icon path={globeAsiaAustralia} class="w-5 h-5 min-w-[20px]" />
+              {"Semantic Storm"}
+            </A>
+          </li>
+          <li>
+            <A
+              href="/dashboard?tab=llm-visualizer"
+              class={`flex items-center gap-3 px-4 py-3 rounded-2xl font-bold transition-all ${
+                activeTab() === "llm-visualizer"
+                  ? "bg-emerald-600 text-white shadow-md shadow-emerald-500/20"
+                  : (theme() === "dark"
+                    ? "text-gray-400 hover:bg-emerald-900/30 hover:text-emerald-400"
+                    : "text-gray-600 hover:bg-emerald-50 hover:text-emerald-600")
+              }`}>
+              <Icon path={cpuChip} class="w-5 h-5 min-w-[20px]" />
+              {"LLM Engine"}
             </A>
           </li>
         </ul>

@@ -1,3 +1,6 @@
+import { createLogger } from "~/shared/logger";
+
+const log = createLogger("api/music-engine");
 /**
  * ACE-Step Music Engine — Tích hợp AI Music cho 12 Agent bán hàng Rottra
  * Mỗi agent có style nhạc riêng, tự động tạo nền khi trả lời khách
@@ -5,7 +8,6 @@
  * Backend: ACE-Step UI Server (Express.js + SQLite)
  * AI Engine: ACE-Step 1.5 (Gradio API)
  */
-
 const ACESTEP_API_URL = process.env.ACESTEP_API_URL || "http://localhost:3001";
 const ACESTEP_GRADIO_URL = process.env.ACESTEP_GRADIO_URL || "http://localhost:8001";
 
@@ -84,7 +86,7 @@ export async function generateAgentMusic(
 
     return { success: false, error: "No audio in response" };
   } catch (err: any) {
-    console.error(`[MusicEngine] Failed for agent ${agentId}:`, err.message);
+    log.error(`[MusicEngine] Failed for agent ${agentId}:`, err.message);
     return { success: false, error: err.message };
   }
 }
@@ -172,7 +174,7 @@ export async function generateAgentMusicDirect(
 
     return { success: false, error: "No audio in Gradio response" };
   } catch (err: any) {
-    console.error(`[MusicEngine] Direct Gradio failed for agent ${agentId}:`, err.message);
+    log.error(`[MusicEngine] Direct Gradio failed for agent ${agentId}:`, err.message);
     return { success: false, error: err.message };
   }
 }
@@ -186,7 +188,7 @@ export async function getAgentBackgroundMusic(agentId: string, replyText: string
 
   // Nếu UI server không khả dụng, fallback trực tiếp Gradio
   if (!result.success && result.error?.includes("fetch")) {
-    console.log("[MusicEngine] UI server unreachable, falling back to Gradio direct");
+    log.info("[MusicEngine] UI server unreachable, falling back to Gradio direct");
     result = await generateAgentMusicDirect(agentId, mood);
   }
 

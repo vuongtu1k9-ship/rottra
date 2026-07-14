@@ -1,3 +1,4 @@
+import { Deterministic } from "~/shared/utils/rng";
 /**
  * Grey Wolf Optimizer (GWO)
  * Thuật toán tối ưu hóa dựa trên hệ thống xã hội của sói xám
@@ -75,8 +76,8 @@ function evaluateAndRank(wolves: Wolf[], fitnessFn: (x: number[]) => number): Wo
  * C = 2 * r2
  */
 function computeVectors(a: number, dimension: number): { A: number[]; C: number[] } {
-  const A = Array.from({ length: dimension }, () => 2 * a * Math.random() - a);
-  const C = Array.from({ length: dimension }, () => 2 * Math.random());
+  const A = Array.from({ length: dimension }, () => 2 * a * Deterministic.random() - a);
+  const C = Array.from({ length: dimension }, () => 2 * Deterministic.random());
   return { A, C };
 }
 
@@ -151,7 +152,7 @@ export function gwoOptimize(config: GWOConfig, fitnessFn: (x: number[]) => numbe
   // Khởi tạo bầy sói ngẫu nhiên
   let wolves: Wolf[] = [];
   for (let i = 0; i < N; i++) {
-    const position = bounds.map(([min, max]) => min + Math.random() * (max - min));
+    const position = bounds.map(([min, max]) => min + Deterministic.random() * (max - min));
     wolves.push({
       id: i,
       position,
@@ -215,7 +216,7 @@ export function gwoOptimize(config: GWOConfig, fitnessFn: (x: number[]) => numbe
         const { A, C } = computeVectors(a, n);
 
         // Leader hunt prey
-        const prey = bounds.map(([min, max]) => min + Math.random() * (max - min));
+        const prey = bounds.map(([min, max]) => min + Deterministic.random() * (max - min));
         const D = C.map((c, d) => Math.abs(c * prey[d] - leader.position[d]));
         const newPosition = leader.position.map((x, d) => prey[d] - A[d] * D[d]);
 
@@ -291,7 +292,7 @@ export function igwoOptimize(config: GWOConfig, fitnessFn: (x: number[]) => numb
 
   let wolves: Wolf[] = [];
   for (let i = 0; i < N; i++) {
-    const position = bounds.map(([min, max]) => min + Math.random() * (max - min));
+    const position = bounds.map(([min, max]) => min + Deterministic.random() * (max - min));
     wolves.push({ id: i, position, fitness: -Infinity, rank: i });
   }
 
@@ -315,16 +316,16 @@ export function igwoOptimize(config: GWOConfig, fitnessFn: (x: number[]) => numb
       const wolf = wolves[i];
 
       // Spiral update (logarithmic spiral)
-      const r = Math.random();
-      const l = (Math.random() - 0.5) * 2; // [-1, 1]
+      const r = Deterministic.random();
+      const l = (Deterministic.random() - 0.5) * 2; // [-1, 1]
       const spiralA = 2 * a * r - a;
       const spiralFactor = Math.exp(l) * Math.cos(2 * Math.PI * l);
 
       // Encircling với adaptive weights
       for (let d = 0; d < n; d++) {
-        const D_alpha = Math.abs(2 * Math.random() * alpha.position[d] - wolf.position[d]);
-        const D_beta = Math.abs(2 * Math.random() * beta.position[d] - wolf.position[d]);
-        const D_delta = Math.abs(2 * Math.random() * delta.position[d] - wolf.position[d]);
+        const D_alpha = Math.abs(2 * Deterministic.random() * alpha.position[d] - wolf.position[d]);
+        const D_beta = Math.abs(2 * Deterministic.random() * beta.position[d] - wolf.position[d]);
+        const D_delta = Math.abs(2 * Deterministic.random() * delta.position[d] - wolf.position[d]);
 
         // Weighted update
         const X1 = alpha.position[d] - spiralA * D_alpha;
@@ -386,7 +387,7 @@ export function mgwoOptimize(
   // Khởi tạo wolves
   const wolves: Wolf[] = [];
   for (let i = 0; i < N; i++) {
-    const position = bounds.map(([min, max]) => min + Math.random() * (max - min));
+    const position = bounds.map(([min, max]) => min + Deterministic.random() * (max - min));
     wolves.push({ id: i, position, fitness: -Infinity, rank: i });
   }
 
@@ -409,12 +410,12 @@ export function mgwoOptimize(
   // Select leader from archive
   const selectLeader = (): number[] => {
     if (archive.length === 0) {
-      return bounds.map(([min, max]) => min + Math.random() * (max - min));
+      return bounds.map(([min, max]) => min + Deterministic.random() * (max - min));
     }
     const fits = archive.map((r) => r.fitness);
     const cd = crowdingDistance(fits);
     const totalCD = cd.reduce((a, b) => a + (b === Infinity ? 1000 : b), 0);
-    let r = Math.random() * totalCD;
+    let r = Deterministic.random() * totalCD;
     for (let i = 0; i < archive.length; i++) {
       r -= cd[i] === Infinity ? 1000 : cd[i];
       if (r <= 0) return archive[i].position;
@@ -461,8 +462,8 @@ export function mgwoOptimize(
 
     for (const wolf of wolves) {
       for (let d = 0; d < n; d++) {
-        const A = 2 * a * Math.random() - a;
-        const C = 2 * Math.random();
+        const A = 2 * a * Deterministic.random() - a;
+        const C = 2 * Deterministic.random();
         const D = Math.abs(C * leader_pos[d] - wolf.position[d]);
         wolf.position[d] = leader_pos[d] - A * D;
         wolf.position[d] = clamp(wolf.position[d], bounds[d][0], bounds[d][1]);

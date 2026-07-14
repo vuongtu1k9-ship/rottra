@@ -1,4 +1,4 @@
-// Rottra Agent - Lõi Định Tuyến Ý Định & NLP Engine (Machine Learning Intent Classifier)
+import { Deterministic } from "~/shared/utils/rng"; // Rottra Agent - Lái Định Tuyến - Định Tuyến & NLP Engine (Machine Learning Intent Classifier)
 import { db } from "~/infra/database/db-pool";
 import fs from "node:fs";
 import path from "node:path";
@@ -13,9 +13,9 @@ import {
   getTokenizerInfo,
 } from "./multilingual-tokenizer";
 
-// ══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════
 // ONLINE LEARNING: Override map for instant feedback-based corrections
-// ══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════
 
 const intentOverrideMap = new Map<string, { intent: string; confidence: number; timestamp: number }>();
 const OVERRIDE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
@@ -399,7 +399,7 @@ export const SEMANTIC_ANCHORS: Record<string, string[]> = {
   ],
   WARDROP: [
     "wardrop",
-    "cân bằng luồng",
+    "cân bằng lượng",
     "can bang luong",
     "phân luồng giao thông",
     "phan luong giao thong",
@@ -426,7 +426,7 @@ export const SEMANTIC_ANCHORS: Record<string, string[]> = {
     "chi phi",
     "cash flow",
   ],
-  COBWEB: ["cobweb", "mô hình mạng nhện", "mo hinh mang nhen", "dao dong gia", "gia ca dong", "thuat toan", "giải thuật", "dong gia"],
+  COBWEB: ["cobweb", "mô hình mạng nhện", "mo hinh mang nhen", "dao dong gia", "gia ca dong", "thuat toan", "giai thuat", "dong gia"],
   KALMAN: ["kalman", "lọc nhiễu", "loc nhieu", "lọc cảm biến", "loc cam bien", "khử nhiễu", "khu nhieu"],
   SHANNON: [
     "shannon",
@@ -992,7 +992,7 @@ export const normalizeVietnameseShorthands = (text: string): string => {
         case "ok":
         case "oke":
         case "uok":
-          return part.toUpperCase() === part ? "ĐỒNG Ý" : "đồng ý";
+          return part.toUpperCase() === part ? "ĐÚNG Ý" : "đúng ý";
         case "r":
         case "roi":
           return part.toUpperCase() === part ? "RỒI" : "rồi";
@@ -1208,7 +1208,7 @@ function getFewShotExamples(query: string, count: number = 8): string {
 
   if (bestMatches.length === 0) {
     return `- Utterance: "chào bạn" -> Intent: GREETING
-- Utterance: "dự báo giá tiêu tháng tới" -> Intent: FORECAST
+- Utterance: "dự báo giá tiêu thụ tương lai" -> Intent: FORECAST
 - Utterance: "tính toán xác suất nông trại" -> Intent: STATISTICS
 - Utterance: "điều xe giao hàng kho" -> Intent: AGENTIC_WORKFLOW
 - Utterance: "tôi muốn học thêm từ llms.txt" -> Intent: RAG_INGESTION`;
@@ -1387,7 +1387,7 @@ export const classifyIntent = async (queryText: string): Promise<ClassificationR
 
   // Handle very short queries (1-3 words) that might be questions
   const shortQueryPatterns = [
-    { patterns: ["bao nhieu", "gì", "gia", "giá"], intent: "SEARCH" },
+    { patterns: ["bao nhieu", "giá", "gia", "giá"], intent: "SEARCH" },
     { patterns: ["con hang", "còn hàng"], intent: "NAVIGATION" },
     { patterns: ["msp", "mã sp"], intent: "SEARCH" },
   ];
@@ -1483,11 +1483,11 @@ export const trainAndSaveNlpModel = async (onLog?: (log: string) => void): Promi
   };
 
   try {
-    console.log("[NLP-DISTILLATION] 👑 KHỞI ĐỘNG LÒ LUYỆN NEXT-GEN KNOWLEDGE DISTILLATION (5 SÁNG KIẾN ĐỘT PHÁ) 👑");
-    console.log(" - Sáng kiến 1: Entropy-Aware Temperature (Nhiệt độ Động lực học)");
+    console.log("[NLP-DISTILLATION] 🟢 KHỞI ĐỘNG LẦI LUYỆN NEXT-GEN KNOWLEDGE DISTILLATION (5 SÁNG KIẾN ĐẶT PHÁ) 🟢");
+    console.log(" - Sáng kiến 1: Entropy-Aware Temperature (Nhiệt Độ Động Lực Học)");
     console.log(" - Sáng kiến 2: Chain-of-Thought Distillation (Chưng cất Tiếng lẩm bẩm)");
     console.log(" - Sáng kiến 3: Contrastive / Negative Distillation (Lực Đẩy Tử Thần)");
-    console.log(" - Sáng kiến 4: Tool-Use Delegation (Cắt Bỏ Thùy Trán Toán Học)");
+    console.log(" - Sáng kiến 4: Tool-Use Delegation (Cắt Bỏ Thây Trận Toán Học)");
     console.log(" - Sáng kiến 5: Post-Distillation Self-Play Arena (Đấu Trường Sinh Tử DPO)");
 
     // 1. Load data
@@ -1531,7 +1531,7 @@ export const trainAndSaveNlpModel = async (onLog?: (log: string) => void): Promi
     // weights configuration for Student NN
     const weights: Record<string, number[]> = {};
     INTENTS.forEach((intent) => {
-      weights[intent] = new Array(vocabulary.length).fill(0).map(() => (Math.random() - 0.5) * 0.01);
+      weights[intent] = new Array(vocabulary.length).fill(0).map(() => (Deterministic.random() - 0.5) * 0.01);
     });
 
     // Dynamic Curriculum learning: Epoch-based Soft-to-Hard Loss Ratio (Dynamic Alpha & Beta)
@@ -1540,7 +1540,7 @@ export const trainAndSaveNlpModel = async (onLog?: (log: string) => void): Promi
     const DELTA = 0.15; // Negative Contrastive penalty coefficient
 
     // Simulate training over epochs
-    console.log("[NLP-DISTILLATION] 🚀 Đang tối ưu hóa phương trình sai lệch siêu cấp Rottra Loss...");
+    console.log("[NLP-DISTILLATION] 📊 Đang tối ưu hóa phương trình sai lệch siêu cấp Rottra Loss...");
 
     for (let epoch = 1; epoch <= 5; epoch++) {
       let totalLoss = 0;
@@ -1615,7 +1615,7 @@ export const trainAndSaveNlpModel = async (onLog?: (log: string) => void): Promi
         const pBaseCombined = INTENTS.map((_, idx) => fw1 * pBase1[idx] + fw2 * pBase2[idx] + fw3 * pBase3[idx]);
         const H_teacher = -pBaseCombined.reduce((acc, p) => acc + (p > 1e-15 ? p * Math.log2(p) : 0), 0);
 
-        // Dynamic Temperature Annealing: Nhiệt độ giảm dần qua các Epoch để trò hội tụ sắc nét
+        // Dynamic Temperature Annealing: Nhiệt độ giảm dần qua các Epoch để trở hội tụ sắc nét
         const tempScale = 1.0 + (5 - epoch) * 0.3; // giảm dần từ 2.2 về 1.0
         const T_entropy = isHardLogic ? 1.0 : Math.max(1.0, (1.0 + H_teacher * 1.5) * tempScale);
 
@@ -1662,8 +1662,8 @@ export const trainAndSaveNlpModel = async (onLog?: (log: string) => void): Promi
         const negativeTargetProb = studentHardDistribution[hardestNegativeIdx];
         const negativeLoss = -Math.log(1.0 - negativeTargetProb + 1e-15);
 
-        // --- SÁNG KIẾN 4: Tool-Use Delegation (Cắt Bỏ Thùy Trán Toán Học) ---
-        // Trò học được rằng khi đụng đến toán/số liệu, logits sẽ ưu tiên nhả mã gọi tool ngoại vi
+        // --- SÁNG KIẾN 4: Tool-Use Delegation (Cắt Bỏ Thây Trận Toán Học) ---
+        // Trò học được rằng khi dụng đến toán/số liệu, logits sẽ ưu tiên nhả mã gọi tool ngoại vi
         if (isHardLogic && weights[item.intent]) {
           const toolTriggerWordIndex = vocabulary.indexOf("tinh");
           if (toolTriggerWordIndex !== -1) {
@@ -1684,7 +1684,7 @@ export const trainAndSaveNlpModel = async (onLog?: (log: string) => void): Promi
         const loss = currentAlpha * hardLoss + currentBeta * T_entropy * T_entropy * softLoss + GAMMA * cotLoss - DELTA * negativeLoss;
         totalLoss += loss;
 
-        // Cập nhật trọng số ngược dòng Gradient Descent dựa trên tỉ lệ curriculum của epoch hiện tại
+        // Cập nhật trọng số ngược dòng Gradient Descent dựa trên tỷ lệ curriculum của epoch hiện tại
         INTENTS.forEach((intent, idx) => {
           const target = (1 - currentAlpha) * (intent === item.intent ? 1.0 : 0.0) + currentAlpha * teacherSoftDistribution[idx];
           const error = target - studentHardDistribution[idx];
@@ -1700,14 +1700,9 @@ export const trainAndSaveNlpModel = async (onLog?: (log: string) => void): Promi
     // --- SÁNG KIẾN 5: Đấu Trường Sinh Tử Arena (DPO Self-Play giả lập thực tế) ---
     console.log("[NLP-DISTILLATION] ⚔️ Đang chạy mô phỏng Đấu Trường DPO Self-Play Arena chạy ngầm...");
     let selfPlayWins = 0;
-    const softmaxWithTemperature = (logits: number[], temp: number): number[] => {
-      const expLogits = logits.map((l) => Math.exp(l / temp));
-      const sumExp = expLogits.reduce((a, b) => a + b, 0);
-      return expLogits.map((e) => e / (sumExp || 1));
-    };
 
     for (let match = 1; match <= 20; match++) {
-      const randomItem = dataset[Math.floor(Math.random() * dataset.length)];
+      const randomItem = dataset[Math.floor(Deterministic.random() * dataset.length)];
       const x = getFeatures(randomItem.utterance);
 
       // Trò tự dự đoán (Self-Play Inference)
@@ -1725,14 +1720,14 @@ export const trainAndSaveNlpModel = async (onLog?: (log: string) => void): Promi
 
       if (predictedIntent === randomItem.intent) {
         selfPlayWins++;
-        // Thưởng trọng số cho các từ kích hoạt đúng ý định (Reinforcement Learning)
+        // Thưởng trọng số cho các từ kích hoạt đúng và ổn định (Reinforcement Learning)
         for (let j = 0; j < vocabulary.length; j++) {
           if (x[j] > 0) {
             weights[randomItem.intent][j] += 0.005;
           }
         }
       } else {
-        // Phạt và củng cố âm nếu đoán sai
+        // Phạt và củng cố âm nếu dự đoán sai
         for (let j = 0; j < vocabulary.length; j++) {
           if (x[j] > 0) {
             weights[predictedIntent][j] -= 0.003;
@@ -1741,7 +1736,7 @@ export const trainAndSaveNlpModel = async (onLog?: (log: string) => void): Promi
         }
       }
     }
-    console.log(`  > Giả lập DPO hoàn tất: Trò thắng tự lực ${selfPlayWins}/20 trận đấu trí. Đã củng cố ma trận trọng số.`);
+    console.log(`  > Giả lập DPO hoàn tất: Trò thắng tự lực ${selfPlayWins}/20 trận đấu trân. Đã củng cố ma trận trọng số.`);
 
     // 5. Save classification cache
     const finetuneDir = path.join(process.cwd(), "finetune", "data");
@@ -1756,7 +1751,7 @@ export const trainAndSaveNlpModel = async (onLog?: (log: string) => void): Promi
 
     cachedTrainingPairs = dataset;
 
-    console.log("[SUCCESS] ĐÀO TẠO NEXT-GEN DISTILLATION HOÀN TẤT MỸ MÃN!");
+    console.log("[SUCCESS] ĐÃ TẠO NEXT-GEN DISTILLATION HOÀN TẤT MỸ MÃN!");
     console.log("[SUCCESS] File phân loại thông minh siêu nhẹ sẵn sàng chạy Offline nano-giây!");
 
     return { success: true, logs };
@@ -1829,7 +1824,7 @@ export const updateWeightsViaDpo = async (chosenUtterance: string, rejectedUtter
     vocabulary = Array.from(new Set(dataset.flatMap((d) => d.utterance.toLowerCase().split(/\s+/))));
     const INTENTS = Array.from(new Set(dataset.map((d) => d.intent)));
     INTENTS.forEach((i) => {
-      weights[i] = new Array(vocabulary.length).fill(0).map(() => (Math.random() - 0.5) * 0.01);
+      weights[i] = new Array(vocabulary.length).fill(0).map(() => (Deterministic.random() - 0.5) * 0.01);
     });
   }
 
@@ -1843,7 +1838,7 @@ export const updateWeightsViaDpo = async (chosenUtterance: string, rejectedUtter
     // Random sampling without replacement
     const indices = new Set<number>();
     while (indices.size < batchSize) {
-      indices.add(Math.floor(Math.random() * bufferLen));
+      indices.add(Math.floor(Deterministic.random() * bufferLen));
     }
     indices.forEach((idx) => batch.push(replayBuffer[idx]));
   }

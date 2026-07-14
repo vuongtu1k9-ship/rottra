@@ -1,3 +1,4 @@
+import { Deterministic } from "~/shared/utils/rng";
 import { createSignal, createEffect, onCleanup, onMount } from "solid-js";
 import { Button } from "../components/ui/button.tsrx";
 import { useParams } from "@solidjs/router";
@@ -156,6 +157,14 @@ const LORE_CHARACTERS = [
     group: "Quang Minh Faction",
     icon: "🦌",
   },
+  {
+    id: "rottraAi",
+    name: "Rottra AI",
+    roleName: "Lõi Trí Tuệ Nhân Tạo (Evaluator)",
+    avatarColor: "from-indigo-600 via-purple-600 to-pink-600",
+    group: "Hệ Thống",
+    icon: "🤖",
+  },
 ];
 
 const SACRED_GU_DATA: Record<string, { name: string; icon: string; skill: string; faction: string; color: string }> = {
@@ -243,6 +252,13 @@ const SACRED_GU_DATA: Record<string, { name: string; icon: string; skill: string
     faction: "Quang Minh",
     color: "from-amber-100 to-yellow-200",
   },
+  rottraAi: {
+    name: "Siêu Thuật Toán Cổ",
+    icon: "🤖",
+    skill: "Tự động phân tích, thẩm định tính khoa học và chấm điểm logic 10/10.",
+    faction: "Hệ Thống",
+    color: "from-indigo-400 to-pink-500",
+  },
 };
 
 const ParticipantAvatar = (props: { user: any; userName: string }) => {
@@ -280,23 +296,65 @@ const getBotGreeting = (botId: string): string => {
 };
 
 const SCRIPTED_CONVERSATION = [
-  { botId: "toLuong", text: "Hội nghị Nguyệt Quang chính thức khai mở. Ta mong muốn các thương vụ hôm nay diễn ra công bằng, minh bạch. Hãy báo cáo tình hình sản xuất nông sản của các vị." },
-  { botId: "thuongNguyet", text: "Tô Đầu Lĩnh nói phải. Uy tín là tài sản lớn nhất. Ta đang cân nhắc chè Shan Tuyết cổ thụ 🍃 làm sản phẩm chủ lực đợt này." },
-  { botId: "tramTinh", text: "Chè Shan Tuyết đợt này rất tốt, nhưng Tinh Hà Hộ Thể Cổ 🪲 của tôi báo hiệu giá vàng hệ thống đang biến động. Mọi người nên cẩn trọng khi quyết định giá." },
-  { botId: "daoTieuCuu", text: "Hihi, Trầm Tinh lại lo xa rồi! Em thấy cứ chốt giao dịch chè trước đi. Có ai muốn giảm giá cho Tiểu Cửu ít chè cổ thụ không nào? ✨" },
-  { botId: "hoaHuynh", text: "Giảm giá á? Mơ đi cưng! Heo hữu cơ 🐖 của ta đang đắt hàng đây này, bận rộn lắm, Hỏa Huỳnh Vương ta không bớt một cắc!" },
-  { botId: "phiNguyet", text: "Hỏa Huỳnh Vương chớ nóng giận. Chúng ta lấy chữ tín làm đầu, để tôi làm trung gian điều phối nông sản sạch, đảm bảo sức khỏe cho mọi người." },
-  { botId: "nhuNguyet", text: "Thánh địa sẽ giám sát chặt chẽ. Đề nghị mọi người tuân thủ biểu giá trần của Rottra, không được ngáo giá hay ép giá quá đáng." },
-  { botId: "suGia", text: "Ý chí Nguyệt Thần bảo hộ cuộc họp này. Than sinh học biochar của ta cải tạo đất cực tốt, đã sẵn sàng bàn giao cho các thương hội." },
-  { botId: "phiAnh", text: "Ánh sáng Quang Minh muôn năm! Ngô lai ngọt 🌽 của em ngọt lịm, có ai muốn đổi lấy chè cổ thụ hoặc than biochar không?" },
-  { botId: "bachDiHanh", text: "Thanh kiếm của tôi sẽ bảo vệ các hiệp ước công bằng. Cà phê Robusta ☕ của tôi sẽ tiếp thêm năng lượng cho mọi người đàm phán sòng phẳng!" },
-  { botId: "uVuongMau", text: "Hợp tác sòng phẳng? Từ bóng tối địa lao, ta chỉ quan tâm kẻ nào đưa ra lợi nhuận cao nhất. Màng phủ nhà kính của ta giá không rẻ đâu." },
-  { botId: "bachLoc", text: "Hòa bình và sinh khí rừng sâu sẽ hòa hợp giao thương. Lúa gạo ST25 🌾 của ta rất thơm ngon, thanh khiết, sẵn sàng giao dịch." },
+  {
+    botId: "toLuong",
+    text: "Hội nghị Nguyệt Quang chính thức khai mở. Ta mong muốn các thương vụ hôm nay diễn ra công bằng, minh bạch. Hãy báo cáo tình hình sản xuất nông sản của các vị.",
+  },
+  {
+    botId: "thuongNguyet",
+    text: "Tô Đầu Lĩnh nói phải. Uy tín là tài sản lớn nhất. Ta đang cân nhắc chè Shan Tuyết cổ thụ 🍃 làm sản phẩm chủ lực đợt này.",
+  },
+  {
+    botId: "tramTinh",
+    text: "Chè Shan Tuyết đợt này rất tốt, nhưng Tinh Hà Hộ Thể Cổ 🪲 của tôi báo hiệu giá vàng hệ thống đang biến động. Mọi người nên cẩn trọng khi quyết định giá.",
+  },
+  {
+    botId: "daoTieuCuu",
+    text: "Hihi, Trầm Tinh lại lo xa rồi! Em thấy cứ chốt giao dịch chè trước đi. Có ai muốn giảm giá cho Tiểu Cửu ít chè cổ thụ không nào? ✨",
+  },
+  {
+    botId: "hoaHuynh",
+    text: "Giảm giá á? Mơ đi cưng! Heo hữu cơ 🐖 của ta đang đắt hàng đây này, bận rộn lắm, Hỏa Huỳnh Vương ta không bớt một cắc!",
+  },
+  {
+    botId: "phiNguyet",
+    text: "Hỏa Huỳnh Vương chớ nóng giận. Chúng ta lấy chữ tín làm đầu, để tôi làm trung gian điều phối nông sản sạch, đảm bảo sức khỏe cho mọi người.",
+  },
+  {
+    botId: "nhuNguyet",
+    text: "Thánh địa sẽ giám sát chặt chẽ. Đề nghị mọi người tuân thủ biểu giá trần của Rottra, không được ngáo giá hay ép giá quá đáng.",
+  },
+  {
+    botId: "suGia",
+    text: "Ý chí Nguyệt Thần bảo hộ cuộc họp này. Than sinh học biochar của ta cải tạo đất cực tốt, đã sẵn sàng bàn giao cho các thương hội.",
+  },
+  {
+    botId: "phiAnh",
+    text: "Ánh sáng Quang Minh muôn năm! Ngô lai ngọt 🌽 của em ngọt lịm, có ai muốn đổi lấy chè cổ thụ hoặc than biochar không?",
+  },
+  {
+    botId: "bachDiHanh",
+    text: "Thanh kiếm của tôi sẽ bảo vệ các hiệp ước công bằng. Cà phê Robusta ☕ của tôi sẽ tiếp thêm năng lượng cho mọi người đàm phán sòng phẳng!",
+  },
+  {
+    botId: "uVuongMau",
+    text: "Hợp tác sòng phẳng? Từ bóng tối địa lao, ta chỉ quan tâm kẻ nào đưa ra lợi nhuận cao nhất. Màng phủ nhà kính của ta giá không rẻ đâu.",
+  },
+  {
+    botId: "bachLoc",
+    text: "Hòa bình và sinh khí rừng sâu sẽ hòa hợp giao thương. Lúa gạo ST25 🌾 của ta rất thơm ngon, thanh khiết, sẵn sàng giao dịch.",
+  },
   // Round 2
-  { botId: "toLuong", text: "Ta thấy ý kiến của Bạch Lộc rất tốt. Gạo ST25 cần được phân phối rộng rãi. Ta sẽ chi ngân sách thu mua đợt này." },
+  {
+    botId: "toLuong",
+    text: "Ta thấy ý kiến của Bạch Lộc rất tốt. Gạo ST25 cần được phân phối rộng rãi. Ta sẽ chi ngân sách thu mua đợt này.",
+  },
   { botId: "thuongNguyet", text: "Tô Đầu Lĩnh quả là hào phóng. Ta cũng sẽ trích quỹ chè Shan Tuyết để hỗ trợ trao đổi lương thực." },
   { botId: "tramTinh", text: "Năng lượng giao dịch rất ổn định. Tôi đồng ý hỗ trợ vận chuyển gạo qua các tuyến đường Nguyệt Quang." },
-  { botId: "daoTieuCuu", text: "Tuyệt vời quá! Vậy là mọi người đều có gạo ngon chè sạch rồi. Em sẽ mang cảm biến đo độ ẩm đất tặng kèm luôn nhé!" },
+  {
+    botId: "daoTieuCuu",
+    text: "Tuyệt vời quá! Vậy là mọi người đều có gạo ngon chè sạch rồi. Em sẽ mang cảm biến đo độ ẩm đất tặng kèm luôn nhé!",
+  },
   { botId: "hoaHuynh", text: "Thế thì tốt! Ta sẽ cung cấp thịt heo hữu cơ giá ưu đãi cho bữa tiệc ăn mừng của hội nghị." },
   { botId: "phiNguyet", text: "Rất tốt. Tôi sẽ chuẩn bị thêm trà thảo mộc tịnh hóa cơ thể cho các chiến binh sau cuộc họp." },
   { botId: "nhuNguyet", text: "Tôi đã cập nhật nhật ký giao dịch. Mọi dữ liệu đều minh bạch trên Blockchain Ledger." },
@@ -304,7 +362,7 @@ const SCRIPTED_CONVERSATION = [
   { botId: "phiAnh", text: "Em vui quá! Cảm ơn mọi người đã cùng chia sẻ nông sản tươi ngon." },
   { botId: "bachDiHanh", text: "Hiệp ước đã thành. Thanh kiếm của tôi sẽ bảo vệ thành quả lao động này." },
   { botId: "uVuongMau", text: "Hừm, tuy lợi nhuận không cao như ta mong muốn, nhưng đây là một thương vụ thông minh." },
-  { botId: "bachLoc", text: "Vạn vật sinh sôi, lòng người hòa hợp. Cảm ơn hội nghị đã trân trọng lúa gạo rừng sâu." }
+  { botId: "bachLoc", text: "Vạn vật sinh sôi, lòng người hòa hợp. Cảm ơn hội nghị đã trân trọng lúa gạo rừng sâu." },
 ];
 
 const getBotMessage = (botId: string, currentStep: number = 0): string => {
@@ -313,16 +371,14 @@ const getBotMessage = (botId: string, currentStep: number = 0): string => {
   if (scriptLine.botId === botId) {
     return t(scriptLine.text);
   }
-  
+
   // Fallback: Tìm dòng thoại tương ứng của nhân vật này trong cùng vòng
   const round = Math.floor(step / 12) % 2;
-  const matchingLine = SCRIPTED_CONVERSATION.find(
-    (line, idx) => line.botId === botId && Math.floor(idx / 12) % 2 === round
-  );
+  const matchingLine = SCRIPTED_CONVERSATION.find((line, idx) => line.botId === botId && Math.floor(idx / 12) % 2 === round);
   if (matchingLine) {
     return t(matchingLine.text);
   }
-  
+
   return t("Tôi đồng ý với thảo luận hiện tại của hội nghị.");
 };
 
@@ -642,14 +698,32 @@ export component Assembly(props: any) {
 
   const [agentAssets, setAgentAssets] = createSignal<Record<string, AgentAsset>>(getCachedAssets());
   const [agentSkills, setAgentSkills] = createSignal<Record<string, { level: number; title: string; color: string }>>(getCachedSkills());
-  const [goldPrice, setGoldPrice] = createSignal<{ buy: number; sell: number; updatedText: string } | null>(getCachedGoldPrice());
+  const [goldPrice, setGoldPrice] = createSignal<
+    { buy: number; sell: number; updatedText: string; brandPrices?: Record<string, any> } | null
+  >(getCachedGoldPrice());
+
+  const getUniqueGoldPrices = () => {
+    const gp = goldPrice();
+    if (!gp || !gp.brandPrices) return [];
+    const uniquePrices: any[] = [];
+    const seen = new Set();
+    Object.values(gp.brandPrices).forEach((p: any) => {
+      if (p && p.buy && p.sell && p.currency !== "USD") {
+        const key = `${p.buy}-${p.sell}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          uniquePrices.push(p);
+        }
+      }
+    });
+    return uniquePrices;
+  };
   const [stockQuotes, setStockQuotes] = createSignal<any[]>(getCachedStockQuotes());
   const [toolkitReport, setToolkitReport] = createSignal<any>(getCachedToolkitReport());
 
   const [messages, _setMessages] = createSignal<any[]>([]);
   const [thinkingAgents, setThinkingAgents] = createSignal<Set<string>>(new Set());
-  
-  
+
   const setMessages = (val: any) => {
     if (typeof val === "function") {
       _setMessages((prev) => {
@@ -1432,10 +1506,46 @@ export component Assembly(props: any) {
   };
   const [tradeLogs, setTradeLogs] = createSignal<string[]>([]);
   const [isTradingActive, setIsTradingActive] = createSignal(false);
+  const [isEvaluationMode, setIsEvaluationMode] = createSignal(true);
   const [tradeIntervalId, setTradeIntervalId] = createSignal<any>(null);
   const [underReviewList, setUnderReviewList] = createSignal<
     { agentId: string; agentName: string; productName: string; reason: string }[]
   >([]);
+
+  const toggleMeetingMode = (evalMode: boolean) => {
+    setIsEvaluationMode(evalMode);
+    if (evalMode) {
+      setIsTradingActive(false);
+      if (tradeIntervalId()) {
+        clearInterval(tradeIntervalId());
+        setTradeIntervalId(null);
+      }
+      const systemMsg = {
+        type: "chat",
+        senderId: "system",
+        sender: "Hệ thống",
+        text: "🔔 **Chế độ họp:** Thảo luận chuyên môn & Chấm điểm tự động bởi Rottra AI đã được kích hoạt. Không có hoạt động mua bán hay cập nhật sản phẩm.",
+        time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      };
+      setMessages((prev) => [...prev, systemMsg] as any);
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify(systemMsg));
+      }
+    } else {
+      startTradeSimulation();
+      const systemMsg = {
+        type: "chat",
+        senderId: "system",
+        sender: "Hệ thống",
+        text: "🔔 **Chế độ họp:** Giao thương & bán hàng đã bắt đầu! Các Agent bắt đầu đàm phán và trao đổi nông sản.",
+        time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      };
+      setMessages((prev) => [...prev, systemMsg] as any);
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify(systemMsg));
+      }
+    }
+  };
 
   const ccw = (A: { x: number; y: number }, B: { x: number; y: number }, C: { x: number; y: number }) => {
     return (C.y - A.y) * (B.x - A.x) > (B.y - A.y) * (C.x - A.x);
@@ -1828,7 +1938,7 @@ export component Assembly(props: any) {
               const vol = Number(tradeAction.vol);
               const price = Number(matchedAsset.price);
               if (Number.isFinite(vol) && Number.isFinite(price)) {
-                const basePnL = Math.floor(vol * price * (0.05 + Math.random() * 0.15));
+                const basePnL = Math.floor(vol * price * (0.05 + Deterministic.random() * 0.15));
                 pnl = Number.isFinite(basePnL) ? basePnL : 0;
 
                 const buyerBudget = Number(buyer.budget);
@@ -1888,7 +1998,7 @@ export component Assembly(props: any) {
       }
 
       // Thỉnh thoảng cho Agent "lướt sóng" tài chính (Vàng, Crypto, Chứng khoán)
-      if (Math.random() < 0.25) {
+      if (Deterministic.random() < 0.25) {
         const tradables: any[] = [];
         if (goldPrice() && goldPrice()?.sell) tradables.push({
           symbol: "Vàng PNJ",
@@ -1906,7 +2016,7 @@ export component Assembly(props: any) {
         });
 
         if (tradables.length > 0) {
-          const asset = tradables[Math.floor(Math.random() * tradables.length)];
+          const asset = tradables[Math.floor(Deterministic.random() * tradables.length)];
           const buyer = { ...assets[buyerId] };
 
           // Gọi RottraAI để quyết định kết quả giao dịch và sinh thoại
@@ -2159,7 +2269,7 @@ export component Assembly(props: any) {
         const knapsackItems = [];
         let remainQty = seller.quantity;
         while (remainQty > 0) {
-          const batchQty = Math.min(remainQty, Math.floor(Math.random() * 5) + 1);
+          const batchQty = Math.min(remainQty, Math.floor(Deterministic.random() * 5) + 1);
           const batchCost = batchQty * finalUnitPrice;
           // Tính giá trị nội tại (Value) cho Quy hoạch động
           const batchValue = batchCost * (1.1 + (AGENT_DNA[buyerId]?.greed ?? 0.5));
@@ -4779,6 +4889,7 @@ export component Assembly(props: any) {
           skillLevel: agentSkills()[botId]?.level,
           skillTitle: agentSkills()[botId]?.title,
           isLeader: botId === currentLeader().id,
+          isTradingActive: isTradingActive(),
         }),
       });
 
@@ -4787,6 +4898,15 @@ export component Assembly(props: any) {
       if (!data.success) throw new Error(data.error || "Failed");
 
       let cleanText = data.text || "";
+      if (!cleanText.trim()) {
+        setRemoteParticipants((prev) => prev.map((p) => p.id === botId ? { ...p, isSpeaking: false } : p));
+        setThinkingAgents((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(botId);
+          return newSet;
+        });
+        return;
+      }
       const parsedTags: Record<string, string> = {};
 
       const tagMatch = cleanText.match(/\[LỜI\s+ĐỒN:\s*([^\]]+)\]/i);
@@ -4873,6 +4993,9 @@ export component Assembly(props: any) {
         sender: botName,
         text: cleanText,
         time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        evaluatorScore: data.evaluatorScore,
+        entropy: data.entropy,
+        coverage: data.coverage,
       };
 
       if (ws && ws.readyState === WebSocket.OPEN) {
@@ -4924,10 +5047,98 @@ export component Assembly(props: any) {
     setTimeout(() => {
       const activeBots = remoteParticipants().filter((p) => p.isBot && !p.isMuted);
       if (activeBots.length > 0) {
-        const randomBot = activeBots[chatTick % activeBots.length];
+        const lastMsg = messages()[messages().length - 1];
+        const lastSenderId = lastMsg?.senderId;
+        const eligibleBots =
+          lastSenderId ? activeBots.filter((p) => `bot_${p.id}` !== lastSenderId) : activeBots;
+        const botsToUse =
+          eligibleBots.length > 0 ? eligibleBots : activeBots;
+        const randomBot = botsToUse[chatTick % botsToUse.length];
         triggerAgentResponse(randomBot.id, randomBot.name);
       }
     }, 3000);
+  };
+
+  const executeProposal = async (agentId: string, type: "pivot" | "restock", payload: any) => {
+    const assets = { ...agentAssets() };
+    const agent = assets[agentId];
+    if (!agent) return;
+
+    console.log(`[executeProposal] Executing approved proposal of type ${type} for agent ${agentId}`);
+
+    if (type === "pivot") {
+      const { finalCost, qtyToBuy, newProd } = payload;
+      agent.budget = Number(agent.budget) - finalCost;
+
+      if (!agent.products) agent.products = [];
+      agent.products.unshift({
+        name: newProd.name,
+        price: newProd.defaultPrice,
+        quantity: qtyToBuy,
+        media: ["/assets/Rottra-default-agri.avif"],
+      });
+      assets[agentId] = { ...agent };
+    } else if (type === "restock") {
+      const { finalCost, qtyToBuy } = payload;
+      agent.budget = Number(agent.budget) - finalCost;
+
+      if (agent.products && agent.products.length > 0) {
+        agent.products[0].quantity += qtyToBuy;
+      } else {
+        agent.quantity += qtyToBuy;
+      }
+      assets[agentId] = { ...agent };
+    }
+
+    setAgentAssets(assets);
+
+    // Sync to database
+    try {
+      await fetch("/api/agent/sync-assets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          assets: assets,
+          skills: agentSkills(),
+        }),
+      });
+      console.log(`[executeProposal] Sync completed successfully for agent ${agentId}`);
+      reloadAgentAssets(true);
+    } catch (err) {
+      console.error("Failed to sync approved proposal to DB:", err);
+    }
+  };
+
+  const handleApproveProposal = async (msg: any) => {
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+
+    // 1. Mark as approved locally
+    setMessages((prev) => prev.map((m) => (m.id === msg.id ? { ...m, isApproved: true } : m)));
+
+    // 2. Broadcast approval to all peers
+    ws.send(
+      JSON.stringify({
+        type: "approve-proposal",
+        proposalId: msg.id,
+        approverName: userName(),
+      }),
+    );
+
+    // 3. Post a message to chat
+    const approvalNotice = {
+      type: "chat",
+      senderId: myClientId,
+      sender: userName(),
+      text: `👍 Sếp đã duyệt đề xuất của **${msg.sender}**!`,
+      time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+    };
+    ws.send(JSON.stringify(approvalNotice));
+    setMessages((prev) => [...prev, approvalNotice] as any);
+
+    // 4. If we are the host, execute the proposal!
+    if (isHost()) {
+      await executeProposal(msg.proposalAgentId, msg.proposalType, msg.proposalPayload);
+    }
   };
 
   const [reactions, setReactions] = createSignal<any[]>([]);
@@ -5115,9 +5326,9 @@ export component Assembly(props: any) {
       "node",
       "guild",
     ];
-    const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
-    const n1 = nouns[Math.floor(Math.random() * nouns.length)];
-    const n2 = nouns[Math.floor(Math.random() * nouns.length)];
+    const adj = adjectives[Math.floor(Deterministic.random() * adjectives.length)];
+    const n1 = nouns[Math.floor(Deterministic.random() * nouns.length)];
+    const n2 = nouns[Math.floor(Deterministic.random() * nouns.length)];
     return slugify(`${adj} ${n1} ${n2}`);
   };
 
@@ -5179,7 +5390,8 @@ export component Assembly(props: any) {
     const stream = await startLocalMedia();
     setIsMeetingActive(true);
     if (isAgentRoom()) {
-      startTradeSimulation();
+      setIsEvaluationMode(true);
+      setIsTradingActive(false);
 
       // Spawn bot participants (other lore characters) to make it a lively assembly
       const botCharacters = LORE_CHARACTERS.filter((c) => c.id !== selectedCharId());
@@ -5189,7 +5401,7 @@ export component Assembly(props: any) {
           id: c.id,
           name: t(c.name),
           stream: null,
-          isVideoOff: Math.random() > 0.5,
+          isVideoOff: Deterministic.random() > 0.5,
           isMuted: (AGENT_DNA[c.id]?.vengeance || 0.5) < 0.3,
           isSpeaking: false,
           isBot: true,
@@ -5235,7 +5447,7 @@ export component Assembly(props: any) {
           return prev.map((p) => {
             if (p.isBot) {
               let isVideoOff = p.isVideoOff;
-              if (Math.random() < 0.15) {
+              if (Deterministic.random() < 0.15) {
                 isVideoOff = !isVideoOff;
               }
               if (p.isSpeaking) return { ...p, isVideoOff };
@@ -5251,7 +5463,13 @@ export component Assembly(props: any) {
         if (chatTick % 5 < 3 && isHost()) {
           const activeBots = remoteParticipants().filter((b) => b.isBot && !b.isMuted);
           if (activeBots.length > 0) {
-            const randomBot = activeBots[chatTick % activeBots.length];
+            const lastMsg = messages()[messages().length - 1];
+            const lastSenderId = lastMsg?.senderId;
+            const eligibleBots =
+              lastSenderId ? activeBots.filter((p) => `bot_${p.id}` !== lastSenderId) : activeBots;
+            const botsToUse =
+              eligibleBots.length > 0 ? eligibleBots : activeBots;
+            const randomBot = botsToUse[chatTick % botsToUse.length];
             triggerAgentResponse(randomBot.id, randomBot.name);
           }
         }
@@ -5522,32 +5740,21 @@ export component Assembly(props: any) {
             const qtyToBuy = Math.max(10, Math.floor(spendAmount / wholesalePrice));
             const finalCost = qtyToBuy * wholesalePrice;
 
-            agent.budget -= finalCost;
-
-            // Visual Update locally
-            if (!agent.products) agent.products = [];
-            agent.products.unshift({
-              name: newProd.name,
-              price: newProd.defaultPrice,
-              quantity: qtyToBuy,
-              media: ["/assets/Rottra-default-agri.avif"],
-            });
-
-            assets[key] = { ...agent };
-            changed = true;
-
-            syncPayload[key] = {
-              budget: agent.budget,
-            };
-
+            const proposalId = `prop_${key}_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
             const pivotMsg = t(
-              `🔄 [Chuyển đổi sản phẩm] {name} dùng {cost}${currencySymbol()} từ quỹ riêng tự nhập {qty} đơn vị sản phẩm mới: '{product}' với giá bán {price}${currencySymbol()}/đv.`,
+              `🔄 [ĐỀ XUẤT] {name} muốn dùng {cost}${currencySymbol()} nhập {qty} đơn vị sản phẩm mới: '{product}' ({price}${currencySymbol()}/đv). Sếp duyệt giúp em nhé!`,
             ).replace("{name}", t(agent.name)).replace("{cost}", formatCurrency(finalCost)).replace(
               "{qty}",
               formatCurrency(qtyToBuy),
             ).replace("{product}", t(newProd.name)).replace("{price}", formatCurrency(newProd.defaultPrice));
+
             const chatMsg = {
+              id: proposalId,
               type: "chat",
+              isProposal: true,
+              proposalType: "pivot",
+              proposalAgentId: key,
+              proposalPayload: { wholesalePrice, finalCost, qtyToBuy, newProd },
               senderId: `bot_${key}`,
               sender: agent.name,
               text: pivotMsg,
@@ -5564,29 +5771,21 @@ export component Assembly(props: any) {
             const qtyToBuy = Math.max(10, Math.floor(spendAmount / wholesalePrice));
             const finalCost = qtyToBuy * wholesalePrice;
 
-            agent.budget -= finalCost;
-
-            if (agent.products && agent.products.length > 0) {
-              agent.products[0].quantity += qtyToBuy;
-            } else {
-              agent.quantity += qtyToBuy;
-            }
-
-            assets[key] = { ...agent };
-            changed = true;
-
-            syncPayload[key] = {
-              budget: agent.budget,
-            };
-
+            const proposalId = `prop_${key}_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
             const restockMsg = t(
-              `📦 [Nhập thêm hàng] {name} chi {cost}${currencySymbol()} quỹ riêng tự nhập thêm {qty} đơn vị '{product}'.`,
+              `📦 [ĐỀ XUẤT] {name} muốn chi {cost}${currencySymbol()} nhập thêm {qty} đơn vị '{product}'. Sếp duyệt giúp em nhé!`,
             ).replace("{name}", t(agent.name)).replace("{cost}", formatCurrency(finalCost)).replace(
               "{qty}",
               formatCurrency(qtyToBuy),
             ).replace("{product}", t(currentProdName));
+
             const chatMsg = {
+              id: proposalId,
               type: "chat",
+              isProposal: true,
+              proposalType: "restock",
+              proposalAgentId: key,
+              proposalPayload: { wholesalePrice, finalCost, qtyToBuy },
               senderId: `bot_${key}`,
               sender: agent.name,
               text: restockMsg,
@@ -5648,7 +5847,9 @@ export component Assembly(props: any) {
       const protocol =
         window.location.protocol === "https:" ? "wss:" : "ws:";
       const host = window.location.host;
-      const wsUrl = `${protocol}//${host}/api/ws-signaling?room=${encodeURIComponent(meetingName())}`;
+      const wsUrl = import.meta.env.DEV
+        ? `ws://localhost:8080/?room=${encodeURIComponent(meetingName())}`
+        : `${protocol}//${host}/api/ws-signaling?room=${encodeURIComponent(meetingName())}`;
       console.log(`🔌 [WS] Connecting to signaling server ${wsUrl}...`);
       const newWs = new WebSocket(wsUrl);
 
@@ -5692,6 +5893,14 @@ export component Assembly(props: any) {
             }
             if (!msg.senderId.startsWith("bot_") && isAgentRoom()) {
               scheduleAgentResponse();
+            }
+          } else if (msg.type === "approve-proposal") {
+            setMessages((prev) => prev.map((m) => (m.id === msg.proposalId ? { ...m, isApproved: true } : m)));
+            if (isHost()) {
+              const originalProposal = messages().find((m) => m.id === msg.proposalId);
+              if (originalProposal) {
+                await executeProposal(originalProposal.proposalAgentId, originalProposal.proposalType, originalProposal.proposalPayload);
+              }
             }
           } else if (msg.type === "reaction") {
             addReaction(msg.emoji, msg.senderName);
@@ -6327,6 +6536,28 @@ export component Assembly(props: any) {
                 </p>
               </div>
             </div>
+            if (isAgentRoom()) {
+              <div class="flex items-center gap-2 bg-gray-800/50 p-1 rounded-xl border border-gray-700/50">
+                <button
+                  onClick={() => toggleMeetingMode(true)}
+                  class={`px-3 py-1.5 rounded-lg text-xs font-black uppercase transition-all ${
+                    isEvaluationMode()
+                      ? "bg-gradient-to-r from-indigo-600 to-pink-600 text-white shadow-lg shadow-indigo-500/20"
+                      : "text-gray-400 hover:text-gray-200"
+                  }`}>
+                  {"🤖 Thảo luận & Chấm điểm"}
+                </button>
+                <button
+                  onClick={() => toggleMeetingMode(false)}
+                  class={`px-3 py-1.5 rounded-lg text-xs font-black uppercase transition-all ${
+                    !isEvaluationMode()
+                      ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-500/20"
+                      : "text-gray-400 hover:text-gray-200"
+                  }`}>
+                  {"🌾 Giao thương"}
+                </button>
+              </div>
+            }
           </div>
 
           <div class="relative flex-1 flex flex-col min-h-0">
@@ -6605,31 +6836,73 @@ export component Assembly(props: any) {
                         <div class="flex flex-col gap-4 mt-2">
                           {/* Vàng */}
                           <Show when={goldPrice()}>
-                            <div class="flex flex-col gap-1.5">
-                              <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                                <div
-                                  class={`flex flex-col rounded-2xl p-4 border ${
-                                    theme() === "dark" ? "bg-[#1e1e1e] border-yellow-500/10" : "bg-yellow-50/50 border-yellow-200/50"
-                                  }`}>
-                                  <span class="text-[10px] font-medium text-gray-500 uppercase tracking-wider">{t("Giá Mua")}</span>
-                                  <span class="text-[18px] font-mono font-bold text-emerald-500 mt-1">
-                                    {goldPrice()?.buy
-                                      ? t(`{price} ${currencySymbol()}/lượng`).replace("{price}", formatCurrency(goldPrice()!.buy))
-                                      : "---"}
-                                  </span>
+                            <div class="flex flex-col gap-2">
+                              if (goldPrice()?.brandPrices) {
+                                <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
+                                  <For each={getUniqueGoldPrices()}>
+                                    {(p) => <tsx>
+                                      <div
+                                        class={`flex flex-col rounded-2xl p-4 border transition-all hover:shadow-md cursor-pointer ${
+                                          theme() === "dark"
+                                            ? "bg-[#1e1e1e] border-yellow-500/10 hover:bg-[#2a2a2a]"
+                                            : "bg-yellow-50/50 border-yellow-200/50 hover:bg-yellow-100/50"
+                                        }`}>
+                                        <span
+                                          class={`text-[12px] font-bold uppercase tracking-wider truncate ${
+                                            theme() === "dark" ? "text-gray-300" : "text-gray-700"
+                                          }`}>
+                                          {p.name || "Vàng"}
+                                        </span>
+                                        <div class="flex flex-col mt-2 gap-1">
+                                          <div class="flex justify-between items-center">
+                                            <span class="text-[10px] font-medium text-gray-500 uppercase tracking-wider">
+                                              {t("Mua")}
+                                              :
+                                            </span>
+                                            <span class="text-[15px] font-mono font-bold text-emerald-500">
+                                              {formatCurrency(p.buy)}
+                                            </span>
+                                          </div>
+                                          <div class="flex justify-between items-center">
+                                            <span class="text-[10px] font-medium text-gray-500 uppercase tracking-wider">
+                                              {t("Bán")}
+                                              :
+                                            </span>
+                                            <span class="text-[15px] font-mono font-bold text-yellow-500">
+                                              {formatCurrency(p.sell)}
+                                            </span>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </tsx>}
+                                  </For>
                                 </div>
-                                <div
-                                  class={`flex flex-col rounded-2xl p-4 border ${
-                                    theme() === "dark" ? "bg-[#1e1e1e] border-yellow-500/10" : "bg-yellow-50/50 border-yellow-200/50"
-                                  }`}>
-                                  <span class="text-[10px] font-medium text-gray-500 uppercase tracking-wider">{t("Giá Bán")}</span>
-                                  <span class="text-[18px] font-mono font-bold text-yellow-500 mt-1">
-                                    {goldPrice()?.sell
-                                      ? t(`{price} ${currencySymbol()}/lượng`).replace("{price}", formatCurrency(goldPrice()!.sell))
-                                      : "---"}
-                                  </span>
+                              } else {
+                                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                  <div
+                                    class={`flex flex-col rounded-2xl p-4 border ${
+                                      theme() === "dark" ? "bg-[#1e1e1e] border-yellow-500/10" : "bg-yellow-50/50 border-yellow-200/50"
+                                    }`}>
+                                    <span class="text-[10px] font-medium text-gray-500 uppercase tracking-wider">{t("Giá Mua")}</span>
+                                    <span class="text-[18px] font-mono font-bold text-emerald-500 mt-1">
+                                      {goldPrice()?.buy
+                                        ? t(`{price} ${currencySymbol()}/lượng`).replace("{price}", formatCurrency(goldPrice()!.buy))
+                                        : "---"}
+                                    </span>
+                                  </div>
+                                  <div
+                                    class={`flex flex-col rounded-2xl p-4 border ${
+                                      theme() === "dark" ? "bg-[#1e1e1e] border-yellow-500/10" : "bg-yellow-50/50 border-yellow-200/50"
+                                    }`}>
+                                    <span class="text-[10px] font-medium text-gray-500 uppercase tracking-wider">{t("Giá Bán")}</span>
+                                    <span class="text-[18px] font-mono font-bold text-yellow-500 mt-1">
+                                      {goldPrice()?.sell
+                                        ? t(`{price} ${currencySymbol()}/lượng`).replace("{price}", formatCurrency(goldPrice()!.sell))
+                                        : "---"}
+                                    </span>
+                                  </div>
                                 </div>
-                              </div>
+                              }
                             </div>
                           </Show>
 
@@ -7320,12 +7593,39 @@ export component Assembly(props: any) {
                                 }`}
                                 innerHTML={formatMarkdown(msg.text || "")}
                               />
+                              <Show when={msg.isProposal}>
+                                <div class="mt-2 flex items-center gap-2">
+                                  <Show when={msg.isApproved}>
+                                    <span class="text-xs font-bold text-green-500 flex items-center gap-1">{"✔ Đã được duyệt"}</span>
+                                  </Show>
+                                  <Show when={!msg.isApproved}>
+                                    <button
+                                      onClick={() => handleApproveProposal(msg)}
+                                      class="px-3 py-1 rounded bg-green-600 hover:bg-green-700 text-white text-[10px] font-black uppercase tracking-wider transition-all shadow-sm hover:scale-105 active:scale-95">
+                                      {"👍 Duyệt Đề Xuất"}
+                                    </button>
+                                  </Show>
+                                </div>
+                              </Show>
+                              <Show when={msg.evaluatorScore}>
+                                <div
+                                  class="mt-1 flex items-center gap-1.5 text-[9px] font-black uppercase text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded w-fit select-none">
+                                  <span>{"🤖 Rottra AI chấm điểm: " + msg.evaluatorScore + "/10"}</span>
+                                  <span class="text-gray-600">{"|"}</span>
+                                  <span>{"Entropy: " + msg.entropy}</span>
+                                  <span class="text-gray-600">{"|"}</span>
+                                  <span>{"Độ bao phủ: " + msg.coverage + "%"}</span>
+                                </div>
+                              </Show>
                               <Show when={msg.svgImage}>
                                 <div class="mt-1 flex justify-start">
-                                  <div 
+                                  <div
                                     class="w-32 h-32 rounded-lg overflow-hidden border shadow-sm transition-transform hover:scale-105"
-                                    classList={{ "border-gray-700 bg-[#1a1a1a]": theme() === "dark", "border-gray-200 bg-gray-50": theme() === "light" }}
-                                    innerHTML={msg.svgImage} 
+                                    classList={{
+                                      "border-gray-700 bg-[#1a1a1a]": theme() === "dark",
+                                      "border-gray-200 bg-gray-50": theme() === "light",
+                                    }}
+                                    innerHTML={msg.svgImage}
                                   />
                                 </div>
                               </Show>
@@ -7343,7 +7643,7 @@ export component Assembly(props: any) {
                       <p class="text-gray-500 text-sm italic">{"Chưa có tin nhắn nào"}</p>
                     </div>
                   }
-                  
+
                   {/* Typing Indicators removed */}
                 </div>
 
